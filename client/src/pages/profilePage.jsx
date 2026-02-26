@@ -45,8 +45,8 @@ const ProfilePage = () => {
     if (!user?.id || !token) return;
     try {
       const [resArticles, resPrograms] = await Promise.all([
-        axios.get(`http://localhost:5000/api/projects/user/${user.id}`, authConfig),
-        axios.get('http://localhost:5000/api/programs')
+        axios.get(`http://51.21.180.152/api/projects/user/${user.id}`, authConfig),
+        axios.get('http://51.21.180.152/api/programs')
       ]);
 
       setArticles(resArticles.data);
@@ -95,7 +95,7 @@ const ProfilePage = () => {
     data.append('authorComment', 'Виправлено згідно із зауваженнями рецензента');
 
     toast.promise(
-      axios.patch(`http://localhost:5000/api/projects/revision/${projectId}`, data, {
+      axios.patch(`http://51.21.180.152/api/projects/revision/${projectId}`, data, {
         headers: {
           ...authConfig.headers,
           'Content-Type': 'multipart/form-data'
@@ -116,7 +116,6 @@ const ProfilePage = () => {
     );
   };
 
-  // Подача нової роботи
   const handleSubmitArticle = async (e) => {
     e.preventDefault();
     if (!file) return toast.error("Будь ласка, оберіть файл!");
@@ -137,7 +136,7 @@ const ProfilePage = () => {
     setLoading(true);
 
     toast.promise(
-      axios.post('http://localhost:5000/api/projects/create', data, {
+      axios.post('http://51.21.180.152/api/projects/create', data, {
         headers: {
           ...authConfig.headers,
           'Content-Type': 'multipart/form-data'

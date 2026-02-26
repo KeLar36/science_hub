@@ -24,7 +24,7 @@ const RegisterPage = () => {
 
     setLoading(true);
 
-    const registerPromise = axios.post('http://localhost:5000/api/auth/register', data);
+    const registerPromise = axios.post('http://51.21.180.152/api/auth/register', data);
 
     toast.promise(
       registerPromise,

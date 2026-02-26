@@ -19,7 +19,7 @@ const ReviewerPage = () => {
   const [commentText, setCommentText] = useState('');
 
   const api = axios.create({
-    baseURL: 'http://localhost:5000/api',
+    baseURL: 'http://51.21.180.152/api',
     headers: { Authorization: `Bearer ${token}` }
   });
 

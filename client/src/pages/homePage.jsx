@@ -32,7 +32,7 @@ const HomePage = () => {
   useEffect(() => {
     const fetchPrograms = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/programs');
+        const res = await axios.get('http://51.21.180.152/api/programs');
 
         if (Array.isArray(res.data)) {
           setPrograms(res.data);
@@ -46,14 +46,11 @@ const HomePage = () => {
     fetchPrograms();
   }, []);
 
-  // ФІЛТРАЦІЯ: тепер включає перевірку дедлайну
   const filteredPrograms = programs.filter(p => {
     const title = p.title || "";
     const matchesSearch = title.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDomain = selectedDomain === "Всі галузі" || p.domain === selectedDomain;
 
-    // Перевірка дедлайну: програма відображається лише якщо дедлайн сьогодні або в майбутньому
-    // Встановлюємо час поточної дати на 00:00:00 для коректного порівняння днів
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const deadlineDate = p.deadline ? new Date(p.deadline) : null;

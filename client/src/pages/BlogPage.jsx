@@ -17,7 +17,7 @@ const Blog = () => {
    useEffect(() => {
       const fetchPosts = async () => {
          try {
-            const res = await axios.get('http://localhost:5000/api/posts');
+            const res = await axios.get('http://51.21.180.152/api/posts');
             setPosts(res.data);
             setFilteredPosts(res.data);
          } catch (err) {
@@ -32,7 +32,7 @@ const Blog = () => {
    const stripHtml = (html) => {
       const doc = new DOMParser().parseFromString(html, 'text/html');
       const text = doc.body.textContent || "";
-      return text.replace(/\s+/g, ' ').trim(); 
+      return text.replace(/\s+/g, ' ').trim();
    };
 
    useEffect(() => {
@@ -93,9 +93,9 @@ const Blog = () => {
                      <article key={post._id || post.id} className="post-card">
                         <div className="post-image-wrapper">
                            <div className="post-category-tag">{post.category}</div>
-                           <img 
-                              src={post.coverImage || post.image || 'https://images.unsplash.com/photo-1532094349884-543bb11783ac?auto=format&fit=crop&q=80'} 
-                              alt={post.title} 
+                           <img
+                              src={post.coverImage || post.image || 'https://images.unsplash.com/photo-1532094349884-543bb11783ac?auto=format&fit=crop&q=80'}
+                              alt={post.title}
                               onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1532094349884-543bb11783ac?auto=format&fit=crop&q=80'; }}
                            />
                         </div>

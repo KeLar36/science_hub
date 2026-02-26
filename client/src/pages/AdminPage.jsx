@@ -71,8 +71,8 @@ const AdminPage = () => {
     setLoading(true);
     try {
       const [resProj, resUsers] = await Promise.all([
-        axios.get('http://localhost:5000/api/projects/all', authConfig),
-        axios.get('http://localhost:5000/api/users/all', authConfig)
+        axios.get('http://51.21.180.152/api/projects/all', authConfig),
+        axios.get('http://51.21.180.152/api/users/all', authConfig)
       ]);
       setProjects(resProj.data);
       setUsersList(resUsers.data);
@@ -101,7 +101,7 @@ const AdminPage = () => {
     if (!formData.description || formData.description === '<p><br></p>') {
       return toast.error("Додайте опис програми");
     }
-    const creation = axios.post('http://localhost:5000/api/programs/create', formData, authConfig);
+    const creation = axios.post('http://51.21.180.152/api/programs/create', formData, authConfig);
     toast.promise(creation, {
       loading: 'Створення програми...',
       success: <b>Програму опубліковано! 📋</b>,
@@ -110,7 +110,6 @@ const AdminPage = () => {
   };
 
   const toggleBan = async (targetUser) => {
-    // ЗАХИСТ: Перевірка чи не намагаємось ми забанити адміна
     if (targetUser.role === 'admin') {
       toast.error("Неможливо змінити доступ іншому адміністратору", {
         icon: '🛡️',
@@ -120,7 +119,7 @@ const AdminPage = () => {
     }
 
     try {
-      await axios.patch(`http://localhost:5000/api/users/ban/${targetUser._id}`, { isBanned: !targetUser.isBanned }, authConfig);
+      await axios.patch(`http://51.21.180.152/api/users/ban/${targetUser._id}`, { isBanned: !targetUser.isBanned }, authConfig);
       setUsersList(usersList.map(u => u._id === targetUser._id ? { ...u, isBanned: !targetUser.isBanned } : u));
       !targetUser.isBanned ? toast.error("Користувача заблоковано") : toast.success("Доступ поновлено");
     } catch (err) { 
@@ -130,21 +129,20 @@ const AdminPage = () => {
 
   const updateStatus = async (id, status) => {
     try {
-      await axios.patch(`http://localhost:5000/api/projects/status/${id}`, { status }, authConfig);
+      await axios.patch(`http://51.21.180.152/api/projects/status/${id}`, { status }, authConfig);
       toast.success(`Статус оновлено: ${status}`);
       loadData();
     } catch (err) { toast.error("Помилка зміни статусу"); }
   };
 
   const changeRole = async (targetUser, newRole) => {
-     // ЗАХИСТ: Не даємо знімати роль адміна іншому адміну через загальний інтерфейс
      if (targetUser.role === 'admin' && targetUser._id !== user.id) {
         toast.error("Ви не можете змінювати роль іншого адміністратора");
         return;
      }
 
      try {
-       await axios.patch(`http://localhost:5000/api/users/role/${targetUser._id}`, { role: newRole }, authConfig);
+       await axios.patch(`http://51.21.180.152/api/users/role/${targetUser._id}`, { role: newRole }, authConfig);
        setUsersList(usersList.map(u => u._id === targetUser._id ? { ...u, role: newRole } : u));
        toast.success(`Роль змінена на ${newRole}`);
      } catch (err) { toast.error("Помилка зміни ролі"); }

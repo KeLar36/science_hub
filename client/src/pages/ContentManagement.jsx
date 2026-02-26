@@ -12,7 +12,6 @@ import 'react-quill-new/dist/quill.snow.css';
 
 const CATEGORIES = ["Новини", "Поради", "Конференції", "Інтерв'ю", "Методологія"];
 
-// Налаштування модулів для чистішого вигляду
 const modules = {
 	toolbar: [
 		[{ 'header': [1, 2, 3, false] }],
@@ -64,7 +63,7 @@ const ContentManagement = () => {
 				formData.append('image', imageFile);
 			}
 
-			await axios.post('http://localhost:5000/api/posts/create', formData, {
+			await axios.post('http://51.21.180.152/api/posts/create', formData, {
 				headers: {
 					'Authorization': `Bearer ${token}`,
 					'Content-Type': 'multipart/form-data'

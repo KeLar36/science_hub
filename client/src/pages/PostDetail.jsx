@@ -18,7 +18,7 @@ const PostDetail = () => {
    useEffect(() => {
       const fetchPost = async () => {
          try {
-            const res = await axios.get(`http://localhost:5000/api/posts/${id}`);
+            const res = await axios.get(`http://51.21.180.152/api/posts/${id}`);
             setPost(res.data);
          } catch (err) {
             console.error(err);
