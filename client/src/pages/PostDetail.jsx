@@ -18,7 +18,9 @@ const PostDetail = () => {
    useEffect(() => {
       const fetchPost = async () => {
          try {
-            const res = await axios.get(`http://51.21.180.152/api/posts/${id}`);
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+            const res = await axios.get(`${apiUrl}/api/posts/${id}`);
             setPost(res.data);
          } catch (err) {
             console.error(err);
@@ -30,7 +32,7 @@ const PostDetail = () => {
       };
       fetchPost();
       window.scrollTo(0, 0);
-   }, [id, navigate]);
+   }, [id, navigate, import.meta.env.VITE_API_URL]);
 
    useEffect(() => {
       const handleScroll = () => {
@@ -56,7 +58,7 @@ const PostDetail = () => {
    return (
       <div className="min-h-screen bg-white flex flex-col overflow-x-hidden">
          <Toaster />
-         
+
          <style>{`
             .article-content {
                text-align: justify; /* Вирівнювання по ширині для блогів */

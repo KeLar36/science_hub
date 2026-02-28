@@ -26,6 +26,7 @@ const quillModules = {
 };
 
 const AdminPage = () => {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const user = JSON.parse(localStorage.getItem('user'));
   const token = localStorage.getItem('token');
   const navigate = useNavigate();
@@ -40,7 +41,6 @@ const AdminPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Слухач для адаптації тостів
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
@@ -71,8 +71,8 @@ const AdminPage = () => {
     setLoading(true);
     try {
       const [resProj, resUsers] = await Promise.all([
-        axios.get('http://51.21.180.152/api/projects/all', authConfig),
-        axios.get('http://51.21.180.152/api/users/all', authConfig)
+        axios.get(`${apiUrl}/api/projects/all`, authConfig),
+        axios.get(`${apiUrl}/api/users/all`, authConfig)
       ]);
       setProjects(resProj.data);
       setUsersList(resUsers.data);
@@ -101,7 +101,7 @@ const AdminPage = () => {
     if (!formData.description || formData.description === '<p><br></p>') {
       return toast.error("Додайте опис програми");
     }
-    const creation = axios.post('http://51.21.180.152/api/programs/create', formData, authConfig);
+    const creation = axios.post(`${apiUrl}/api/programs/create`, formData, authConfig);
     toast.promise(creation, {
       loading: 'Створення програми...',
       success: <b>Програму опубліковано! 📋</b>,
@@ -119,38 +119,38 @@ const AdminPage = () => {
     }
 
     try {
-      await axios.patch(`http://51.21.180.152/api/users/ban/${targetUser._id}`, { isBanned: !targetUser.isBanned }, authConfig);
+      await axios.patch(`${apiUrl}/api/users/ban/${targetUser._id}`, { isBanned: !targetUser.isBanned }, authConfig);
       setUsersList(usersList.map(u => u._id === targetUser._id ? { ...u, isBanned: !targetUser.isBanned } : u));
       !targetUser.isBanned ? toast.error("Користувача заблоковано") : toast.success("Доступ поновлено");
-    } catch (err) { 
-      toast.error("Помилка доступу до бази"); 
+    } catch (err) {
+      toast.error("Помилка доступу до бази");
     }
   };
 
   const updateStatus = async (id, status) => {
     try {
-      await axios.patch(`http://51.21.180.152/api/projects/status/${id}`, { status }, authConfig);
+      await axios.patch(`${apiUrl}/api/projects/status/${id}`, { status }, authConfig);
       toast.success(`Статус оновлено: ${status}`);
       loadData();
     } catch (err) { toast.error("Помилка зміни статусу"); }
   };
 
   const changeRole = async (targetUser, newRole) => {
-     if (targetUser.role === 'admin' && targetUser._id !== user.id) {
-        toast.error("Ви не можете змінювати роль іншого адміністратора");
-        return;
-     }
+    if (targetUser.role === 'admin' && targetUser._id !== user.id) {
+      toast.error("Ви не можете змінювати роль іншого адміністратора");
+      return;
+    }
 
-     try {
-       await axios.patch(`http://51.21.180.152/api/users/role/${targetUser._id}`, { role: newRole }, authConfig);
-       setUsersList(usersList.map(u => u._id === targetUser._id ? { ...u, role: newRole } : u));
-       toast.success(`Роль змінена на ${newRole}`);
-     } catch (err) { toast.error("Помилка зміни ролі"); }
+    try {
+      await axios.patch(`${apiUrl}/api/users/role/${targetUser._id}`, { role: newRole }, authConfig);
+      setUsersList(usersList.map(u => u._id === targetUser._id ? { ...u, role: newRole } : u));
+      toast.success(`Роль змінена на ${newRole}`);
+    } catch (err) { toast.error("Помилка зміни ролі"); }
   };
 
   const assignReviewer = async (projectId, reviewerId) => {
     try {
-      await axios.patch(`http://localhost:5000/api/projects/assign/${projectId}`, { reviewerId }, authConfig);
+      await axios.patch(`${apiUrl}/api/projects/assign/${projectId}`, { reviewerId }, authConfig);
       toast.success("Рецензента призначено");
       loadData();
     } catch (err) { toast.error("Помилка призначення"); }
@@ -160,9 +160,8 @@ const AdminPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f8f7ff]">
-      {/* Адаптивні тости */}
-      <Toaster 
-        position={isMobile ? "top-center" : "top-right"} 
+      <Toaster
+        position={isMobile ? "top-center" : "top-right"}
         toastOptions={{
           style: {
             borderRadius: '20px',
@@ -176,7 +175,6 @@ const AdminPage = () => {
       />
       <Navbar />
 
-      {/* Navigation Tabs */}
       <div className="bg-white border-b border-purple-50 sticky top-[70px] z-20 shadow-sm overflow-x-auto no-scrollbar">
         <div className="max-w-7xl mx-auto px-4 flex sm:justify-center gap-2 sm:gap-8 min-w-max">
           {[
@@ -199,7 +197,6 @@ const AdminPage = () => {
         </div>
       </div>
 
-      {/* Stats Section */}
       <div className="flex flex-wrap gap-4 md:gap-6 mb-10 w-[90%] lg:w-[80%] self-center m-3">
         {[
           { label: 'Усього заявок', value: projects.length, color: 'bg-blue-600', shadow: 'shadow-blue-100', icon: FileText },
@@ -221,44 +218,43 @@ const AdminPage = () => {
 
       <main className="flex-grow max-w-7xl mx-auto w-full py-6 px-4">
         {activeTab === 'create' && (
-           <div className="max-w-4xl mx-auto bg-white rounded-[40px] shadow-sm border border-purple-50 p-6 md:p-10 animate-fade-in">
-              <div className="flex items-center gap-4 mb-8 text-[#1e1b4b]">
-                <PlusCircle size={32} />
-                <h2 className="text-2xl font-black">Нова наукова програма</h2>
+          <div className="max-w-4xl mx-auto bg-white rounded-[40px] shadow-sm border border-purple-50 p-6 md:p-10 animate-fade-in">
+            <div className="flex items-center gap-4 mb-8 text-[#1e1b4b]">
+              <PlusCircle size={32} />
+              <h2 className="text-2xl font-black">Нова наукова програма</h2>
+            </div>
+            <form onSubmit={handleCreateProgram} className="space-y-6">
+              <div>
+                <label className="block text-[11px] font-black text-gray-400 mb-2 ml-1 uppercase">Назва програми</label>
+                <input className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-purple-100 focus:bg-white rounded-2xl outline-none transition-all font-bold text-[#1e1b4b]" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="Наприклад: AI у медицині 2026" required />
               </div>
-              {/* Форма залишається аналогічною, але з покращеними тостами зверху */}
-              <form onSubmit={handleCreateProgram} className="space-y-6">
-                <div>
-                  <label className="block text-[11px] font-black text-gray-400 mb-2 ml-1 uppercase">Назва програми</label>
-                  <input className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-purple-100 focus:bg-white rounded-2xl outline-none transition-all font-bold text-[#1e1b4b]" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="Наприклад: AI у медицині 2026" required />
+              <div>
+                <label className="block text-[11px] font-black text-gray-400 mb-2 ml-1 uppercase">Опис та умови</label>
+                <div className="rounded-2xl overflow-hidden border border-gray-100">
+                  <ReactQuill theme="snow" value={formData.description} onChange={(val) => setFormData({ ...formData, description: val })} modules={quillModules} />
                 </div>
-                <div>
-                  <label className="block text-[11px] font-black text-gray-400 mb-2 ml-1 uppercase">Опис та умови</label>
-                  <div className="rounded-2xl overflow-hidden border border-gray-100">
-                    <ReactQuill theme="snow" value={formData.description} onChange={(val) => setFormData({ ...formData, description: val })} modules={quillModules} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <input type="date" className="p-4 bg-gray-50 rounded-2xl font-bold" value={formData.deadline} onChange={e => setFormData({ ...formData, deadline: e.target.value })} required />
-                  <select className="p-4 bg-gray-50 rounded-2xl font-bold appearance-none" value={formData.domain} onChange={e => setFormData({ ...formData, domain: e.target.value })}>
-                    {SCIENTIFIC_DOMAINS.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                </div>
-                <button className="w-full py-5 bg-[#6d28d9] text-white rounded-3xl font-black text-xl hover:shadow-2xl hover:shadow-purple-200 transition-all active:scale-[0.98]">
-                  Опублікувати програму
-                </button>
-              </form>
-           </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <input type="date" className="p-4 bg-gray-50 rounded-2xl font-bold" value={formData.deadline} onChange={e => setFormData({ ...formData, deadline: e.target.value })} required />
+                <select className="p-4 bg-gray-50 rounded-2xl font-bold appearance-none" value={formData.domain} onChange={e => setFormData({ ...formData, domain: e.target.value })}>
+                  {SCIENTIFIC_DOMAINS.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+              <button className="w-full py-5 bg-[#6d28d9] text-white rounded-3xl font-black text-xl hover:shadow-2xl hover:shadow-purple-200 transition-all active:scale-[0.98]">
+                Опублікувати програму
+              </button>
+            </form>
+          </div>
         )}
 
         {activeTab === 'users' && (
           <div className="bg-white rounded-[40px] shadow-sm border border-purple-50 overflow-hidden">
             <div className="p-8 border-b border-purple-50 flex flex-col md:flex-row justify-between items-center gap-4">
-               <h2 className="text-2xl font-black text-[#1e1b4b]">Керування доступом</h2>
-               <div className="relative w-full md:w-80">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-400" size={18} />
-                  <input className="w-full pl-12 pr-4 py-3 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-purple-100 font-bold" placeholder="Пошук..." onChange={e => setSearchTerm(e.target.value)} />
-               </div>
+              <h2 className="text-2xl font-black text-[#1e1b4b]">Керування доступом</h2>
+              <div className="relative w-full md:w-80">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-400" size={18} />
+                <input className="w-full pl-12 pr-4 py-3 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-purple-100 font-bold" placeholder="Пошук..." onChange={e => setSearchTerm(e.target.value)} />
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
@@ -283,9 +279,9 @@ const AdminPage = () => {
                         <div className="text-xs text-gray-400 font-bold">{item.email}</div>
                       </td>
                       <td className="px-8 py-6">
-                        <select 
-                          className="bg-white border border-purple-50 rounded-xl px-3 py-2 text-xs font-black text-[#6d28d9] outline-none" 
-                          value={item.role} 
+                        <select
+                          className="bg-white border border-purple-50 rounded-xl px-3 py-2 text-xs font-black text-[#6d28d9] outline-none"
+                          value={item.role}
                           onChange={(e) => changeRole(item, e.target.value)}
                           disabled={item._id === user.id}
                         >
@@ -295,14 +291,13 @@ const AdminPage = () => {
                         </select>
                       </td>
                       <td className="px-8 py-6 text-right">
-                        <button 
-                          className={`px-6 py-2.5 rounded-xl text-xs font-black transition-all ${
-                            item._id === user.id || item.role === 'admin' 
-                            ? 'bg-gray-100 text-gray-300 cursor-not-allowed' 
-                            : item.isBanned 
-                            ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white' 
-                            : 'bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white'
-                          }`}
+                        <button
+                          className={`px-6 py-2.5 rounded-xl text-xs font-black transition-all ${item._id === user.id || item.role === 'admin'
+                            ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                            : item.isBanned
+                              ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'
+                              : 'bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white'
+                            }`}
                           onClick={() => toggleBan(item)}
                           disabled={item._id === user.id || item.role === 'admin'}
                         >
@@ -318,56 +313,55 @@ const AdminPage = () => {
         )}
 
         {activeTab === 'projects' && (
-            <div className="bg-white rounded-[40px] shadow-sm border border-purple-50 overflow-hidden">
-                <div className="p-8 border-b border-purple-50 flex flex-col md:flex-row justify-between items-center gap-4">
-                  <h2 className="text-2xl font-black text-[#1e1b4b]">Моніторинг заявок</h2>
-                   <div className="relative w-full md:w-80">
-                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-400" size={18} />
-                      <input className="w-full pl-12 pr-4 py-3 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-purple-100 font-bold" placeholder="Пошук публікацій..." onChange={e => setSearchTerm(e.target.value)} />
-                   </div>
-                </div>
-                {/* Таблиця проектів аналогічна до вашої, але з покращеною стилізацією рядків */}
-                <div className="overflow-x-auto">
-                   <table className="w-full text-left min-w-[900px]">
-                      <thead className="bg-gray-50/50">
-                        <tr className="text-[10px] uppercase font-black text-gray-400">
-                          <th className="px-8 py-5">Автор та тема</th>
-                          <th className="px-6 py-5">Галузь</th>
-                          <th className="px-6 py-5">Рецензент</th>
-                          <th className="px-6 py-5 text-right">Статус</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-purple-50">
-                        {currentItems.map(item => (
-                           <tr key={item._id} className="hover:bg-purple-50/20 transition-all">
-                              <td className="px-8 py-6">
-                                <div className="font-black text-[#1e1b4b] text-sm">{item.authorId?.name || 'Анонім'}</div>
-                                <div className="text-xs text-gray-400 font-bold italic">{item.title}</div>
-                              </td>
-                              <td className="px-6 py-6">
-                                <span className="bg-purple-50 text-[#6d28d9] px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border border-purple-100 whitespace-nowrap">{item.domain}</span>
-                              </td>
-                              <td className="px-6 py-6">
-                                <select className="bg-white border border-gray-100 rounded-xl px-3 py-2 text-[11px] font-bold outline-none focus:ring-2 focus:ring-purple-100 text-gray-600 cursor-pointer" value={item.reviewerId?._id || ""} onChange={(e) => assignReviewer(item._id, e.target.value)}>
-                                  <option value="">Не призначено</option>
-                                  {reviewers.map(rev => <option key={rev._id} value={rev._id}>{rev.name}</option>)}
-                                </select>
-                              </td>
-                              <td className="px-6 py-6 text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                  <span className={`text-[10px] font-black uppercase px-2 py-1 rounded ${item.status === 'Прийнято' ? 'text-emerald-600 bg-emerald-50' : item.status === 'Відхилено' ? 'text-rose-600 bg-rose-50' : 'text-indigo-600 bg-indigo-50'}`}>
-                                    {item.status}
-                                  </span>
-                                  <button className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm" onClick={() => updateStatus(item._id, 'Прийнято')}><CheckCircle size={18} /></button>
-                                  <button className="p-2 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all shadow-sm" onClick={() => updateStatus(item._id, 'Відхилено')}><XCircle size={18} /></button>
-                                </div>
-                              </td>
-                           </tr>
-                        ))}
-                      </tbody>
-                   </table>
-                </div>
+          <div className="bg-white rounded-[40px] shadow-sm border border-purple-50 overflow-hidden">
+            <div className="p-8 border-b border-purple-50 flex flex-col md:flex-row justify-between items-center gap-4">
+              <h2 className="text-2xl font-black text-[#1e1b4b]">Моніторинг заявок</h2>
+              <div className="relative w-full md:w-80">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-400" size={18} />
+                <input className="w-full pl-12 pr-4 py-3 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-purple-100 font-bold" placeholder="Пошук публікацій..." onChange={e => setSearchTerm(e.target.value)} />
+              </div>
             </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left min-w-[900px]">
+                <thead className="bg-gray-50/50">
+                  <tr className="text-[10px] uppercase font-black text-gray-400">
+                    <th className="px-8 py-5">Автор та тема</th>
+                    <th className="px-6 py-5">Галузь</th>
+                    <th className="px-6 py-5">Рецензент</th>
+                    <th className="px-6 py-5 text-right">Статус</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-purple-50">
+                  {currentItems.map(item => (
+                    <tr key={item._id} className="hover:bg-purple-50/20 transition-all">
+                      <td className="px-8 py-6">
+                        <div className="font-black text-[#1e1b4b] text-sm">{item.authorId?.name || 'Анонім'}</div>
+                        <div className="text-xs text-gray-400 font-bold italic">{item.title}</div>
+                      </td>
+                      <td className="px-6 py-6">
+                        <span className="bg-purple-50 text-[#6d28d9] px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border border-purple-100 whitespace-nowrap">{item.domain}</span>
+                      </td>
+                      <td className="px-6 py-6">
+                        <select className="bg-white border border-gray-100 rounded-xl px-3 py-2 text-[11px] font-bold outline-none focus:ring-2 focus:ring-purple-100 text-gray-600 cursor-pointer" value={item.reviewerId?._id || ""} onChange={(e) => assignReviewer(item._id, e.target.value)}>
+                          <option value="">Не призначено</option>
+                          {reviewers.map(rev => <option key={rev._id} value={rev._id}>{rev.name}</option>)}
+                        </select>
+                      </td>
+                      <td className="px-6 py-6 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <span className={`text-[10px] font-black uppercase px-2 py-1 rounded ${item.status === 'Прийнято' ? 'text-emerald-600 bg-emerald-50' : item.status === 'Відхилено' ? 'text-rose-600 bg-rose-50' : 'text-indigo-600 bg-indigo-50'}`}>
+                            {item.status}
+                          </span>
+                          <button className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm" onClick={() => updateStatus(item._id, 'Прийнято')}><CheckCircle size={18} /></button>
+                          <button className="p-2 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all shadow-sm" onClick={() => updateStatus(item._id, 'Відхилено')}><XCircle size={18} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
       </main>
       <Footer />

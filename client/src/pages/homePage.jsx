@@ -32,8 +32,8 @@ const HomePage = () => {
   useEffect(() => {
     const fetchPrograms = async () => {
       try {
-        const res = await axios.get('http://51.21.180.152/api/programs');
-
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const res = await axios.get(`${apiUrl}/api/programs`);
         if (Array.isArray(res.data)) {
           setPrograms(res.data);
         }
@@ -92,7 +92,6 @@ const HomePage = () => {
       <div className="stats-bar">
         <div className="stat-pill">
           <TrendingUp size={18} className="text-[#6d28d9]" />
-          {/* Показуємо кількість саме активних програм */}
           <span className="font-bold">{filteredPrograms.length} актуальних програм</span>
         </div>
         <div className="stat-pill">
@@ -125,7 +124,6 @@ const HomePage = () => {
         ) : (
           <div className="programs-grid">
             {filteredPrograms.map((prog) => {
-              // Логіка підсвітки термінових програм
               const today = new Date();
               const deadline = new Date(prog.deadline);
               const diffTime = deadline - today;

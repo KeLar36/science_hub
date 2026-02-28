@@ -14,11 +14,12 @@ import Footer from '../components/Footer';
 import '../index.css';
 
 const ProfilePage = () => {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const navigate = useNavigate();
   const location = useLocation();
 
   const [user] = useState(() => JSON.parse(localStorage.getItem('user')));
-  const [token] = useState(() => localStorage.getItem('token')); // Отримуємо токен
+  const [token] = useState(() => localStorage.getItem('token'));
   const [view, setView] = useState(location.state?.programId ? 'form' : 'list');
 
   const [articles, setArticles] = useState([]);
@@ -36,7 +37,6 @@ const ProfilePage = () => {
   const deepPurple = "#6d28d9";
   const darkIndigo = "#1e1b4b";
 
-  // Конфігурація для axios з токеном
   const authConfig = {
     headers: { Authorization: `Bearer ${token}` }
   };
@@ -45,8 +45,8 @@ const ProfilePage = () => {
     if (!user?.id || !token) return;
     try {
       const [resArticles, resPrograms] = await Promise.all([
-        axios.get(`http://51.21.180.152/api/projects/user/${user.id}`, authConfig),
-        axios.get('http://51.21.180.152/api/programs')
+        axios.get(`${apiUrl}/api/projects/user/${user.id}`, authConfig),
+        axios.get(`${apiUrl}/api/programs`)
       ]);
 
       setArticles(resArticles.data);
@@ -95,7 +95,7 @@ const ProfilePage = () => {
     data.append('authorComment', 'Виправлено згідно із зауваженнями рецензента');
 
     toast.promise(
-      axios.patch(`http://51.21.180.152/api/projects/revision/${projectId}`, data, {
+      axios.patch(`${apiUrl}/api/projects/revision/${projectId}`, data, {
         headers: {
           ...authConfig.headers,
           'Content-Type': 'multipart/form-data'
@@ -136,7 +136,7 @@ const ProfilePage = () => {
     setLoading(true);
 
     toast.promise(
-      axios.post('http://51.21.180.152/api/projects/create', data, {
+      axios.post(`${apiUrl}/api/projects/create`, data, {
         headers: {
           ...authConfig.headers,
           'Content-Type': 'multipart/form-data'
@@ -148,7 +148,6 @@ const ProfilePage = () => {
           setTimeout(() => {
             setView('list');
             fetchData();
-            // Очищення стейту форми
             setArticleData({ title: '', abstract: '', programId: '', domain: '' });
             setFile(null);
           }, 1500);
@@ -169,7 +168,6 @@ const ProfilePage = () => {
 
       <main className="py-10 px-4 max-w-6xl mx-auto w-full flex-grow">
 
-        {/* Profile Info Card */}
         <div className="mb-8 bg-white p-6 rounded-[32px] shadow-sm border border-purple-50 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-5">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-[#f5f3ff] border border-purple-100">
@@ -209,7 +207,6 @@ const ProfilePage = () => {
 
         {view === 'list' ? (
           <div className="animate-fade-in">
-            {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
               <div className="p-5 bg-white rounded-3xl border border-gray-50 shadow-sm flex items-center gap-4">
                 <div className="w-12 h-12 bg-[#f5f3ff] rounded-xl flex items-center justify-center text-[#6d28d9]"><FileText size={24} /></div>
@@ -274,7 +271,6 @@ const ProfilePage = () => {
             )}
           </div>
         ) : (
-          /* FORM VIEW */
           <div className="bg-white p-10 rounded-[40px] border border-gray-50 shadow-sm animate-fade-in">
             <h3 className="text-2xl font-black text-[#1e1b4b] mb-8">Нова публікація</h3>
             <form onSubmit={handleSubmitArticle} className="space-y-6">

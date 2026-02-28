@@ -17,7 +17,8 @@ const Blog = () => {
    useEffect(() => {
       const fetchPosts = async () => {
          try {
-            const res = await axios.get('http://51.21.180.152/api/posts');
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const res = await axios.get(`${apiUrl}/api/posts`);
             setPosts(res.data);
             setFilteredPosts(res.data);
          } catch (err) {

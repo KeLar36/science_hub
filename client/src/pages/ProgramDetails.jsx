@@ -20,7 +20,7 @@ const ProgramDetails = () => {
   useEffect(() => {
     const fetchProgramDetails = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/programs/${id}`);
+        const res = await axios.get(`http://51.21.180.152/api/programs/${id}`);
         setProgram(res.data);
       } catch (err) {
         console.error("Помилка завантаження програми:", err);

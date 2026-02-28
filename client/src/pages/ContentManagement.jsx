@@ -63,7 +63,9 @@ const ContentManagement = () => {
 				formData.append('image', imageFile);
 			}
 
-			await axios.post('http://51.21.180.152/api/posts/create', formData, {
+			const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+			await axios.post(`${apiUrl}/api/posts/create`, formData, {
 				headers: {
 					'Authorization': `Bearer ${token}`,
 					'Content-Type': 'multipart/form-data'
@@ -84,7 +86,6 @@ const ContentManagement = () => {
 		<div className="min-h-screen bg-[#f8f7ff] flex flex-col">
 			<Toaster position="top-center" />
 
-			{/* Стилі для фіксації тулбару та скролу */}
 			<style>{`
             .editor-wrapper .quill {
                display: flex;

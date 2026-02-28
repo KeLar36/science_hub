@@ -25,7 +25,8 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      const res = await axios.post('http://51.21.180.152/api/auth/login', data);
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const res = await axios.post(`${apiUrl}/api/auth/login`, data);
 
       const user = res.data.user;
       localStorage.setItem('token', res.data.token);

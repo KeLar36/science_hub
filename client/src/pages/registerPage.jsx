@@ -7,6 +7,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
 const RegisterPage = () => {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const [data, setData] = useState({ name: '', email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -24,7 +25,7 @@ const RegisterPage = () => {
 
     setLoading(true);
 
-    const registerPromise = axios.post('http://51.21.180.152/api/auth/register', data);
+    const registerPromise = axios.post(`${apiUrl}/api/auth/register`, data);
 
     toast.promise(
       registerPromise,

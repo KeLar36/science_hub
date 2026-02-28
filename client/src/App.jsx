@@ -5,7 +5,7 @@ import LoginPage from './pages/loginPage';
 import RegisterPage from './pages/registerPage';
 import ProfilePage from './pages/profilePage';
 import AdminPage from './pages/AdminPage';
-import AboutPage from './pages/AboutPage';
+import AboutPage from './pages/aboutPage';
 import ProgramDetails from './pages/ProgramDetails';
 import ReviewerPage from './pages/ReviewerPage';
 import ContentManagement from './pages/ContentManagement';

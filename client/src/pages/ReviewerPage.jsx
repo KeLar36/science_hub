@@ -10,6 +10,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
 const ReviewerPage = () => {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const user = JSON.parse(localStorage.getItem('user'));
   const token = localStorage.getItem('token');
   const [myProjects, setMyProjects] = useState([]);
@@ -19,7 +20,7 @@ const ReviewerPage = () => {
   const [commentText, setCommentText] = useState('');
 
   const api = axios.create({
-    baseURL: 'http://51.21.180.152/api',
+    baseURL: `${apiUrl}/api`,
     headers: { Authorization: `Bearer ${token}` }
   });
 
@@ -183,8 +184,8 @@ const ReviewerPage = () => {
                         setCommentText('');
                       }}
                       className={`w-full flex items-center justify-between p-5 rounded-[24px] font-black border-2 transition-all active:scale-95 ${activeCommentId === proj._id
-                          ? 'bg-purple-100 border-purple-200 text-[#6d28d9]'
-                          : 'bg-white border-purple-50 text-[#6d28d9] hover:border-purple-200'
+                        ? 'bg-purple-100 border-purple-200 text-[#6d28d9]'
+                        : 'bg-white border-purple-50 text-[#6d28d9] hover:border-purple-200'
                         }`}
                     >
                       <span>Винести рішення</span>
