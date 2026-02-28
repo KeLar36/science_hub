@@ -111,13 +111,9 @@ const AdminPage = () => {
 
   const toggleBan = async (targetUser) => {
     if (targetUser.role === 'admin') {
-      toast.error("Неможливо змінити доступ іншому адміністратору", {
-        icon: '🛡️',
-        duration: 4000
-      });
+      toast.error("Неможливо змінити доступ іншому адміністратору", { icon: '🛡️' });
       return;
     }
-
     try {
       await axios.patch(`${apiUrl}/api/users/ban/${targetUser._id}`, { isBanned: !targetUser.isBanned }, authConfig);
       setUsersList(usersList.map(u => u._id === targetUser._id ? { ...u, isBanned: !targetUser.isBanned } : u));
@@ -140,7 +136,6 @@ const AdminPage = () => {
       toast.error("Ви не можете змінювати роль іншого адміністратора");
       return;
     }
-
     try {
       await axios.patch(`${apiUrl}/api/users/role/${targetUser._id}`, { role: newRole }, authConfig);
       setUsersList(usersList.map(u => u._id === targetUser._id ? { ...u, role: newRole } : u));
@@ -158,6 +153,42 @@ const AdminPage = () => {
 
   const reviewers = usersList.filter(u => u.role === 'reviewer');
 
+  const Pagination = () => {
+    if (totalPages <= 1) return null;
+    return (
+      <div className="p-6 border-t border-purple-50 flex items-center justify-between bg-gray-50/30">
+        <span className="text-xs font-bold text-gray-400">
+          Сторінка {currentPage} з {totalPages}
+        </span>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className={`p-2 rounded-xl border transition-all ${currentPage === 1 ? 'border-gray-100 text-gray-300' : 'border-purple-100 text-[#6d28d9] hover:bg-[#6d28d9] hover:text-white'}`}
+          >
+            <ChevronLeft size={18} />
+          </button>
+          {[...Array(totalPages)].map((_, i) => (
+            <button
+              key={i + 1}
+              onClick={() => setCurrentPage(i + 1)}
+              className={`w-10 h-10 rounded-xl text-xs font-black transition-all ${currentPage === i + 1 ? 'bg-[#6d28d9] text-white' : 'bg-white text-gray-400 hover:bg-purple-50'}`}
+            >
+              {i + 1}
+            </button>
+          ))}
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className={`p-2 rounded-xl border transition-all ${currentPage === totalPages ? 'border-gray-100 text-gray-300' : 'border-purple-100 text-[#6d28d9] hover:bg-[#6d28d9] hover:text-white'}`}
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[#f8f7ff]">
       <Toaster
@@ -169,7 +200,6 @@ const AdminPage = () => {
             color: '#fff',
             padding: '16px',
             fontWeight: 'bold',
-            boxShadow: '0 10px 25px -5px rgba(109, 40, 217, 0.2)',
           }
         }}
       />
@@ -185,10 +215,7 @@ const AdminPage = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 py-5 px-4 border-b-2 transition-all font-bold text-sm ${activeTab === tab.id
-                ? 'border-[#6d28d9] text-[#6d28d9]'
-                : 'border-transparent text-gray-400 hover:text-gray-600'
-                }`}
+              className={`flex items-center gap-2 py-5 px-4 border-b-2 transition-all font-bold text-sm ${activeTab === tab.id ? 'border-[#6d28d9] text-[#6d28d9]' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
             >
               <tab.icon size={18} />
               {tab.label}
@@ -197,7 +224,7 @@ const AdminPage = () => {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-4 md:gap-6 mb-10 w-[90%] lg:w-[80%] self-center m-3">
+      <div className="flex flex-wrap py-15 gap-4 md:gap-6 mb-10 w-[90%] lg:w-[80%] self-center m-3">
         {[
           { label: 'Усього заявок', value: projects.length, color: 'bg-blue-600', shadow: 'shadow-blue-100', icon: FileText },
           { label: 'На розгляді', value: projects.filter(p => p.status === 'На розгляді').length, color: 'bg-amber-500', shadow: 'shadow-amber-100', icon: Clock },
@@ -309,6 +336,7 @@ const AdminPage = () => {
                 </tbody>
               </table>
             </div>
+            <Pagination />
           </div>
         )}
 
@@ -361,6 +389,7 @@ const AdminPage = () => {
                 </tbody>
               </table>
             </div>
+            <Pagination />
           </div>
         )}
       </main>

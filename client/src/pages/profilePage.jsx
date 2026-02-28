@@ -166,7 +166,7 @@ const ProfilePage = () => {
       <Toaster position="top-center" />
       <Navbar />
 
-      <main className="py-10 px-4 max-w-6xl mx-auto w-full flex-grow">
+      <main className="py-21 px-4 max-w-6xl mx-auto w-full flex-grow">
 
         <div className="mb-8 bg-white p-6 rounded-[32px] shadow-sm border border-purple-50 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-5">

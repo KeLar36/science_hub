@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import {
   Menu, X, LogOut, GraduationCap,
-  User as UserIcon, LayoutDashboard, ShieldCheck, PenTool, BookOpen
+  User as UserIcon, LayoutDashboard, ShieldCheck, PenTool, BookOpen, ChevronRight
 } from 'lucide-react';
-import '../index.css';
 
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 968);
 
   const user = JSON.parse(localStorage.getItem('user'));
@@ -20,9 +20,26 @@ const Navbar = () => {
       setIsMobile(mobile);
       if (!mobile) setIsOpen(false);
     };
+
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
+
+  useEffect(() => {
+    if (isOpen && isMobile) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+  }, [isOpen, isMobile]);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -34,88 +51,86 @@ const Navbar = () => {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <nav className="nav-main">
+    <nav className={`nav-main ${scrolled ? 'nav-scrolled' : ''} ${isOpen ? 'nav-open' : ''}`}>
       <div className="nav-container">
-
+        
         <Link to="/" className="nav-logo" onClick={closeMenu}>
           <div className="logo-icon-bg">
-            <GraduationCap size={24} color="white" />
+            <GraduationCap  size={24} color="white" />
           </div>
           <div className="logo-text">
-            <span className="logo-title">
-              Science<span className="text-purple">Platform</span>
-            </span>
+            <span className="logo-title">Science<span className="text-purple">Platform</span></span>
             <span className="logo-subtitle">Academic Portal</span>
           </div>
         </Link>
 
         {isMobile && (
-          <div onClick={() => setIsOpen(!isOpen)} className="mobile-toggle">
-            {isOpen ? <X size={24} /> : <Menu size={24} className="text-purple" />}
-          </div>
+          <button onClick={() => setIsOpen(!isOpen)} className="mobile-toggle" aria-label="Toggle menu">
+            {isOpen ? <X size={28} /> : <Menu size={28} />}
+          </button>
         )}
 
-        <div className={`nav-links-wrapper ${isMobile ? 'mobile-menu' : ''} ${isOpen ? 'active' : ''}`}>
+        <div className={`nav-links-wrapper ${isOpen ? 'active' : ''}`}>
+          <div className="nav-links-inner">
+            
+            <div className="main-links">
+              <Link to="/" className={`nav-link ${isActive('/') ? 'active' : ''}`} onClick={closeMenu}>
+                Програми
+              </Link>
+              <Link to="/blog" className={`nav-link ${isActive('/blog') ? 'active' : ''}`} onClick={closeMenu}>
+                Блог
+              </Link>
+              <Link to="/about" className={`nav-link ${isActive('/about') ? 'active' : ''}`} onClick={closeMenu}>
+                Про нас
+              </Link>
+            </div>
 
-          <div className={isMobile ? 'mobile-links-group' : 'main-links'}>
-            <Link to="/" className={`nav-link ${isActive('/') ? 'active' : ''}`} onClick={closeMenu}>
-              Програми
-            </Link>
-            <Link to="/blog" className={`nav-link ${isActive('/blog') ? 'active' : ''}`} onClick={closeMenu}>
-              <div className="link-with-icon">
-                Блог <BookOpen size={14} className="icon-opacity" />
-              </div>
-            </Link>
-            <Link to="/about" className={`nav-link ${isActive('/about') ? 'active' : ''}`} onClick={closeMenu}>
-              Про нас
-            </Link>
+            <div className="divider" />
 
-            <div className="role-badges-group">
-              {user?.role === 'admin' && (
-                <Link to="/admin" className="badge-link admin" onClick={closeMenu}>
-                  <LayoutDashboard size={14} /> Адмін
-                </Link>
-              )}
-              {user?.role === 'reviewer' && (
-                <Link to="/reviewer" className="badge-link reviewer" onClick={closeMenu}>
-                  <ShieldCheck size={14} /> Рецензент
-                </Link>
-              )}
-              {(user?.role === 'content-manager') && (
-                <Link to="/content-management" className="badge-link manager" onClick={closeMenu}>
-                  <PenTool size={14} /> Контент
-                </Link>
+            <div className="auth-section">
+              {user ? (
+                <div className="user-profile-group">
+                  <Link to="/profile" className="profile-card" onClick={closeMenu}>
+                    <div className="avatar">
+                      {user.name ? user.name[0].toUpperCase() : <UserIcon size={18} />}
+                    </div>
+                    <div className="profile-meta">
+                      <span className="user-name">{user.name}</span>
+                      <span className="user-role">{user.role}</span>
+                    </div>
+                    <ChevronRight size={16} className="mobile-only-icon" />
+                  </Link>
+                  
+                  <div className="role-actions">
+                    {user?.role === 'admin' && (
+                      <Link to="/admin" className="badge-link admin" onClick={closeMenu}>
+                        <LayoutDashboard size={16} /> Адмін
+                      </Link>
+                    )}
+                    {user?.role === 'reviewer' && (
+                      <Link to="/reviewer" className="badge-link reviewer" onClick={closeMenu}>
+                        <ShieldCheck size={16} /> Рецензент
+                      </Link>
+                    )}
+                  </div>
+
+                  <button onClick={handleLogout} className="logout-btn-new">
+                    <LogOut size={18} />
+                    <span>Вийти</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="guest-group">
+                  <button onClick={() => { navigate('/login'); closeMenu(); }} className="btn-secondary">Увійти</button>
+                  <button onClick={() => { navigate('/register'); closeMenu(); }} className="btn-primary">Почати</button>
+                </div>
               )}
             </div>
           </div>
-
-          <div className={isMobile ? 'mobile-auth-section' : 'auth-section'}>
-            {user ? (
-              <div className="user-profile-wrapper">
-                <Link to="/profile" className="profile-link" onClick={closeMenu}>
-                  <div className="avatar-circle">
-                    {user.name ? user.name[0].toUpperCase() : <UserIcon size={16} />}
-                  </div>
-                  <div className="profile-info">
-                    <span className="user-name">{user.name}</span>
-                    <span className="cabinet-text">Кабінет</span>
-                  </div>
-                </Link>
-                <button onClick={handleLogout} className="logout-btn" title="Вийти">
-                  <LogOut size={20} />
-                </button>
-              </div>
-            ) : (
-              <div className="guest-btns">
-                <button onClick={() => { navigate('/login'); closeMenu(); }} className="login-btn">Увійти</button>
-                <button onClick={() => { navigate('/register'); closeMenu(); }} className="register-btn">Почати</button>
-              </div>
-            )}
-          </div>
         </div>
       </div>
-
-      {isMobile && isOpen && <div className="menu-overlay" onClick={closeMenu} />}
+      
+      {isOpen && <div className="menu-overlay" onClick={closeMenu} />}
     </nav>
   );
 };
