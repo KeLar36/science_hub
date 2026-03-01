@@ -24,25 +24,34 @@ const stripHtmlAndTruncate = (html, limit) => {
 const HomePage = () => {
   const navigate = useNavigate();
   const [programs, setPrograms] = useState([]);
+  const [usersCount, setUsersCount] = useState(null); // Стан для кількості користувачів
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDomain, setSelectedDomain] = useState("Всі галузі");
 
   useEffect(() => {
-    const fetchPrograms = async () => {
+    const fetchData = async () => {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        const res = await axios.get(`${apiUrl}/api/programs`);
-        if (Array.isArray(res.data)) {
-          setPrograms(res.data);
+
+        // Отримуємо програми та кількість користувачів паралельно
+        const [programsRes, usersRes] = await Promise.all([
+          axios.get(`${apiUrl}/api/programs`),
+          axios.get(`${apiUrl}/api/users/count`).catch(() => ({ data: { count: 0 } }))
+        ]);
+
+        if (Array.isArray(programsRes.data)) {
+          setPrograms(programsRes.data);
         }
+
+        setUsersCount(usersRes.data.count);
       } catch (err) {
-        console.error("Помилка завантаження програм", err);
+        console.error("Помилка синхронізації даних", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchPrograms();
+    fetchData();
   }, []);
 
   const filteredPrograms = useMemo(() => {
@@ -107,7 +116,9 @@ const HomePage = () => {
             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600">
               <BookOpen size={18} />
             </div>
-            <span className="font-black text-sm text-[var(--text-dark)]">450+ Дослідників</span>
+            <span className="font-black text-sm text-[var(--text-dark)]">
+              {usersCount !== null ? `${usersCount} Дослідників` : 'Завантаження...'}
+            </span>
           </div>
         </div>
       </div>

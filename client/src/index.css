@@ -1755,6 +1755,10 @@ body {
 	.brand-column {
 		grid-column: span 2;
 	}
+	.footer-list {
+		align-items: center;
+	}
+
 }
 
 @media (max-width: 640px) {

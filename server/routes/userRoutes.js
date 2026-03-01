@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/UserTemp'); 
+const User = require('../models/UserTemp');
 
 router.get('/all', async (req, res) => {
   try {
@@ -15,9 +15,9 @@ router.patch('/role/:id', async (req, res) => {
   try {
     const { role } = req.body;
     const user = await User.findByIdAndUpdate(
-      req.params.id, 
-      { role }, 
-      { returnDocument: 'after' } 
+      req.params.id,
+      { role },
+      { returnDocument: 'after' }
     );
     if (!user) return res.status(404).json({ message: "Користувача не знайдено" });
     res.json(user);
@@ -30,9 +30,9 @@ router.patch('/ban/:id', async (req, res) => {
   try {
     const { isBanned } = req.body;
     const user = await User.findByIdAndUpdate(
-      req.params.id, 
-      { isBanned }, 
-      { returnDocument: 'after' } 
+      req.params.id,
+      { isBanned },
+      { returnDocument: 'after' }
     );
     if (!user) return res.status(404).json({ message: "Користувача не знайдено" });
     res.json(user);
@@ -47,6 +47,15 @@ router.delete('/:id', async (req, res) => {
     res.json({ message: "Користувача видалено" });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/count', async (req, res) => {
+  try {
+    const count = await User.countDocuments();
+    res.json({ count });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 
