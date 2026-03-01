@@ -74,7 +74,7 @@ const Navbar = () => {
             <div className="w-10 h-10 bg-[#6d28d9] rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/30 group-hover:rotate-6 transition-transform">
               <GraduationCap size={24} color="white" />
             </div>
-            <div className="leading-none">
+            <div className="leading-none flex-column items-center">
               <h1 className="text-xl font-black tracking-tight text-[var(--text-dark)]">
                 Science<span className="text-[#6d28d9]">Platform</span>
               </h1>
@@ -117,10 +117,14 @@ const Navbar = () => {
                     {user.name?.[0].toUpperCase()}
                   </div>
                   <div className="hidden sm:block">
-                    <p className="text-xs font-black text-[var(--text-dark)] leading-none">{user.name.split(' ')[0]}</p>
+                    <p className="text-xs font-black text-[var(--text-dark)] leading-none mb-2">{user.name.split(' ')[0]}</p>
                     <p className="text-[9px] font-bold text-[#6d28d9] uppercase">{user.role}</p>
                   </div>
                 </Link>
+
+                <button onClick={handleLogout} className="text-red-500 font-bold">
+                  <LogOut size={20} /> 
+                </button>
               </div>
             ) : (
               <button
@@ -150,7 +154,7 @@ const Navbar = () => {
         ${isOpen ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'}`}
         style={{ height: 'calc(100vh - 72px)' }}
       >
-        <div className="p-6 flex flex-col gap-6 bg-[var(--bg-main)] h-full border-t border-[var(--border-color)]">
+        <div className="mt-3 p-6 flex flex-col gap-6 bg-[var(--bg-main)] h-full border-t border-[var(--border-color)]">
           <div className="grid grid-cols-1 gap-2">
             <p className="text-[10px] font-black text-[var(--text-gray)] uppercase tracking-widest px-4">Меню</p>
             <Link to="/" onClick={() => setIsOpen(false)} className="text-3xl font-black text-[var(--text-dark)] p-4">Програми</Link>

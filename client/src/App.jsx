@@ -11,12 +11,13 @@ import ReviewerPage from './pages/ReviewerPage';
 import ContentManagement from './pages/ContentManagement';
 import Blog from './pages/BlogPage';
 import PostDetail from './pages/PostDetail';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import ScrollToTop from './components/ScrollToTop';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
 function App() {
-
   useEffect(() => {
     AOS.init({
       duration: 800,
@@ -34,11 +35,9 @@ function App() {
     if (!isAuthenticated) {
       return <Navigate to="/login" replace />;
     }
-
     if (allowedRole && user?.role !== allowedRole) {
       return <Navigate to="/" replace />;
     }
-
     return children;
   };
 
@@ -46,16 +45,24 @@ function App() {
     <Router>
       <ScrollToTop />
       <Routes>
-        <Route path="/content-management" element={<ProtectedRoute allowedRole="content-manager">
-          <ContentManagement />
-        </ProtectedRoute>} />
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/:id" element={<PostDetail />} />
-        <Route path="/register" element={<RegisterPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/program/:id" element={<ProgramDetails />} />
+
+        <Route
+          path="/content-management"
+          element={
+            <ProtectedRoute allowedRole="content-manager">
+              <ContentManagement />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/profile"
