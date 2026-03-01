@@ -70,6 +70,7 @@ const Navbar = () => {
           <div className="hidden lg:flex items-center gap-1 p-1 bg-[var(--bg-card)]/50 border border-[var(--border-color)] rounded-2xl">
             <Link to="/" className="px-4 py-2 text-sm font-bold text-[var(--text-gray)] hover:text-[#6d28d9]">Програми</Link>
             <Link to="/blog" className="px-4 py-2 text-sm font-bold text-[var(--text-gray)] hover:text-[#6d28d9]">Блог</Link>
+            <Link to="/about" className="px-4 py-2 text-sm font-bold text-[var(--text-gray)] hover:text-[#6d28d9]">Про нас</Link>
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-3">
