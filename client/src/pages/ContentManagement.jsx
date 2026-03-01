@@ -1,10 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import ReactQuill from 'react-quill-new';
 import {
-	Layers, ImagePlus, Send, Save, ChevronLeft, Sparkles, X
+	Layers, ImagePlus, Send, Save, ChevronLeft, Sparkles, X, Loader2
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -37,17 +37,26 @@ const ContentManagement = () => {
 	const [imageFile, setImageFile] = useState(null);
 	const [imagePreview, setImagePreview] = useState(null);
 
+	useEffect(() => {
+		return () => {
+			if (imagePreview) URL.revokeObjectURL(imagePreview);
+		};
+	}, [imagePreview]);
+
 	const handleImageChange = (e) => {
 		const file = e.target.files[0];
 		if (file) {
+			if (imagePreview) URL.revokeObjectURL(imagePreview);
 			setImageFile(file);
 			setImagePreview(URL.createObjectURL(file));
 		}
 	};
 
 	const handleSavePost = async (status = 'published') => {
-		if (!title || !content) return toast.error("Заповніть заголовок та зміст");
-		if (!token) return toast.error("Авторизуйтесь знову");
+		if (!title.trim() || !content.trim()) {
+			return toast.error("Заповніть заголовок та зміст статті");
+		}
+		if (!token) return toast.error("Ваша сесія вичерпана. Авторизуйтесь знову");
 
 		setIsPublishing(true);
 
@@ -72,154 +81,179 @@ const ContentManagement = () => {
 				}
 			});
 
-			toast.success(status === 'published' ? "Статтю опубліковано! 🟣" : "Збережено в чернетки");
-			if (status === 'published') navigate('/blog');
+			toast.success(status === 'published' ? "Статтю успішно опубліковано! 🟣" : "Збережено в чернетки");
+
+			setTimeout(() => {
+				if (status === 'published') navigate('/blog');
+			}, 1500);
+
 		} catch (err) {
 			console.error(err);
-			toast.error(err.response?.status === 401 ? "Сесія вичерпана" : "Помилка збереження");
+			toast.error(err.response?.status === 401 ? "Потрібна повторна авторизація" : "Помилка при збереженні");
 		} finally {
 			setIsPublishing(false);
 		}
 	};
 
 	return (
-		<div className="min-h-screen bg-[#f8f7ff] flex flex-col">
-			<Toaster position="top-center" />
+		<div className="min-h-screen bg-[var(--bg-main)] flex flex-col transition-colors duration-300">
+			<Toaster position="top-center" reverseOrder={false} />
 
 			<style>{`
             .editor-wrapper .quill {
                display: flex;
                flex-direction: column;
-               height: 600px;
-               background: white;
+               height: auto;
+               min-height: 500px;
+               background: var(--bg-card);
+               border-radius: 24px;
             }
             .editor-wrapper .ql-toolbar {
                border: none !important;
-               border-bottom: 1px solid #f3e8ff !important;
+               border-bottom: 1px solid var(--border-color) !important;
                position: sticky;
                top: 0;
                z-index: 20;
-               background: white;
-               padding: 12px !important;
+               background: var(--bg-card);
+               padding: 16px !important;
+               border-radius: 24px 24px 0 0;
             }
             .editor-wrapper .ql-container {
                border: none !important;
                flex-grow: 1;
-               overflow-y: auto;
                font-family: inherit;
                font-size: 1.1rem;
+               color: var(--text-dark);
             }
             .editor-wrapper .ql-editor {
-               padding: 30px !important;
-               min-height: 100%;
+               padding: 40px !important;
+               min-height: 450px;
             }
             .editor-wrapper .ql-editor.ql-blank::before {
-               left: 30px;
-               color: #d1d5db;
+               left: 40px;
+               color: #94a3b8;
                font-style: normal;
-            }
-            /* Кастомний скролбар */
-            .editor-wrapper .ql-container::-webkit-scrollbar {
-               width: 6px;
-            }
-            .editor-wrapper .ql-container::-webkit-scrollbar-track {
-               background: #f8f7ff;
-            }
-            .editor-wrapper .ql-container::-webkit-scrollbar-thumb {
-               background: #e9d5ff;
-               border-radius: 10px;
             }
          `}</style>
 
 			<Navbar />
 
-			<div className="bg-white border-b border-purple-50 py-3 md:py-4 px-4 md:px-6 sticky top-[70px] z-30 shadow-sm">
-				<div className="max-w-7xl mx-auto flex justify-between items-center">
-					<button onClick={() => navigate(-1)} className="flex items-center gap-1 md:gap-2 text-gray-400 font-bold hover:text-[#6d28d9] transition-all">
-						<ChevronLeft size={20} /> <span className="hidden sm:inline">Назад</span>
+			<div className="bg-[var(--bg-card)] border-b border-[var(--border-color)] py-4 px-6 sticky top-[70px] z-30 shadow-sm backdrop-blur-md bg-opacity-80 pt-3">
+				<div className="max-w-7xl mx-auto flex justify-between items-center mt-3">
+					<button
+						onClick={() => navigate(-1)}
+						className="flex items-center gap-2 text-[var(--text-gray)] font-black hover:text-[#6d28d9] transition-all group px-2"
+					>
+						<ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+						<span className="hidden sm:inline">Вийти без збереження</span>
 					</button>
 
-					<div className="flex gap-2 md:gap-3">
-						<button onClick={() => handleSavePost('draft')} disabled={isPublishing} className="px-3 py-2 md:px-6 md:py-2.5 rounded-xl font-black text-gray-500 hover:bg-gray-50 flex items-center gap-2">
-							<Save size={18} /> <span className="hidden md:inline">Чернетка</span>
+					<div className="flex gap-3">
+						<button
+							onClick={() => handleSavePost('draft')}
+							disabled={isPublishing}
+							className="hidden md:flex px-6 py-2.5 rounded-xl font-black text-[var(--text-gray)] hover:bg-purple-50 transition-all items-center gap-2 border border-transparent hover:border-purple-100"
+						>
+							<Save size={18} /> Чернетка
 						</button>
-						<button onClick={() => handleSavePost('published')} disabled={isPublishing} className="px-4 py-2 md:px-8 rounded-xl bg-[#6d28d9] text-white font-black shadow-lg shadow-purple-100 flex items-center gap-2 transition-all active:scale-95">
-							{isPublishing ? 'Завантаження...' : <><Send size={18} /> <span>Опублікувати</span></>}
+						<button
+							onClick={() => handleSavePost('published')}
+							disabled={isPublishing}
+							className="px-6 md:px-10 py-2.5 rounded-xl bg-[#6d28d9] text-white font-black shadow-lg shadow-purple-200/50 flex items-center gap-2 transition-all active:scale-95 hover:bg-[#5b21b6] disabled:opacity-70"
+						>
+							{isPublishing ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+							<span>{isPublishing ? 'Публікація...' : 'Опублікувати'}</span>
 						</button>
 					</div>
 				</div>
 			</div>
 
-			<main className="flex-grow max-w-7xl mx-auto w-full py-6 md:py-10 px-4 md:px-6">
-				<div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
+			<main className="flex-grow max-w-7xl mx-auto w-full py-10 px- mt-10">
+				<div className="flex flex-col lg:flex-row gap-12">
 
-					<div className="flex-[2] space-y-6 md:space-y-8">
-						<input
-							type="text"
+					<div className="flex-[2] space-y-8" data-aos="fade-up">
+						<textarea
+							rows="1"
 							value={title}
 							onChange={(e) => setTitle(e.target.value)}
-							placeholder="Заголовок статті..."
-							className="w-full bg-transparent text-3xl md:text-5xl font-black text-[#1e1b4b] outline-none placeholder:text-gray-200"
+							placeholder="Введіть заголовок статті..."
+							className="w-full bg-transparent text-4xl md:text-6xl font-black text-[var(--text-dark)] outline-none placeholder:text-gray-200 resize-none overflow-hidden transition-all focus:placeholder:opacity-30"
+							onInput={(e) => {
+								e.target.style.height = 'auto';
+								e.target.style.height = e.target.scrollHeight + 'px';
+							}}
 						/>
 
-						<div className="editor-wrapper rounded-[32px] shadow-sm border border-purple-50 overflow-hidden">
+						<div className="editor-wrapper rounded-3xl shadow-xl shadow-purple-500/5 border border-[var(--border-color)] overflow-hidden focus-within:ring-2 focus-within:ring-purple-500/10 transition-all">
 							<ReactQuill
 								theme="snow"
 								modules={modules}
 								value={content}
 								onChange={setContent}
-								placeholder="Почніть свою наукову історію тут..."
+								placeholder="Опишіть ваше дослідження або подію..."
 							/>
 						</div>
 					</div>
 
 					<div className="lg:w-80 space-y-6">
-						<div className="bg-white p-6 md:p-8 rounded-[32px] border border-purple-50 shadow-sm">
-							<h3 className="flex items-center gap-2 text-[11px] font-black text-[#1e1b4b] uppercase tracking-[2px] mb-6">
-								<Layers size={16} className="text-[#6d28d9]" /> Налаштування
+						<div className="bg-[var(--bg-card)] p-8 rounded-[32px] border border-[var(--border-color)] shadow-sm sticky top-[160px]" data-aos="fade-left">
+							<h3 className="flex items-center gap-2 text-[11px] font-black text-[var(--text-dark)] uppercase tracking-[2px] mb-8">
+								<Layers size={16} className="text-[#6d28d9]" /> Параметри статті
 							</h3>
 
-							<div className="space-y-6">
+							<div className="space-y-8">
 								<div>
-									<label className="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-1">Категорія</label>
-									<select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full p-4 bg-purple-50/50 border border-purple-50 rounded-2xl font-bold text-[#6d28d9] outline-none">
+									<label className="block text-[10px] font-black text-[var(--text-gray)] uppercase mb-3 ml-1">Категорія публікації</label>
+									<select
+										value={category}
+										onChange={(e) => setCategory(e.target.value)}
+										className="w-full p-4 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-2xl font-bold text-[#6d28d9] outline-none focus:ring-2 focus:ring-purple-200 transition-all cursor-pointer appearance-none"
+									>
 										{CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
 									</select>
 								</div>
 
 								<div>
-									<label className="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-1">Обкладинка</label>
+									<label className="block text-[10px] font-black text-[var(--text-gray)] uppercase mb-3 ml-1">Головне зображення</label>
 									<input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
 									<div
 										onClick={() => fileInputRef.current.click()}
-										className="aspect-video bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-gray-400 hover:bg-purple-50 hover:border-[#6d28d9] transition-all cursor-pointer relative group overflow-hidden"
+										className="aspect-[4/3] bg-[var(--bg-main)] border-2 border-dashed border-[var(--border-color)] rounded-2xl flex flex-col items-center justify-center text-[var(--text-gray)] hover:bg-purple-50 hover:border-[#6d28d9] transition-all cursor-pointer relative group overflow-hidden"
 									>
 										{imagePreview ? (
-											<img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-										) : (
 											<>
-												<ImagePlus size={28} className="mb-2 group-hover:scale-110 transition-transform" />
-												<span className="text-[9px] font-black uppercase tracking-wider">Завантажити фото</span>
+												<img src={imagePreview} alt="Preview" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+												<div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+													<span className="text-white text-[10px] font-black uppercase">Змінити фото</span>
+												</div>
 											</>
+										) : (
+											<div className="text-center p-4">
+												<ImagePlus size={32} className="mx-auto mb-3 text-purple-300 group-hover:scale-110 transition-transform" />
+												<span className="text-[10px] font-black uppercase tracking-wider block">Додати обкладинку</span>
+											</div>
 										)}
 									</div>
 									{imagePreview && (
-										<button onClick={() => { setImageFile(null); setImagePreview(null); }} className="text-[10px] text-red-500 font-bold mt-2 flex items-center gap-1">
-											<X size={12} /> Видалити фото
+										<button
+											onClick={() => { setImageFile(null); setImagePreview(null); }}
+											className="text-[10px] text-red-500 font-bold mt-3 flex items-center gap-1.5 hover:opacity-70 transition-all mx-auto"
+										>
+											<X size={14} /> Видалити обкладинку
 										</button>
 									)}
 								</div>
 							</div>
-						</div>
 
-						<div className="bg-[#1e1b4b] p-6 rounded-[32px] text-white relative overflow-hidden">
-							<Sparkles className="absolute -right-4 -top-4 opacity-10" size={100} />
-							<h4 className="font-black mb-4">Поради</h4>
-							<ul className="space-y-3 text-xs text-indigo-100/80">
-								<li>• Додайте обкладинку для кращого охоплення.</li>
-								<li>• Використовуйте підзаголовки (H2, H3).</li>
-								<li>• Короткі абзаци читаються краще.</li>
-							</ul>
+							<div className="mt-10 p-5 bg-[#1e1b4b] rounded-2xl text-white relative overflow-hidden group">
+								<Sparkles className="absolute -right-4 -top-4 opacity-10" size={80} />
+								<h4 className="font-black text-xs mb-3 flex items-center gap-2">Поради</h4>
+								<ul className="space-y-2 text-[10px] text-indigo-100/70 leading-relaxed font-medium">
+									<li>• Використовуйте H2 для розділів</li>
+									<li>• Оптимальний розмір фото: 1200x800px</li>
+									<li>• Додавайте посилання на джерела</li>
+								</ul>
+							</div>
 						</div>
 					</div>
 				</div>

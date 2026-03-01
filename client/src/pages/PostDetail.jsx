@@ -19,7 +19,6 @@ const PostDetail = () => {
       const fetchPost = async () => {
          try {
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
             const res = await axios.get(`${apiUrl}/api/posts/${id}`);
             setPost(res.data);
          } catch (err) {
@@ -32,7 +31,7 @@ const PostDetail = () => {
       };
       fetchPost();
       window.scrollTo(0, 0);
-   }, [id, navigate, import.meta.env.VITE_API_URL]);
+   }, [id, navigate]);
 
    useEffect(() => {
       const handleScroll = () => {
@@ -48,46 +47,47 @@ const PostDetail = () => {
    }, []);
 
    if (loading) return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f8f7ff]">
-         <div className="animate-pulse text-[#6d28d9] font-black text-xl">Завантаження статті...</div>
+      <div className="min-h-screen flex items-center justify-center bg-[var(--bg-main)]">
+         <div className="custom-loader border-t-[#6d28d9]"></div>
       </div>
    );
 
    if (!post) return null;
 
    return (
-      <div className="min-h-screen bg-white flex flex-col overflow-x-hidden">
+      <div className="min-h-screen bg-[var(--bg-main)] flex flex-col overflow-x-hidden transition-colors duration-500">
          <Toaster />
 
          <style>{`
             .article-content {
-               text-align: justify; /* Вирівнювання по ширині для блогів */
+               text-align: justify;
                text-justify: inter-word;
-               hyphens: auto; /* Автоматичне перенесення слів (працює в більшості браузерів) */
+               hyphens: auto;
                word-wrap: break-word;
+               color: var(--text-main);
             }
             .article-content blockquote {
                border-left: 4px solid #6d28d9 !important;
-               background: #fdfcff;
+               background: var(--purple-light);
                padding: 20px 30px !important;
                border-radius: 0 20px 20px 0;
                font-style: italic;
-               color: #4b5563;
+               color: var(--text-dark);
             }
-            .article-content ul, .article-content ol {
-               text-align: left; /* Списки краще не вирівнювати по ширині */
-               padding-left: 1.5rem;
+            .article-content p { margin-bottom: 1.5rem; }
+            .article-content h1, .article-content h2, .article-content h3 {
+               color: var(--text-dark);
             }
-            .article-content p {
-               margin-bottom: 1.5rem;
+            .article-content strong {
+               color: #6d28d9;
             }
          `}</style>
 
-         <div className="sticky top-0 z-[60] bg-white/90 backdrop-blur-md border-b border-purple-50">
+         <div className="sticky top-0 z-[60] bg-[var(--bg-main)]/90 backdrop-blur-md border-b border-[var(--border-color)]">
             <Navbar />
          </div>
 
-         <div className="fixed top-0 left-0 w-full h-1.5 z-[9999] bg-purple-50">
+         <div className="fixed top-0 left-0 w-full h-1.5 z-[9999] bg-[var(--purple-light)]">
             <div
                id="scroll-progress"
                className="h-full bg-[#6d28d9] shadow-[0_0_10px_rgba(109,40,217,0.4)] transition-all duration-150 ease-out"
@@ -99,26 +99,38 @@ const PostDetail = () => {
             <div className="max-w-5xl mx-auto px-4 md:px-6 pt-12 md:pt-20">
                <button
                   onClick={() => navigate('/blog')}
-                  className="flex items-center gap-2 text-gray-400 hover:text-[#6d28d9] transition-all font-bold mb-8 group"
+                  className="flex items-center gap-2 text-[var(--text-gray)] hover:text-[#6d28d9] transition-all font-bold mb-8 group"
+                  data-aos="fade-right"
                >
                   <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
                   Назад до блогу
                </button>
 
                <div className="space-y-6 mb-12">
-                  <span className="inline-block px-4 py-1.5 bg-purple-50 text-[#6d28d9] rounded-full text-xs font-black uppercase tracking-widest">
+                  <span
+                     className="inline-block px-4 py-1.5 bg-[var(--purple-light)] text-[#6d28d9] rounded-full text-xs font-black uppercase tracking-widest border border-[var(--border-color)]"
+                     data-aos="fade-down"
+                  >
                      {post.category}
                   </span>
-                  <h1 className="text-4xl md:text-6xl font-black text-[#1e1b4b] leading-tight break-words">
+                  <h1
+                     className="text-4xl md:text-6xl font-black text-[var(--text-dark)] leading-tight break-words"
+                     data-aos="fade-up"
+                     data-aos-delay="200"
+                  >
                      {post.title}
                   </h1>
 
-                  <div className="flex flex-wrap items-center gap-6 text-gray-400 border-y border-gray-50 py-6">
+                  <div
+                     className="flex flex-wrap items-center gap-6 text-[var(--text-gray)] border-y border-[var(--border-color)] py-6"
+                     data-aos="fade-up"
+                     data-aos-delay="400"
+                  >
                      <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-[#6d28d9]">
+                        <div className="w-10 h-10 bg-[var(--purple-light)] rounded-full flex items-center justify-center text-[#6d28d9]">
                            <User size={20} />
                         </div>
-                        <span className="font-bold text-[#1e1b4b]">Автор платформи</span>
+                        <span className="font-bold text-[var(--text-dark)]">Автор платформи</span>
                      </div>
                      <div className="flex items-center gap-2 text-sm font-medium">
                         <Calendar size={16} />
@@ -132,30 +144,36 @@ const PostDetail = () => {
                </div>
 
                {post.coverImage && (
-                  <div className="rounded-[24px] md:rounded-[40px] overflow-hidden shadow-2xl shadow-purple-100 mb-12 md:mb-16">
+                  <div
+                     className="rounded-[24px] md:rounded-[40px] overflow-hidden shadow-2xl shadow-purple-900/10 mb-12 md:mb-16 border border-[var(--border-color)]"
+                     data-aos="zoom-in"
+                     data-aos-duration="1000"
+                  >
                      <img
                         src={post.coverImage}
                         alt={post.title}
-                        className="w-full h-auto object-cover max-h-[600px]"
+                        className="w-full h-auto object-cover max-h-[600px] hover:scale-105 transition-transform duration-700"
                      />
                   </div>
                )}
 
                <div className="max-w-3xl mx-auto w-full">
                   <div
-                     className="article-content prose prose-purple prose-lg md:prose-xl max-w-none text-gray-700 leading-relaxed 
-                                prose-headings:font-black prose-headings:text-[#1e1b4b] 
-                                prose-p:mb-6 prose-strong:text-[#6d28d9]
-                                break-words overflow-hidden"
+                     className="article-content prose prose-purple prose-lg md:prose-xl max-w-none break-words overflow-hidden"
                      dangerouslySetInnerHTML={{ __html: post.content }}
+                     data-aos="fade-up"
+                     data-aos-delay="600"
                   />
 
-                  <div className="mt-20 pt-10 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-6 mb-20">
+                  <div
+                     className="mt-20 pt-10 border-t border-[var(--border-color)] flex flex-col sm:flex-row justify-between items-center gap-6 mb-20"
+                     data-aos="fade-up"
+                  >
                      <div className="flex gap-4">
-                        <button className="flex items-center gap-2 px-4 py-2 bg-gray-50 hover:bg-purple-50 rounded-xl transition-all font-bold text-gray-500 hover:text-[#6d28d9]">
+                        <button className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-card)] border border-[var(--border-color)] hover:bg-[var(--purple-light)] rounded-xl transition-all font-bold text-[var(--text-gray)] hover:text-[#6d28d9]">
                            <Share2 size={18} /> Поділитися
                         </button>
-                        <button className="p-3 bg-gray-50 hover:bg-purple-50 rounded-xl transition-all text-gray-500 hover:text-[#6d28d9]">
+                        <button className="p-3 bg-[var(--bg-card)] border border-[var(--border-color)] hover:bg-[var(--purple-light)] rounded-xl transition-all text-[var(--text-gray)] hover:text-[#6d28d9]">
                            <Bookmark size={18} />
                         </button>
                      </div>

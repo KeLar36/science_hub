@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import HomePage from './pages/homePage';
 import LoginPage from './pages/loginPage';
@@ -11,8 +11,21 @@ import ReviewerPage from './pages/ReviewerPage';
 import ContentManagement from './pages/ContentManagement';
 import Blog from './pages/BlogPage';
 import PostDetail from './pages/PostDetail';
+import ScrollToTop from './components/ScrollToTop';
+import AOS from 'aos';
+import 'aos/dist/aos.css';
 
 function App() {
+
+  useEffect(() => {
+    AOS.init({
+      duration: 800,
+      once: true,
+      easing: 'ease-out',
+      offset: 100,
+    });
+  }, []);
+
   const token = localStorage.getItem('token');
   const user = JSON.parse(localStorage.getItem('user'));
   const isAuthenticated = !!token;
@@ -31,10 +44,11 @@ function App() {
 
   return (
     <Router>
+      <ScrollToTop />
       <Routes>
         <Route path="/content-management" element={<ProtectedRoute allowedRole="content-manager">
-        <ContentManagement />
-        </ProtectedRoute>}/>
+          <ContentManagement />
+        </ProtectedRoute>} />
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/blog" element={<Blog />} />

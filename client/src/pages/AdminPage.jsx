@@ -4,7 +4,7 @@ import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import {
   PlusCircle, CheckCircle, BarChart3, ShieldCheck,
-  Ban, XCircle, Users, Search, Layers, Calendar, FileText, Clock, ChevronLeft, ChevronRight
+  Ban, XCircle, Users, Search, FileText, Clock, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import ReactQuill from 'react-quill-new';
 import Navbar from '../components/Navbar';
@@ -55,7 +55,6 @@ const AdminPage = () => {
     title: '', description: '', deadline: '', category: 'Науковий журнал', domain: 'Штучний інтелект & IT'
   });
 
-  const darkIndigo = "#1e1b4b";
   const authConfig = { headers: { Authorization: `Bearer ${token}` } };
 
   useEffect(() => {
@@ -156,15 +155,15 @@ const AdminPage = () => {
   const Pagination = () => {
     if (totalPages <= 1) return null;
     return (
-      <div className="p-6 border-t border-purple-50 flex items-center justify-between bg-gray-50/30">
-        <span className="text-xs font-bold text-gray-400">
+      <div className="p-6 border-t border-[var(--border-color)] flex items-center justify-between bg-[var(--bg-main)] opacity-90">
+        <span className="text-xs font-bold text-[var(--text-gray)]">
           Сторінка {currentPage} з {totalPages}
         </span>
         <div className="flex gap-2">
           <button
             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
-            className={`p-2 rounded-xl border transition-all ${currentPage === 1 ? 'border-gray-100 text-gray-300' : 'border-purple-100 text-[#6d28d9] hover:bg-[#6d28d9] hover:text-white'}`}
+            className={`p-2 rounded-xl border transition-all ${currentPage === 1 ? 'border-[var(--border-color)] text-gray-300' : 'border-purple-100 text-[#6d28d9] hover:bg-[#6d28d9] hover:text-white'}`}
           >
             <ChevronLeft size={18} />
           </button>
@@ -172,7 +171,7 @@ const AdminPage = () => {
             <button
               key={i + 1}
               onClick={() => setCurrentPage(i + 1)}
-              className={`w-10 h-10 rounded-xl text-xs font-black transition-all ${currentPage === i + 1 ? 'bg-[#6d28d9] text-white' : 'bg-white text-gray-400 hover:bg-purple-50'}`}
+              className={`w-10 h-10 rounded-xl text-xs font-black transition-all ${currentPage === i + 1 ? 'bg-[#6d28d9] text-white' : 'bg-[var(--bg-card)] text-[var(--text-gray)] hover:bg-purple-50'}`}
             >
               {i + 1}
             </button>
@@ -180,7 +179,7 @@ const AdminPage = () => {
           <button
             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
             disabled={currentPage === totalPages}
-            className={`p-2 rounded-xl border transition-all ${currentPage === totalPages ? 'border-gray-100 text-gray-300' : 'border-purple-100 text-[#6d28d9] hover:bg-[#6d28d9] hover:text-white'}`}
+            className={`p-2 rounded-xl border transition-all ${currentPage === totalPages ? 'border-[var(--border-color)] text-gray-300' : 'border-purple-100 text-[#6d28d9] hover:bg-[#6d28d9] hover:text-white'}`}
           >
             <ChevronRight size={18} />
           </button>
@@ -190,14 +189,15 @@ const AdminPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f8f7ff]">
+    <div className="min-h-screen flex flex-col bg-[var(--bg-main)] transition-colors duration-300 overflow-x-hidden">
       <Toaster
         position={isMobile ? "top-center" : "top-right"}
         toastOptions={{
           style: {
             borderRadius: '20px',
-            background: darkIndigo,
-            color: '#fff',
+            background: 'var(--bg-card)',
+            color: 'var(--text-dark)',
+            border: '1px solid var(--border-color)',
             padding: '16px',
             fontWeight: 'bold',
           }
@@ -205,8 +205,8 @@ const AdminPage = () => {
       />
       <Navbar />
 
-      <div className="bg-white border-b border-purple-50 sticky top-[70px] z-20 shadow-sm overflow-x-auto no-scrollbar">
-        <div className="max-w-7xl mx-auto px-4 flex sm:justify-center gap-2 sm:gap-8 min-w-max">
+      <div className="bg-[var(--bg-card)] border-b border-[var(--border-color)] sticky top-[70px] z-20 shadow-sm overflow-x-auto no-scrollbar">
+        <div className="max-w-7xl mx-auto px-4 flex sm:justify-center gap-2 sm:gap-8 min-w-max mt-3">
           {[
             { id: 'projects', label: 'Заявки', icon: BarChart3 },
             { id: 'create', label: 'Нова програма', icon: PlusCircle },
@@ -215,7 +215,7 @@ const AdminPage = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 py-5 px-4 border-b-2 transition-all font-bold text-sm ${activeTab === tab.id ? 'border-[#6d28d9] text-[#6d28d9]' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+              className={`flex items-center gap-2 py-5 px-4 border-b-2 transition-all font-bold text-sm ${activeTab === tab.id ? 'border-[#6d28d9] text-[#6d28d9]' : 'border-transparent text-[var(--text-gray)] hover:text-[var(--text-dark)]'}`}
             >
               <tab.icon size={18} />
               {tab.label}
@@ -224,20 +224,23 @@ const AdminPage = () => {
         </div>
       </div>
 
-      <div className="flex flex-wrap py-15 gap-4 md:gap-6 mb-10 w-[90%] lg:w-[80%] self-center m-3">
+      <div className="flex flex-wrap py-15 gap-4 md:gap-6 mb-10 w-[90%] lg:w-[80%] self-center m-3 mt-8">
         {[
-          { label: 'Усього заявок', value: projects.length, color: 'bg-blue-600', shadow: 'shadow-blue-100', icon: FileText },
-          { label: 'На розгляді', value: projects.filter(p => p.status === 'На розгляді').length, color: 'bg-amber-500', shadow: 'shadow-amber-100', icon: Clock },
-          { label: 'Прийнято', value: projects.filter(p => p.status === 'Прийнято').length, color: 'bg-emerald-500', shadow: 'shadow-emerald-100', icon: CheckCircle },
-          { label: 'Користувачів', value: usersList.length, color: 'bg-[#6d28d9]', shadow: 'shadow-purple-100', icon: Users },
+          { label: 'Усього заявок', value: projects.length, color: 'bg-blue-600', icon: FileText },
+          { label: 'На розгляді', value: projects.filter(p => p.status === 'На розгляді').length, color: 'bg-amber-500', icon: Clock },
+          { label: 'Прийнято', value: projects.filter(p => p.status === 'Прийнято').length, color: 'bg-emerald-500', icon: CheckCircle },
+          { label: 'Користувачів', value: usersList.length, color: 'bg-[#6d28d9]', icon: Users },
         ].map((stat, i) => (
-          <div key={i} className="flex-1 min-w-[200px] bg-white p-6 rounded-[32px] border border-purple-50 shadow-sm flex items-center gap-5 transition-all hover:shadow-xl group">
-            <div className={`w-12 h-12 ${stat.color} rounded-[18px] flex items-center justify-center text-white shadow-lg ${stat.shadow} group-hover:scale-110 transition-transform`}>
+          <div
+            key={i}
+            className="flex-1 min-w-[200px] bg-[var(--bg-card)] p-6 rounded-[32px] border border-[var(--border-color)] shadow-sm flex items-center gap-5 transition-all hover:shadow-xl group"
+          >
+            <div className={`w-12 h-12 ${stat.color} rounded-[18px] flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform`}>
               <stat.icon size={22} />
             </div>
             <div className="flex flex-col">
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{stat.label}</span>
-              <span className="text-xl font-black text-[#1e1b4b]">{stat.value}</span>
+              <span className="text-[10px] font-black text-[var(--text-gray)] uppercase tracking-widest">{stat.label}</span>
+              <span className="text-xl font-black text-[var(--text-dark)]">{stat.value}</span>
             </div>
           </div>
         ))}
@@ -245,145 +248,109 @@ const AdminPage = () => {
 
       <main className="flex-grow max-w-7xl mx-auto w-full py-6 px-4">
         {activeTab === 'create' && (
-          <div className="max-w-4xl mx-auto bg-white rounded-[40px] shadow-sm border border-purple-50 p-6 md:p-10 animate-fade-in">
-            <div className="flex items-center gap-4 mb-8 text-[#1e1b4b]">
+          <div className="max-w-4xl mx-auto bg-[var(--bg-card)] rounded-[40px] shadow-sm border border-[var(--border-color)] p-6 md:p-10">
+            <div className="flex items-center gap-4 mb-8 text-[var(--text-dark)]">
               <PlusCircle size={32} />
               <h2 className="text-2xl font-black">Нова наукова програма</h2>
             </div>
             <form onSubmit={handleCreateProgram} className="space-y-6">
               <div>
-                <label className="block text-[11px] font-black text-gray-400 mb-2 ml-1 uppercase">Назва програми</label>
-                <input className="w-full p-4 bg-gray-50 border-2 border-transparent focus:border-purple-100 focus:bg-white rounded-2xl outline-none transition-all font-bold text-[#1e1b4b]" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="Наприклад: AI у медицині 2026" required />
+                <label className="block text-[11px] font-black text-[var(--text-gray)] mb-2 ml-1 uppercase">Назва програми</label>
+                <input className="w-full p-4 bg-[var(--bg-main)] border-2 border-transparent focus:border-purple-500/30 rounded-2xl outline-none transition-all font-bold text-[var(--text-dark)]" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="Наприклад: AI у медицині 2026" required />
               </div>
-              <div>
-                <label className="block text-[11px] font-black text-gray-400 mb-2 ml-1 uppercase">Опис та умови</label>
-                <div className="rounded-2xl overflow-hidden border border-gray-100">
+              <div className="quill-wrapper">
+                <label className="block text-[11px] font-black text-[var(--text-gray)] mb-2 ml-1 uppercase">Опис та умови</label>
+                <div className="rounded-2xl overflow-hidden border border-[var(--border-color)]">
                   <ReactQuill theme="snow" value={formData.description} onChange={(val) => setFormData({ ...formData, description: val })} modules={quillModules} />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <input type="date" className="p-4 bg-gray-50 rounded-2xl font-bold" value={formData.deadline} onChange={e => setFormData({ ...formData, deadline: e.target.value })} required />
-                <select className="p-4 bg-gray-50 rounded-2xl font-bold appearance-none" value={formData.domain} onChange={e => setFormData({ ...formData, domain: e.target.value })}>
-                  {SCIENTIFIC_DOMAINS.map(d => <option key={d} value={d}>{d}</option>)}
+                <input type="date" className="p-4 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-2xl font-bold text-[var(--text-dark)]" value={formData.deadline} onChange={e => setFormData({ ...formData, deadline: e.target.value })} required />
+                <select className="p-4 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-2xl font-bold text-[var(--text-dark)] appearance-none" value={formData.domain} onChange={e => setFormData({ ...formData, domain: e.target.value })}>
+                  {SCIENTIFIC_DOMAINS.map(d => <option key={d} value={d} className="bg-[var(--bg-card)]">{d}</option>)}
                 </select>
               </div>
-              <button className="w-full py-5 bg-[#6d28d9] text-white rounded-3xl font-black text-xl hover:shadow-2xl hover:shadow-purple-200 transition-all active:scale-[0.98]">
+              <button className="w-full py-5 bg-[#6d28d9] text-white rounded-3xl font-black text-xl hover:shadow-2xl hover:shadow-purple-500/20 transition-all active:scale-[0.98]">
                 Опублікувати програму
               </button>
             </form>
           </div>
         )}
 
-        {activeTab === 'users' && (
-          <div className="bg-white rounded-[40px] shadow-sm border border-purple-50 overflow-hidden">
-            <div className="p-8 border-b border-purple-50 flex flex-col md:flex-row justify-between items-center gap-4">
-              <h2 className="text-2xl font-black text-[#1e1b4b]">Керування доступом</h2>
+        {(activeTab === 'users' || activeTab === 'projects') && (
+          <div className="bg-[var(--bg-card)] rounded-[40px] shadow-sm border border-[var(--border-color)] overflow-hidden">
+            <div className="p-8 border-b border-[var(--border-color)] flex flex-col md:flex-row justify-between items-center gap-4">
+              <h2 className="text-2xl font-black text-[var(--text-dark)]">
+                {activeTab === 'users' ? 'Керування доступом' : 'Моніторинг заявок'}
+              </h2>
               <div className="relative w-full md:w-80">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-400" size={18} />
-                <input className="w-full pl-12 pr-4 py-3 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-purple-100 font-bold" placeholder="Пошук..." onChange={e => setSearchTerm(e.target.value)} />
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-gray-50/50">
-                  <tr className="text-[10px] uppercase font-black text-gray-400">
-                    <th className="px-8 py-5">Статус</th>
-                    <th className="px-8 py-5">Ім'я та Email</th>
-                    <th className="px-8 py-5">Роль</th>
-                    <th className="px-8 py-5 text-right">Управління</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-purple-50">
-                  {currentItems.map((item) => (
-                    <tr key={item._id} className={`hover:bg-purple-50/30 transition-all ${item.isBanned ? 'bg-rose-50/20' : ''}`}>
-                      <td className="px-8 py-6">
-                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${item.isBanned ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                          {item.isBanned ? <Ban size={20} /> : <ShieldCheck size={20} />}
-                        </div>
-                      </td>
-                      <td className="px-8 py-6">
-                        <div className={`font-black text-[#1e1b4b] ${item.isBanned ? 'line-through opacity-40' : ''}`}>{item.name}</div>
-                        <div className="text-xs text-gray-400 font-bold">{item.email}</div>
-                      </td>
-                      <td className="px-8 py-6">
-                        <select
-                          className="bg-white border border-purple-50 rounded-xl px-3 py-2 text-xs font-black text-[#6d28d9] outline-none"
-                          value={item.role}
-                          onChange={(e) => changeRole(item, e.target.value)}
-                          disabled={item._id === user.id}
-                        >
-                          <option value="user">User</option>
-                          <option value="reviewer">Reviewer</option>
-                          <option value="admin">Admin</option>
-                        </select>
-                      </td>
-                      <td className="px-8 py-6 text-right">
-                        <button
-                          className={`px-6 py-2.5 rounded-xl text-xs font-black transition-all ${item._id === user.id || item.role === 'admin'
-                            ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
-                            : item.isBanned
-                              ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'
-                              : 'bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white'
-                            }`}
-                          onClick={() => toggleBan(item)}
-                          disabled={item._id === user.id || item.role === 'admin'}
-                        >
-                          {item.role === 'admin' ? "Admin Protected" : item.isBanned ? "Розблокувати" : "Заблокувати"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <Pagination />
-          </div>
-        )}
-
-        {activeTab === 'projects' && (
-          <div className="bg-white rounded-[40px] shadow-sm border border-purple-50 overflow-hidden">
-            <div className="p-8 border-b border-purple-50 flex flex-col md:flex-row justify-between items-center gap-4">
-              <h2 className="text-2xl font-black text-[#1e1b4b]">Моніторинг заявок</h2>
-              <div className="relative w-full md:w-80">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-400" size={18} />
-                <input className="w-full pl-12 pr-4 py-3 bg-gray-50 rounded-2xl outline-none focus:ring-2 focus:ring-purple-100 font-bold" placeholder="Пошук публікацій..." onChange={e => setSearchTerm(e.target.value)} />
+                <input className="w-full pl-12 pr-4 py-3 bg-[var(--bg-main)] rounded-2xl outline-none focus:ring-2 focus:ring-purple-500/20 text-[var(--text-dark)] font-bold" placeholder="Пошук..." onChange={e => setSearchTerm(e.target.value)} />
               </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left min-w-[900px]">
-                <thead className="bg-gray-50/50">
-                  <tr className="text-[10px] uppercase font-black text-gray-400">
-                    <th className="px-8 py-5">Автор та тема</th>
-                    <th className="px-6 py-5">Галузь</th>
-                    <th className="px-6 py-5">Рецензент</th>
-                    <th className="px-6 py-5 text-right">Статус</th>
+                <thead className="bg-[var(--bg-main)] opacity-70">
+                  <tr className="text-[10px] uppercase font-black text-[var(--text-gray)]">
+                    <th className="px-8 py-5">{activeTab === 'users' ? 'Статус' : 'Автор та тема'}</th>
+                    <th className="px-8 py-5">{activeTab === 'users' ? "Ім'я та Email" : 'Галузь'}</th>
+                    <th className="px-8 py-5">{activeTab === 'users' ? 'Роль' : 'Рецензент'}</th>
+                    <th className="px-8 py-5 text-right">{activeTab === 'users' ? 'Управління' : 'Статус'}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-purple-50">
-                  {currentItems.map(item => (
-                    <tr key={item._id} className="hover:bg-purple-50/20 transition-all">
-                      <td className="px-8 py-6">
-                        <div className="font-black text-[#1e1b4b] text-sm">{item.authorId?.name || 'Анонім'}</div>
-                        <div className="text-xs text-gray-400 font-bold italic">{item.title}</div>
-                      </td>
-                      <td className="px-6 py-6">
-                        <span className="bg-purple-50 text-[#6d28d9] px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border border-purple-100 whitespace-nowrap">{item.domain}</span>
-                      </td>
-                      <td className="px-6 py-6">
-                        <select className="bg-white border border-gray-100 rounded-xl px-3 py-2 text-[11px] font-bold outline-none focus:ring-2 focus:ring-purple-100 text-gray-600 cursor-pointer" value={item.reviewerId?._id || ""} onChange={(e) => assignReviewer(item._id, e.target.value)}>
-                          <option value="">Не призначено</option>
-                          {reviewers.map(rev => <option key={rev._id} value={rev._id}>{rev.name}</option>)}
-                        </select>
-                      </td>
-                      <td className="px-6 py-6 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <span className={`text-[10px] font-black uppercase px-2 py-1 rounded ${item.status === 'Прийнято' ? 'text-emerald-600 bg-emerald-50' : item.status === 'Відхилено' ? 'text-rose-600 bg-rose-50' : 'text-indigo-600 bg-indigo-50'}`}>
-                            {item.status}
-                          </span>
-                          <button className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm" onClick={() => updateStatus(item._id, 'Прийнято')}><CheckCircle size={18} /></button>
-                          <button className="p-2 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all shadow-sm" onClick={() => updateStatus(item._id, 'Відхилено')}><XCircle size={18} /></button>
-                        </div>
-                      </td>
+                <tbody className="divide-y divide-[var(--border-color)]">
+                  {currentItems.map((item) => (
+                    <tr key={item._id} className={`hover:bg-purple-500/5 transition-all ${item.isBanned ? 'bg-rose-500/5' : ''}`}>
+                      {activeTab === 'users' ? (
+                        <>
+                          <td className="px-8 py-6">
+                            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${item.isBanned ? 'bg-rose-100/10 text-rose-500' : 'bg-emerald-100/10 text-emerald-500'}`}>
+                              {item.isBanned ? <Ban size={20} /> : <ShieldCheck size={20} />}
+                            </div>
+                          </td>
+                          <td className="px-8 py-6">
+                            <div className={`font-black text-[var(--text-dark)] ${item.isBanned ? 'line-through opacity-40' : ''}`}>{item.name}</div>
+                            <div className="text-xs text-[var(--text-gray)] font-bold">{item.email}</div>
+                          </td>
+                          <td className="px-8 py-6">
+                            <select className="bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-3 py-2 text-xs font-black text-[#6d28d9] outline-none" value={item.role} onChange={(e) => changeRole(item, e.target.value)} disabled={item._id === user.id}>
+                              <option value="user">User</option>
+                              <option value="reviewer">Reviewer</option>
+                              <option value="admin">Admin</option>
+                            </select>
+                          </td>
+                          <td className="px-8 py-6 text-right">
+                            <button className={`px-6 py-2.5 rounded-xl text-xs font-black transition-all ${item._id === user.id || item.role === 'admin' ? 'opacity-30 cursor-not-allowed' : 'hover:scale-105'}`} onClick={() => toggleBan(item)} disabled={item._id === user.id || item.role === 'admin'}>
+                              {item.role === 'admin' ? "Protected" : item.isBanned ? "Розблокувати" : "Заблокувати"}
+                            </button>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="px-8 py-6">
+                            <div className="font-black text-[var(--text-dark)] text-sm">{item.authorId?.name || 'Анонім'}</div>
+                            <div className="text-xs text-[var(--text-gray)] font-bold italic">{item.title}</div>
+                          </td>
+                          <td className="px-6 py-6">
+                            <span className="bg-purple-500/10 text-[#6d28d9] px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border border-purple-500/20 whitespace-nowrap">{item.domain}</span>
+                          </td>
+                          <td className="px-6 py-6">
+                            <select className="bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-3 py-2 text-[11px] font-bold outline-none text-[var(--text-dark)]" value={item.reviewerId?._id || ""} onChange={(e) => assignReviewer(item._id, e.target.value)}>
+                              <option value="">Не призначено</option>
+                              {reviewers.map(rev => <option key={rev._id} value={rev._id} className="bg-[var(--bg-card)]">{rev.name}</option>)}
+                            </select>
+                          </td>
+                          <td className="px-6 py-6 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <span className={`text-[10px] font-black uppercase px-2 py-1 rounded ${item.status === 'Прийнято' ? 'text-emerald-500 bg-emerald-500/10' : item.status === 'Відхилено' ? 'text-rose-500 bg-rose-500/10' : 'text-indigo-500 bg-indigo-500/10'}`}>
+                                {item.status}
+                              </span>
+                              <button className="p-2 bg-emerald-500/10 text-emerald-500 rounded-xl hover:bg-emerald-500 hover:text-white transition-all" onClick={() => updateStatus(item._id, 'Прийнято')}><CheckCircle size={18} /></button>
+                              <button className="p-2 bg-rose-500/10 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all" onClick={() => updateStatus(item._id, 'Відхилено')}><XCircle size={18} /></button>
+                            </div>
+                          </td>
+                        </>
+                      )}
                     </tr>
                   ))}
                 </tbody>

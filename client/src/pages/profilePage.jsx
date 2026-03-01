@@ -7,7 +7,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import {
   FileText, User as UserIcon, ShieldAlert, PlusCircle,
   Tag, ClipboardCheck, Star, Calendar, ArrowUpRight, UploadCloud,
-  MessageSquare, FileUp, History, Eye, CircleFadingPlus
+  FileUp
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -84,34 +84,18 @@ const ProfilePage = () => {
 
   const handleUploadRevision = async (projectId, revisionFile) => {
     if (!revisionFile) return;
-
-    const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-    if (!allowedTypes.includes(revisionFile.type)) {
-      return toast.error("Дозволено лише PDF або DOCX файли!");
-    }
-
     const data = new FormData();
     data.append('file', revisionFile);
     data.append('authorComment', 'Виправлено згідно із зауваженнями рецензента');
 
     toast.promise(
       axios.patch(`${apiUrl}/api/projects/revision/${projectId}`, data, {
-        headers: {
-          ...authConfig.headers,
-          'Content-Type': 'multipart/form-data'
-        }
+        headers: { ...authConfig.headers, 'Content-Type': 'multipart/form-data' }
       }),
       {
         loading: 'Надсилаємо оновлений файл...',
-        success: () => {
-          fetchData();
-          return <b>Версію успішно оновлено! ✨</b>;
-        },
+        success: () => { fetchData(); return <b>Версію успішно оновлено! ✨</b>; },
         error: <b>Помилка при оновленні версії.</b>,
-      },
-      {
-        style: { borderRadius: '14px', background: darkIndigo, color: '#fff' },
-        success: { iconTheme: { primary: deepPurple, secondary: '#fff' } }
       }
     );
   };
@@ -119,12 +103,6 @@ const ProfilePage = () => {
   const handleSubmitArticle = async (e) => {
     e.preventDefault();
     if (!file) return toast.error("Будь ласка, оберіть файл!");
-
-    const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-    if (!allowedTypes.includes(file.type)) {
-      return toast.error("Дозволено лише PDF або DOCX файли!");
-    }
-
     const data = new FormData();
     data.append('title', articleData.title);
     data.append('description', articleData.abstract);
@@ -134,13 +112,9 @@ const ProfilePage = () => {
     data.append('file', file);
 
     setLoading(true);
-
     toast.promise(
       axios.post(`${apiUrl}/api/projects/create`, data, {
-        headers: {
-          ...authConfig.headers,
-          'Content-Type': 'multipart/form-data'
-        }
+        headers: { ...authConfig.headers, 'Content-Type': 'multipart/form-data' }
       }),
       {
         loading: 'Публікуємо вашу працю...',
@@ -154,50 +128,92 @@ const ProfilePage = () => {
           return <b>Статтю успішно надіслано! 🚀</b>;
         },
         error: (err) => <b>{err.response?.data?.error || "Помилка завантаження статті"}</b>,
-      },
-      {
-        style: { borderRadius: '14px', background: darkIndigo, color: '#fff' },
       }
     ).finally(() => setLoading(false));
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f8f7ff]">
+    <div className="min-h-screen flex flex-col bg-[var(--bg-main)] transition-colors duration-500">
       <Toaster position="top-center" />
       <Navbar />
 
-      <main className="py-21 px-4 max-w-6xl mx-auto w-full flex-grow">
+      <style>{`
+        .ql-container { background: var(--bg-card); color: var(--text-main); border-color: var(--border-color) !important; border-radius: 0 0 16px 16px; }
+        .ql-toolbar { background: var(--bg-main); border-color: var(--border-color) !important; border-radius: 16px 16px 0 0; }
+        .ql-editor.ql-blank::before { color: var(--text-gray); opacity: 0.5; }
+        .ql-snow .ql-stroke { stroke: var(--text-dark); }
+      `}</style>
 
-        <div className="mb-8 bg-white p-6 rounded-[32px] shadow-sm border border-purple-50 flex flex-col md:flex-row justify-between items-center gap-6">
+      <main className="py-24 px-4 max-w-6xl mx-auto w-full flex-grow">
+
+        <div
+          className="mb-8 bg-[var(--bg-card)] p-6 rounded-[32px] shadow-sm border border-[var(--border-color)] flex flex-col md:flex-row justify-between items-center gap-6"
+          data-aos="fade-down"
+        >
           <div className="flex items-center gap-5">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-[#f5f3ff] border border-purple-100">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-[var(--purple-light)] border border-[var(--border-color)]">
               <UserIcon size={32} className="text-[#6d28d9]" />
             </div>
             <div>
-              <h1 className="text-2xl font-black text-[#1e1b4b] flex items-center gap-3">
+              <h1 className="text-2xl font-black text-[var(--text-dark)] flex items-center gap-3">
                 {user?.name}
                 <span className="bg-[#6d28d9] text-white px-3 py-1 rounded-lg text-[10px] uppercase font-black tracking-wider">
                   {user?.role}
                 </span>
               </h1>
-              <p className="text-gray-400 text-sm font-medium">{user?.email}</p>
+              <p className="text-[var(--text-gray)] text-sm font-medium">{user?.email}</p>
             </div>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-3">
-            {user?.role === 'admin' && (
-              <button className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl text-sm font-bold hover:bg-indigo-100 transition-all" onClick={() => navigate('/admin')}>
-                <ShieldAlert size={18} /> Адмін
+          <div className="flex flex-wrap justify-center md:justify-end gap-3 w-full md:w-auto">
+
+            {(user?.role === 'admin' || user?.role === 'superadmin') && (
+              <button
+                onClick={() => navigate('/admin')}
+                className="flex items-center gap-2 px-5 py-2.5 bg-[var(--purple-light)] text-[#6d28d9] border border-[var(--border-color)] rounded-2xl text-sm font-black hover:bg-[#6d28d9] hover:text-white transition-all group"
+              >
+                <ShieldAlert size={18} className="opacity-70 group-hover:opacity-100 transition-opacity" />
+                <span>Адмін</span>
               </button>
             )}
+
+            {(user?.role === 'reviewer') && (
+              <button
+                onClick={() => navigate('/reviewer')}
+                className="flex items-center gap-2 px-5 py-2.5 bg-[var(--purple-light)] text-[#6d28d9] border border-[var(--border-color)] rounded-2xl text-sm font-black hover:bg-[#6d28d9] hover:text-white transition-all group"
+              >
+                <ClipboardCheck size={18} className="opacity-70 group-hover:opacity-100 transition-opacity" />
+                <span>Рецензент</span>
+              </button>
+            )}
+
+            {(user?.role === 'content-manager') && (
+              <button
+                onClick={() => navigate('/content-manager')}
+                className="flex items-center gap-2 px-5 py-2.5 bg-[var(--purple-light)] text-[#6d28d9] border border-[var(--border-color)] rounded-2xl text-sm font-black hover:bg-[#6d28d9] hover:text-white transition-all group"
+              >
+                <FileText size={18} className="opacity-70 group-hover:opacity-100 transition-opacity" />
+                <span>Контент</span>
+              </button>
+            )}
+
+            <div className="h-8 w-[1px] bg-[var(--border-color)] mx-2 hidden md:block self-center opacity-50"></div>
+
             <button
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all ${view === 'list' ? 'bg-[#6d28d9] text-white shadow-xl shadow-purple-100' : 'bg-white text-gray-500 border border-gray-100'}`}
+              className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-black transition-all ${view === 'list'
+                  ? 'bg-[#6d28d9] text-white shadow-lg shadow-purple-500/20'
+                  : 'bg-transparent text-[var(--text-gray)] border border-[var(--border-color)] hover:border-[#6d28d9] hover:text-[#6d28d9]'
+                }`}
               onClick={() => setView('list')}
             >
               <FileText size={18} /> Мої статті
             </button>
+
             <button
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all ${view === 'form' ? 'bg-[#6d28d9] text-white shadow-xl shadow-purple-100' : 'bg-white text-gray-500 border border-gray-100'}`}
+              className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-black transition-all ${view === 'form'
+                  ? 'bg-[#6d28d9] text-white shadow-lg shadow-purple-500/20'
+                  : 'bg-transparent text-[var(--text-gray)] border border-[var(--border-color)] hover:border-[#6d28d9] hover:text-[#6d28d9]'
+                }`}
               onClick={() => setView('form')}
             >
               <PlusCircle size={18} /> Подати роботу
@@ -206,79 +222,79 @@ const ProfilePage = () => {
         </div>
 
         {view === 'list' ? (
-          <div className="animate-fade-in">
+          <div key="list-view">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-              <div className="p-5 bg-white rounded-3xl border border-gray-50 shadow-sm flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#f5f3ff] rounded-xl flex items-center justify-center text-[#6d28d9]"><FileText size={24} /></div>
-                <div>
-                  <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest">Всього робіт</p>
-                  <p className="text-2xl font-black text-[#1e1b4b]">{articles.length}</p>
+              {[
+                { label: 'Всього робіт', value: articles.length, icon: <FileText size={24} />, color: 'text-[#6d28d9]', bg: 'bg-[var(--purple-light)]' },
+                { label: 'Прийнято', value: articles.filter(a => a.status === 'Прийнято').length, icon: <ClipboardCheck size={24} />, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+                { label: 'Доопрацювання', value: articles.filter(a => a.status === 'На доопрацюванні').length, icon: <Star size={24} />, color: 'text-amber-500', bg: 'bg-amber-500/10' }
+              ].map((stat, idx) => (
+                <div
+                  key={idx}
+                  className="p-5 bg-[var(--bg-card)] rounded-3xl border border-[var(--border-color)] shadow-sm flex items-center gap-4 hover:translate-y-[-5px] transition-transform"
+                >
+                  <div className={`w-12 h-12 ${stat.bg} rounded-xl flex items-center justify-center ${stat.color}`}>{stat.icon}</div>
+                  <div>
+                    <p className="text-[10px] uppercase font-black text-[var(--text-gray)] tracking-widest">{stat.label}</p>
+                    <p className="text-2xl font-black text-[var(--text-dark)]">{stat.value}</p>
+                  </div>
                 </div>
-              </div>
-              <div className="p-5 bg-white rounded-3xl border border-gray-50 shadow-sm flex items-center gap-4">
-                <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600"><ClipboardCheck size={24} /></div>
-                <div>
-                  <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest">Прийнято</p>
-                  <p className="text-2xl font-black text-[#1e1b4b]">{articles.filter(a => a.status === 'Прийнято').length}</p>
-                </div>
-              </div>
-              <div className="p-5 bg-white rounded-3xl border border-gray-50 shadow-sm flex items-center gap-4">
-                <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600"><Star size={24} /></div>
-                <div>
-                  <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest">Доопрацювання</p>
-                  <p className="text-2xl font-black text-[#1e1b4b]">{articles.filter(a => a.status === 'На доопрацюванні').length}</p>
-                </div>
-              </div>
+              ))}
             </div>
 
-            <h3 className="text-xl font-black text-[#1e1b4b] mb-6">Ваші публікації</h3>
+            <h3 className="text-xl font-black text-[var(--text-dark)] mb-6">Ваші публікації</h3>
 
-            {articles.length === 0 ? (
-              <div className="bg-white p-16 rounded-[40px] border border-dashed border-gray-200 text-center text-gray-400">
-                Ви ще не подали жодної статті.
-              </div>
-            ) : (
-              articles.map(art => (
-                <div key={art._id} className="mb-6 p-8 bg-white rounded-[32px] border border-gray-50 shadow-sm hover:shadow-md transition-all">
-                  <div className="flex justify-between items-start mb-4">
-                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${art.status === 'Прийнято' ? 'bg-emerald-100 text-emerald-700' :
-                      art.status === 'На доопрацюванні' ? 'bg-amber-100 text-amber-700' : 'bg-indigo-100 text-indigo-700'
-                      }`}>
-                      {art.status}
-                    </span>
-                    <button onClick={() => navigate(`/project/${art._id}`)} className="text-gray-300 hover:text-[#6d28d9] transition-all">
-                      <ArrowUpRight size={24} />
-                    </button>
-                  </div>
-                  <h4 className="text-xl font-bold text-[#1e1b4b] mb-4">{art.title}</h4>
-                  <div className="flex gap-4 text-xs text-gray-400">
-                    <span className="flex items-center gap-1.5 font-bold text-[#6d28d9] bg-[#f5f3ff] px-3 py-1 rounded-lg">
-                      <Tag size={14} /> {art.domain}
-                    </span>
-                    <span className="flex items-center gap-1.5"><Calendar size={14} /> {new Date(art.createdAt).toLocaleDateString()}</span>
-                  </div>
-
-                  {art.status === 'На доопрацюванні' && (
-                    <div className="mt-6 pt-6 border-t border-dashed border-gray-100 flex justify-end">
-                      <label className="flex items-center gap-3 bg-[#6d28d9] text-white px-6 py-3 rounded-2xl text-sm font-black cursor-pointer hover:bg-[#5b21b6] transition-all">
-                        <FileUp size={18} /> Оновити PDF
-                        <input type="file" className="hidden" accept=".pdf,.docx" onChange={(e) => handleUploadRevision(art._id, e.target.files[0])} />
-                      </label>
-                    </div>
-                  )}
+            <div className="space-y-6">
+              {articles.length === 0 ? (
+                <div className="bg-[var(--bg-card)] p-16 rounded-[40px] border border-dashed border-[var(--border-color)] text-center text-[var(--text-gray)]">
+                  Ви ще не подали жодної статті.
                 </div>
-              ))
-            )}
+              ) : (
+                articles.map((art, index) => (
+                  <div
+                    key={art._id}
+                    className="p-8 bg-[var(--bg-card)] rounded-[32px] border border-[var(--border-color)] shadow-sm hover:shadow-md transition-all group"
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${art.status === 'Прийнято' ? 'bg-emerald-500/20 text-emerald-500' :
+                        art.status === 'На доопрацюванні' ? 'bg-amber-500/20 text-amber-500' : 'bg-indigo-500/20 text-indigo-400'
+                        }`}>
+                        {art.status}
+                      </span>
+                      <button onClick={() => navigate(`/project/${art._id}`)} className="text-[var(--text-gray)] hover:text-[#6d28d9] transition-all">
+                        <ArrowUpRight size={24} />
+                      </button>
+                    </div>
+                    <h4 className="text-xl font-bold text-[var(--text-dark)] mb-4">{art.title}</h4>
+                    <div className="flex gap-4 text-xs text-[var(--text-gray)]">
+                      <span className="flex items-center gap-1.5 font-bold text-[#6d28d9] bg-[var(--purple-light)] px-3 py-1 rounded-lg">
+                        <Tag size={14} /> {art.domain}
+                      </span>
+                      <span className="flex items-center gap-1.5"><Calendar size={14} /> {new Date(art.createdAt).toLocaleDateString()}</span>
+                    </div>
+
+                    {art.status === 'На доопрацюванні' && (
+                      <div className="mt-6 pt-6 border-t border-dashed border-[var(--border-color)] flex justify-end">
+                        <label className="flex items-center gap-3 bg-[#6d28d9] text-white px-6 py-3 rounded-2xl text-sm font-black cursor-pointer hover:bg-[#5b21b6] transition-all">
+                          <FileUp size={18} /> Оновити PDF
+                          <input type="file" className="hidden" accept=".pdf,.docx" onChange={(e) => handleUploadRevision(art._id, e.target.files[0])} />
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         ) : (
-          <div className="bg-white p-10 rounded-[40px] border border-gray-50 shadow-sm animate-fade-in">
-            <h3 className="text-2xl font-black text-[#1e1b4b] mb-8">Нова публікація</h3>
+          <div key="form-view" className="bg-[var(--bg-card)] p-10 rounded-[40px] border border-[var(--border-color)] shadow-sm">
+            <h3 className="text-2xl font-black text-[var(--text-dark)] mb-8">Нова публікація</h3>
             <form onSubmit={handleSubmitArticle} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-bold text-gray-600 mb-2">Наукова програма</label>
+                  <label className="block text-sm font-bold text-[var(--text-gray)] mb-2">Наукова програма</label>
                   <select
-                    className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-[#6d28d9]"
+                    className="w-full p-4 bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-dark)] rounded-2xl outline-none focus:border-[#6d28d9]"
                     value={articleData.programId}
                     onChange={handleProgramChange}
                     required
@@ -288,16 +304,16 @@ const ProfilePage = () => {
                   </select>
                 </div>
                 <div className="flex items-end">
-                  <div className="w-full p-4 bg-[#f5f3ff] text-[#6d28d9] rounded-2xl text-sm font-bold border border-purple-50">
+                  <div className="w-full p-4 bg-[var(--purple-light)] text-[#6d28d9] rounded-2xl text-sm font-bold border border-[var(--border-color)]">
                     Галузь: {articleData.domain || 'Автоматично'}
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-600 mb-2">Назва статті</label>
+                <label className="block text-sm font-bold text-[var(--text-gray)] mb-2">Назва статті</label>
                 <input
-                  className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-[#6d28d9] font-bold"
+                  className="w-full p-4 bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-dark)] rounded-2xl outline-none focus:border-[#6d28d9] font-bold"
                   placeholder="Введіть повну назву вашої роботи..."
                   value={articleData.title}
                   onChange={e => setArticleData({ ...articleData, title: e.target.value })}
@@ -306,25 +322,25 @@ const ProfilePage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-600 mb-2">Анотація</label>
-                <div className="rounded-2xl overflow-hidden border border-gray-100">
+                <label className="block text-sm font-bold text-[var(--text-gray)] mb-2">Анотація</label>
+                <div className="rounded-2xl overflow-hidden">
                   <ReactQuill theme="snow" value={articleData.abstract} onChange={(val) => setArticleData({ ...articleData, abstract: val })} />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-600 mb-2">Файл (PDF)</label>
-                <div className={`relative border-2 border-dashed rounded-[32px] p-10 text-center transition-all ${file ? 'border-[#6d28d9] bg-[#f8f7ff]' : 'border-gray-200 bg-gray-50'}`}>
+                <label className="block text-sm font-bold text-[var(--text-gray)] mb-2">Файл (PDF)</label>
+                <div className={`relative border-2 border-dashed rounded-[32px] p-10 text-center transition-all ${file ? 'border-[#6d28d9] bg-[var(--purple-light)]' : 'border-[var(--border-color)] bg-[var(--bg-main)]'}`}>
                   <input type="file" accept=".pdf,.docx" onChange={(e) => setFile(e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer" />
-                  <UploadCloud size={48} className={`mx-auto mb-2 ${file ? 'text-[#6d28d9]' : 'text-gray-300'}`} />
-                  <p className="font-bold text-[#1e1b4b]">{file ? file.name : "Оберіть PDF/DOCX файл"}</p>
+                  <UploadCloud size={48} className={`mx-auto mb-2 ${file ? 'text-[#6d28d9]' : 'text-[var(--text-gray)]'}`} />
+                  <p className="font-bold text-[var(--text-dark)]">{file ? file.name : "Оберіть PDF/DOCX файл"}</p>
                 </div>
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-5 bg-[#6d28d9] text-white rounded-[24px] font-black text-xl hover:bg-[#5b21b6] transition-all disabled:opacity-50"
+                className="w-full py-5 bg-[#6d28d9] text-white rounded-[24px] font-black text-xl hover:bg-[#5b21b6] shadow-lg shadow-purple-500/20 transition-all disabled:opacity-50"
               >
                 {loading ? "Завантаження..." : "Відправити на рецензію"}
               </button>
