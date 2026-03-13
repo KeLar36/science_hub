@@ -13,7 +13,7 @@ import "../index.css";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
-  const version = "1.0.0";
+  const version = "1.0.1";
 
   return (
     <footer className="main-footer" data-aos="fade-up" data-aos-offset="0">
