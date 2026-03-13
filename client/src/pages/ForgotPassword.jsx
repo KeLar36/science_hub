@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import axios from '../api/axios';
 import toast, { Toaster } from 'react-hot-toast';
 import { Mail, ArrowLeft, Loader2, Send } from 'lucide-react';
 import Navbar from '../components/Navbar';

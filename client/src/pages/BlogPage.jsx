@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from '../api/axios';
 import { Search, Clock, ChevronRight, BookOpen, Calendar } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -82,11 +82,10 @@ const Blog = () => {
                {CATEGORIES.map((cat) => (
                   <button
                      key={cat}
-                     className={`px-6 py-2.5 rounded-xl text-sm font-black whitespace-nowrap transition-all border ${
-                        activeCategory === cat 
-                        ? 'bg-[#6d28d9] text-white border-[#6d28d9] shadow-lg shadow-purple-500/20' 
-                        : 'bg-[var(--bg-card)] text-[var(--text-gray)] border-[var(--border-color)] hover:border-[#6d28d9] hover:text-[#6d28d9]'
-                     }`}
+                     className={`px-6 py-2.5 rounded-xl text-sm font-black whitespace-nowrap transition-all border ${activeCategory === cat
+                           ? 'bg-[#6d28d9] text-white border-[#6d28d9] shadow-lg shadow-purple-500/20'
+                           : 'bg-[var(--bg-card)] text-[var(--text-gray)] border-[var(--border-color)] hover:border-[#6d28d9] hover:text-[#6d28d9]'
+                        }`}
                      onClick={() => setActiveCategory(cat)}
                   >
                      {cat}
@@ -102,8 +101,8 @@ const Blog = () => {
             ) : (
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {filteredPosts.map((post, index) => (
-                     <article 
-                        key={post._id || post.id} 
+                     <article
+                        key={post._id || post.id}
                         className="group bg-[var(--bg-card)] rounded-[32px] border border-[var(--border-color)] overflow-hidden hover:shadow-2xl hover:shadow-purple-500/10 transition-all duration-500 flex flex-col h-full"
                         data-aos="fade-up"
                         data-aos-delay={index % 3 * 100}
@@ -125,20 +124,20 @@ const Blog = () => {
                               <span className="flex items-center gap-1.5"><Calendar size={14} className="text-[#6d28d9]" /> {new Date(post.createdAt).toLocaleDateString()}</span>
                               <span className="flex items-center gap-1.5"><Clock size={14} className="text-[#6d28d9]" /> 5 хв</span>
                            </div>
-                           
+
                            <h3 className="text-xl font-black text-[var(--text-dark)] mb-4 line-clamp-2 leading-snug group-hover:text-[#6d28d9] transition-colors">
                               {post.title}
                            </h3>
-                           
+
                            <p className="text-[var(--text-gray)] text-sm leading-relaxed mb-6 line-clamp-3">
                               {stripHtml(post.content).substring(0, 120)}...
                            </p>
-                           
-                           <button 
+
+                           <button
                               className="mt-auto flex items-center gap-2 text-[#6d28d9] font-black text-sm group/btn"
                               onClick={() => window.location.href = `/blog/${post._id || post.id}`}
                            >
-                              Читати далі 
+                              Читати далі
                               <ChevronRight size={18} className="transition-transform group-hover/btn:translate-x-1" />
                            </button>
                         </div>

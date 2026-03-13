@@ -1,41 +1,48 @@
-import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import HomePage from './pages/homePage';
-import LoginPage from './pages/loginPage';
-import RegisterPage from './pages/registerPage';
-import ProfilePage from './pages/profilePage';
-import AdminPage from './pages/AdminPage';
-import AboutPage from './pages/aboutPage';
-import ProgramDetails from './pages/ProgramDetails';
-import ReviewerPage from './pages/ReviewerPage';
-import ContentManagement from './pages/ContentManagement';
-import Blog from './pages/BlogPage';
-import PostDetail from './pages/PostDetail';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import ScrollToTop from './components/ScrollToTop';
-import AOS from 'aos';
-import 'aos/dist/aos.css';
+/* eslint-disable react-hooks/exhaustive-deps */
+import React, { useEffect } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import HomePage from "./pages/homePage";
+import LoginPage from "./pages/loginPage";
+import RegisterPage from "./pages/registerPage";
+import ProfilePage from "./pages/profilePage";
+import AdminPage from "./pages/AdminPage";
+import AboutPage from "./pages/aboutPage";
+import ProgramDetails from "./pages/ProgramDetails";
+import ReviewerPage from "./pages/ReviewerPage";
+import ContentPanel from "./pages/ContentPanel";
+import CreatePost from "./pages/CreatePost";
+import Blog from "./pages/BlogPage";
+import PostDetail from "./pages/PostDetail";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import ScrollToTop from "./components/ScrollToTop";
+import AOS from "aos";
+import "aos/dist/aos.css";
 
 function App() {
   useEffect(() => {
     AOS.init({
       duration: 800,
       once: true,
-      easing: 'ease-out',
+      easing: "ease-out",
       offset: 100,
     });
   }, []);
 
-  const token = localStorage.getItem('token');
-  const user = JSON.parse(localStorage.getItem('user'));
+  const token = localStorage.getItem("token");
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
   const isAuthenticated = !!token;
 
-  const ProtectedRoute = ({ children, allowedRole }) => {
+  const ProtectedRoute = ({ children, allowedRoles }) => {
     if (!isAuthenticated) {
       return <Navigate to="/login" replace />;
     }
-    if (allowedRole && user?.role !== allowedRole) {
+    if (allowedRoles && !allowedRoles.includes(user?.role)) {
       return <Navigate to="/" replace />;
     }
     return children;
@@ -56,10 +63,28 @@ function App() {
         <Route path="/program/:id" element={<ProgramDetails />} />
 
         <Route
+          path="/content-panel"
+          element={
+            <ProtectedRoute allowedRoles={["content-manager", "admin"]}>
+              <ContentPanel />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/content-management"
           element={
-            <ProtectedRoute allowedRole="content-manager">
-              <ContentManagement />
+            <ProtectedRoute allowedRoles={["content-manager", "admin"]}>
+              <CreatePost />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/edit-post/:id"
+          element={
+            <ProtectedRoute allowedRoles={["content-manager", "admin"]}>
+              <CreatePost />
             </ProtectedRoute>
           }
         />
@@ -76,7 +101,7 @@ function App() {
         <Route
           path="/admin"
           element={
-            <ProtectedRoute allowedRole="admin">
+            <ProtectedRoute allowedRoles={["admin"]}>
               <AdminPage />
             </ProtectedRoute>
           }
@@ -85,7 +110,7 @@ function App() {
         <Route
           path="/reviewer"
           element={
-            <ProtectedRoute allowedRole="reviewer">
+            <ProtectedRoute allowedRoles={["reviewer"]}>
               <ReviewerPage />
             </ProtectedRoute>
           }

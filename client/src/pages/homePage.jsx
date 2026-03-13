@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axios from '../api/axios';
 import {
   ArrowRight, Calendar, Search,
   BookOpen, TrendingUp, Tag, Sparkles, FilterX
@@ -24,7 +24,7 @@ const stripHtmlAndTruncate = (html, limit) => {
 const HomePage = () => {
   const navigate = useNavigate();
   const [programs, setPrograms] = useState([]);
-  const [usersCount, setUsersCount] = useState(null); // Стан для кількості користувачів
+  const [usersCount, setUsersCount] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDomain, setSelectedDomain] = useState("Всі галузі");
@@ -34,7 +34,6 @@ const HomePage = () => {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-        // Отримуємо програми та кількість користувачів паралельно
         const [programsRes, usersRes] = await Promise.all([
           axios.get(`${apiUrl}/api/programs`),
           axios.get(`${apiUrl}/api/users/count`).catch(() => ({ data: { count: 0 } }))
