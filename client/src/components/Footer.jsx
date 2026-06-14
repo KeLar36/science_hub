@@ -124,7 +124,7 @@ const Footer = () => {
                     Локація
                   </p>
                   <span className="text-sm text-[var(--text-dark)] font-medium italic">
-                    Київ, вул. Головна, буд. 1, Україна
+                    Київ, вул. Головна, будинок 1, Україна
                   </span>
                 </div>
               </li>
