@@ -220,4 +220,18 @@ router.get(
   },
 );
 
+router.get("/archive", async (req, res) => {
+  try {
+    const archivedProjects = await Project.find({ status: "Прийнято" })
+      .populate("authorId", "name image bio")
+      .populate("programId", "title")
+      .sort({ createdAt: -1 });
+
+    res.json(archivedProjects);
+  } catch (err) {
+    console.error("Помилка при отриманні архіву:", err);
+    res.status(500).json({ error: "Не вдалося завантажити архів статей" });
+  }
+});
+
 module.exports = router;

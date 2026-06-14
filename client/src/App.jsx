@@ -21,6 +21,7 @@ import PostDetail from "./pages/PostDetail";
 import RulesPage from "./pages/RulesPage";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import ArchivePage from "./pages/ArchivePage"; // Нова сторінка архіву
 import ScrollToTop from "./components/ScrollToTop";
 import AOS from "aos";
 import "aos/dist/aos.css";
@@ -65,7 +66,7 @@ function App() {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/program/:id" element={<ProgramDetails />} />
         <Route path="/rules" element={<RulesPage />} />
-
+        <Route path="/archive" element={<ArchivePage />} />{" "}
         <Route
           path="/content-panel"
           element={
@@ -76,7 +77,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/content-management"
           element={
@@ -87,7 +87,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/edit-post/:id"
           element={
@@ -98,7 +97,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/profile"
           element={
@@ -107,7 +105,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin"
           element={
@@ -116,7 +113,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/reviewer"
           element={
@@ -125,7 +121,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

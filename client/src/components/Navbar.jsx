@@ -10,6 +10,7 @@ import {
   Moon,
   ArrowRight,
   User,
+  Archive, // Імпортовано іконку архіву для майбутнього використання
 } from "lucide-react";
 import { useDarkMode } from "../hooks/useDarkMode";
 
@@ -46,8 +47,10 @@ const Navbar = () => {
     closeMenu();
   };
 
+  // Додано пункт "Архів" до загальних лінків навігації
   const navLinks = [
     { label: "Програми", path: "/" },
+    { label: "Архів", path: "/archive" },
     { label: "Блог", path: "/blog" },
     { label: "Про нас", path: "/about" },
     { label: "Правила", path: "/rules" },

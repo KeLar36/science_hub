@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import parse from "html-react-parser"; // Імпортуємо встановлений парсер
 import axios from "../api/axios";
 import {
   Calendar,
@@ -139,34 +140,116 @@ const PostDetail = () => {
   if (!post) return null;
 
   return (
-    <div className="min-h-screen bg-[var(--bg-main)] flex flex-col font-['Plus_Jakarta_Sans',_sans-serif]">
+    <div className="min-h-screen bg-[var(--bg-main)] flex flex-col font-['Plus_Jakarta_Sans',_sans-serif] transition-colors duration-300">
       <Toaster position="bottom-right" />
       <Navbar />
 
       <style>{`
-  .post-content-container.prose {
-    --tw-prose-body: var(--text-main);
-    --tw-prose-headings: var(--text-dark);
-    --tw-prose-bold: var(--text-dark);
-    --tw-prose-counters: var(--purple-main);
-    --tw-prose-bullets: var(--purple-main);
-    max-width: none;
-  }
-
   .post-content-container {
     hyphens: auto;
     -webkit-hyphens: auto;
-    text-align: justify;
+    text-align: left; /* Для rich-text краще використовувати ліве вирівнювання, щоб уникнути величезних дірок між словами */
+    color: var(--text-main);
+    font-size: 1.125rem;
+    line-height: 1.8;
   }
 
-  .post-content-container strong, 
-  .post-content-container b {
-    font-weight: 700 !important;
+  /* Стилізація заголовків із збереженням регістру автора */
+  .post-content-container h1,
+  .post-content-container h2,
+  .post-content-container h3,
+  .post-content-container h4 {
+    color: var(--text-dark);
+    font-weight: 800;
+    tracking: tracking-tight;
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+    line-height: 1.3;
   }
-
-  .post-card { background: var(--bg-card); border-radius: 32px; border: 1px solid var(--border-color); }
-  .meta-item { background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 16px; padding: 12px 20px; display: flex; align-items: center; gap: 12px; }
   
+  /* Прибираємо uppercase, щоб текст читався легко */
+  .post-content-container h1 { font-size: 2.25rem; }
+  .post-content-container h2 { font-size: 1.75rem; }
+  .post-content-container h3 { font-size: 1.5rem; }
+
+  .post-content-container p {
+    margin-bottom: 1.5rem;
+    font-weight: 400; /* Звичайний текст має бути normal, а не напівжирним */
+  }
+
+  /* Списки: повертаємо їм нормальні відступи та стандартний вигляд */
+  .post-content-container ul, 
+  .post-content-container ol {
+    margin-left: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding-left: 0.5rem;
+  }
+  .post-content-container ul { list-style-type: disc; }
+  .post-content-container ol { list-style-type: decimal; }
+  
+  .post-content-container li { 
+    margin-bottom: 0.75rem; 
+    font-weight: 400;
+    line-height: 1.6;
+  }
+  
+  /* Важливий фікс для вкладених strong елементів у списках */
+  .post-content-container li strong {
+    font-weight: 700 !important;
+    color: var(--text-dark);
+  }
+
+  /* Елегантна цитата (blockquote), як у менеджера, але з вашим фіолетовим акцентом */
+  .post-content-container blockquote {
+    border-left: 4px solid #6d28d9; /* Фірмовий фіолетовий */
+    padding: 0.75rem 1.5rem;
+    margin: 2rem 0;
+    background: rgba(109, 40, 217, 0.03); /* Легкий фіолетовий тинт */
+    border-radius: 0 16px 16px 0;
+    color: var(--text-main);
+  }
+  
+  .post-content-container blockquote p {
+    margin-bottom: 0;
+    font-style: normal;
+  }
+
+  /* Оновлені картки та мета-дані */
+  .post-card { 
+    background: var(--bg-card); 
+    border-radius: 32px; 
+    border: 1px solid var(--border-color); 
+    transition: border-color 0.3s ease;
+  }
+  .post-card:hover {
+    border-color: rgba(109, 40, 217, 0.2);
+  }
+
+  .meta-item { 
+    background: var(--bg-main); 
+    border: 1px solid var(--border-color); 
+    border-radius: 16px; 
+    padding: 12px 20px; 
+    display: flex; 
+    align-items: center; 
+    gap: 12px; 
+  }
+  
+  .reaction-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    transition: all 0.2s ease;
+  }
+  .reaction-btn:hover {
+    border-color: #6d28d9;
+    transform: translateY(-2px);
+  }
+
   .sidebar-anim { 
     transform: translateX(${showComments ? "0" : "100%"}); 
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
@@ -177,6 +260,7 @@ const PostDetail = () => {
         <button
           onClick={() => navigate("/blog")}
           className="flex items-center gap-2 text-[var(--text-gray)] hover:text-[var(--text-dark)] text-sm font-bold mb-8 transition-colors group"
+          data-aos="fade-right"
         >
           <ChevronLeft
             size={18}
@@ -185,7 +269,7 @@ const PostDetail = () => {
           Назад до блогу
         </button>
 
-        <article className="post-card overflow-hidden">
+        <article className="post-card overflow-hidden" data-aos="fade-up">
           <div className="p-8 md:p-12">
             <span className="inline-block px-3 py-1 bg-purple-500/10 text-[#6d28d9] rounded-lg text-[10px] font-black uppercase tracking-widest mb-6">
               {post.category}
@@ -196,8 +280,8 @@ const PostDetail = () => {
             </h1>
 
             <div className="flex flex-wrap gap-4 pt-8 border-t border-[var(--border-color)]">
-              <div className="meta-item">
-                <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center text-[#6d28d9]">
+              <div className="meta-item group/meta">
+                <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center text-[#6d28d9] transition-transform group-hover/meta:scale-105">
                   <User size={18} />
                 </div>
                 <div>
@@ -209,8 +293,8 @@ const PostDetail = () => {
                   </p>
                 </div>
               </div>
-              <div className="meta-item">
-                <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500">
+              <div className="meta-item group/meta">
+                <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500 transition-transform group-hover/meta:scale-105">
                   <Calendar size={18} />
                 </div>
                 <div>
@@ -226,15 +310,16 @@ const PostDetail = () => {
           </div>
 
           <div className="px-8 md:px-12 py-4">
-            <div
-              className="post-content-container text-lg"
-              lang="uk"
-              dangerouslySetInnerHTML={{
-                __html: getHyphenatedHtml(post.content),
-              }}
-            />
+            {/* Оновлено виведення контенту: розставляємо дефіси, а потім парсимо рядок у React DOM */}
+            <div className="post-content-container text-lg" lang="uk">
+              {parse(getHyphenatedHtml(post.content || ""))}
+            </div>
 
-            <div className="flex flex-wrap gap-3 mt-12 pt-8 border-t border-[var(--border-color)]">
+            <div
+              className="flex flex-wrap gap-3 mt-12 pt-8 border-t border-[var(--border-color)]"
+              data-aos="fade-up"
+              data-aos-delay="100"
+            >
               {[
                 { e: "🔥", l: "fire" },
                 { e: "❤️", l: "heart" },
@@ -266,13 +351,17 @@ const PostDetail = () => {
                   navigator.clipboard.writeText(window.location.href);
                   toast.success("Скопійовано");
                 }}
-                className="flex items-center gap-2 px-6 py-3 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl text-xs font-bold text-[var(--text-gray)] hover:text-[#6d28d9] transition-all"
+                className="flex items-center gap-2 px-6 py-3 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl text-xs font-bold text-[var(--text-gray)] hover:text-[#6d28d9] hover:border-[#6d28d9] transition-all active:scale-[0.98]"
               >
                 <Share2 size={16} /> Поділитися
               </button>
               <button
                 onClick={handleBookmark}
-                className={`p-3 border rounded-2xl transition-all ${isBookmarked ? "bg-[#6d28d9] border-[#6d28d9] text-white" : "bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-gray)]"}`}
+                className={`p-3 border rounded-2xl transition-all active:scale-[0.98] ${
+                  isBookmarked
+                    ? "bg-[#6d28d9] border-[#6d28d9] text-white shadow-md shadow-purple-500/10"
+                    : "bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-gray)] hover:border-[#6d28d9] hover:text-[#6d28d9]"
+                }`}
               >
                 <Bookmark
                   size={18}
@@ -283,7 +372,7 @@ const PostDetail = () => {
 
             <button
               onClick={() => setShowComments(true)}
-              className="flex items-center gap-3 bg-[#6d28d9] text-white px-10 py-4 rounded-2xl font-black text-sm hover:bg-[#5b21b6] transition-all shadow-lg shadow-purple-500/20"
+              className="flex items-center gap-3 bg-[#6d28d9] text-white px-10 py-4 rounded-2xl font-black text-sm hover:bg-[#5b21b6] transition-all shadow-lg shadow-purple-500/20 active:scale-[0.98]"
             >
               <MessageSquare size={18} /> Обговорити ({comments.length})
             </button>
@@ -291,12 +380,13 @@ const PostDetail = () => {
         </article>
       </main>
 
+      {/* Шторка коментарів */}
       <div
-        className={`fixed inset-0 bg-black/20 backdrop-blur-sm z-[999] transition-opacity ${showComments ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+        className={`fixed inset-0 bg-black/20 backdrop-blur-xs z-[999] transition-opacity duration-300 ${showComments ? "opacity-100" : "opacity-0 pointer-events-none"}`}
         onClick={() => setShowComments(false)}
       />
       <aside
-        className={`fixed top-0 right-0 h-screen w-full max-w-[400px] bg-[var(--bg-card)] z-[1000] border-l border-[var(--border-color)] flex flex-col sidebar-anim`}
+        className={`fixed top-0 right-0 h-screen w-full max-w-[400px] bg-[var(--bg-card)] z-[1000] border-l border-[var(--border-color)] flex flex-col sidebar-anim shadow-2xl`}
       >
         <div className="p-6 border-b border-[var(--border-color)] flex justify-between items-center">
           <h3 className="text-lg font-black text-[var(--text-dark)] uppercase tracking-tight">
@@ -304,14 +394,14 @@ const PostDetail = () => {
           </h3>
           <button
             onClick={() => setShowComments(false)}
-            className="p-2 hover:bg-[var(--bg-main)] rounded-xl transition-colors"
+            className="p-2 hover:bg-[var(--bg-main)] rounded-xl transition-colors text-[var(--text-gray)] hover:text-[var(--text-dark)]"
           >
             <X size={20} />
           </button>
         </div>
         <div className="flex-grow overflow-y-auto p-6 space-y-6 custom-scrollbar">
           {comments.map((c) => (
-            <div key={c._id} className="flex gap-3">
+            <div key={c._id} className="flex gap-3 transition-all duration-300">
               <div className="w-8 h-8 rounded-xl bg-purple-500/10 flex items-center justify-center text-[#6d28d9] text-[10px] font-black shrink-0">
                 {(c.user?.name || "U").charAt(0).toUpperCase()}
               </div>
@@ -319,7 +409,7 @@ const PostDetail = () => {
                 <span className="text-[10px] font-black text-[var(--text-gray)] mb-1">
                   {c.user?.name}
                 </span>
-                <div className="p-3 rounded-2xl text-xs font-medium bg-[var(--bg-main)] text-[var(--text-dark)] border border-[var(--border-color)] rounded-tl-none">
+                <div className="p-3 rounded-2xl text-xs font-medium bg-[var(--bg-main)] text-[var(--text-dark)] border border-[var(--border-color)] rounded-tl-none leading-relaxed">
                   {c.text}
                 </div>
               </div>
@@ -340,7 +430,7 @@ const PostDetail = () => {
             />
             <button
               type="submit"
-              className="absolute right-2 top-2 p-2 bg-[#6d28d9] text-white rounded-xl hover:bg-[#5b21b6]"
+              className="absolute right-2 top-2 p-2 bg-[#6d28d9] text-white rounded-xl hover:bg-[#5b21b6] transition-colors flex items-center justify-center"
             >
               <Send size={16} />
             </button>
