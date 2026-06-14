@@ -19,12 +19,16 @@ export default function ArchivePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Отримуємо адресу сервера з конфігу (чи .env), або беремо фолбек на локалхост
+  const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
   useEffect(() => {
     const fetchArchiveData = async () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch("/api/projects/archive");
+        // ВИПРАВЛЕНО: Запит тепер точно летить на адресу бекенду, а не фронтенду
+        const response = await fetch(`${API_BASE_URL}/api/projects/archive`);
         if (!response.ok) {
           throw new Error("Не вдалося завантажити архів статей");
         }
@@ -39,7 +43,7 @@ export default function ArchivePage() {
     };
 
     fetchArchiveData();
-  }, []);
+  }, [API_BASE_URL]);
 
   const stats = useMemo(() => {
     if (!articles.length) return { total: 0, domains: 0, authors: 0 };
@@ -58,9 +62,14 @@ export default function ArchivePage() {
     };
   }, [articles]);
 
+  // ВИПРАВЛЕНО: Замість зашитого localhost підставляємо динамічний домен сервера
   const getDownloadUrl = (path) => {
     if (!path) return "#";
-    return path.startsWith("http") ? path : `http://localhost:5000/${path}`;
+    if (path.startsWith("http")) return path;
+
+    // Прибираємо зайві косі риски, щоб посилання не ламалося (наприклад, якщо path починається з "/")
+    const cleanPath = path.startsWith("/") ? path.slice(1) : path;
+    return `${API_BASE_URL}/${cleanPath}`;
   };
 
   return (
@@ -168,7 +177,6 @@ export default function ArchivePage() {
                   data-aos-delay={index * 50}
                 >
                   <div>
-                    {/* Виправлені бейджі з напівпрозорим фоном */}
                     <div className="flex flex-wrap items-center gap-2 mb-4">
                       <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-[var(--purple-main)]/10 text-[var(--purple-main)] border border-[var(--purple-main)]/20">
                         ✓ Прийнято рецензентом
@@ -215,9 +223,11 @@ export default function ArchivePage() {
                         <span>
                           Дата:{" "}
                           <span className="text-[var(--text-dark)]">
-                            {new Date(article.createdAt).toLocaleDateString(
-                              "uk-UA",
-                            )}
+                            {article.createdAt
+                              ? new Date(article.createdAt).toLocaleDateString(
+                                  "uk-UA",
+                                )
+                              : "—"}
                           </span>
                         </span>
                       </div>
@@ -352,9 +362,11 @@ export default function ArchivePage() {
                               </span>
                             </div>
                             <span className="text-[9px] font-bold text-[var(--text-gray)] uppercase tracking-wider">
-                              {new Date(ver.createdAt).toLocaleDateString(
-                                "uk-UA",
-                              )}
+                              {ver.createdAt
+                                ? new Date(ver.createdAt).toLocaleDateString(
+                                    "uk-UA",
+                                  )
+                                : "—"}
                             </span>
                           </div>
                         ))}
