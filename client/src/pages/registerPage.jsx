@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import axios from "../api/axios";
+import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 import {
   UserPlus,
@@ -22,7 +22,6 @@ import Footer from "../components/Footer";
 import AOS from "aos";
 import "aos/dist/aos.css";
 
-// Константи для випадаючих списків
 const UKRAINIAN_CITIES = [
   "Київ",
   "Харків",
