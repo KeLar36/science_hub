@@ -3,152 +3,156 @@ import { Link } from "react-router-dom";
 import {
   Mail,
   MapPin,
-  Phone,
   Github,
   Linkedin,
   Globe,
   GraduationCap,
+  ArrowUpRight,
 } from "lucide-react";
-import "../index.css";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
-  const version = "1.0.1";
 
   return (
-    <footer className="main-footer" data-aos="fade-up" data-aos-offset="0">
-      <div className="footer-container">
-        <div
-          className="footer-section brand-column"
-          data-aos="fade-in"
-          data-aos-anchor-placement="bottom-bottom"
-          data-aos-delay="100"
-        >
-          <Link to="/" className="footer-logo">
-            <div className="footer-logo-icon">
-              <GraduationCap size={24} color="white" />
+    <footer className="bg-[var(--bg-main)] border-t border-[var(--border-color)] pt-24 pb-12 px-6 relative overflow-hidden">
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[200px] bg-[var(--purple-main)] opacity-[0.03] blur-[100px] pointer-events-none" />
+
+      <div className="max-w-7xl mx-auto relative z-10">
+        <div className="flex flex-col lg:flex-row justify-between gap-16 mb-24 items-center lg:items-start text-center lg:text-left">
+          <div className="flex flex-col items-center lg:items-start space-y-10 max-w-sm">
+            <Link to="/" className="flex items-center gap-3 group">
+              <div className="w-10 h-10 border border-[var(--border-color)] flex items-center justify-center group-hover:border-[var(--purple-main)] transition-colors duration-500">
+                <GraduationCap
+                  size={20}
+                  className="text-[var(--text-dark)] group-hover:text-[var(--purple-main)] transition-colors"
+                />
+              </div>
+              <div className="flex flex-col items-center lg:items-start">
+                <span className="text-xl font-medium tracking-tighter text-[var(--text-dark)] leading-none">
+                  Science{" "}
+                  <span className="text-[var(--purple-main)]">Platform</span>
+                </span>
+                <span className="text-[9px] uppercase tracking-[0.3em] text-[var(--text-gray)] mt-1 font-bold">
+                  Innovating Research
+                </span>
+              </div>
+            </Link>
+
+            <p className="text-sm leading-relaxed text-[var(--text-gray)] font-normal opacity-80">
+              Цифрова екосистема для моніторингу наукових грантів та
+              автоматизації публікацій. Створено для розвитку академічної
+              спільноти.
+            </p>
+
+            <div className="flex gap-4 items-center justify-center lg:justify-start">
+              {[
+                { icon: <Github size={18} />, href: "#" },
+                { icon: <Linkedin size={18} />, href: "#" },
+                { icon: <Globe size={18} />, href: "#" },
+              ].map((social, idx) => (
+                <a
+                  key={idx}
+                  href={social.href}
+                  className="w-10 h-10 border border-[var(--border-color)] flex items-center justify-center text-[var(--text-gray)] hover:text-[var(--purple-main)] hover:border-[var(--purple-main)] transition-all"
+                >
+                  {social.icon}
+                </a>
+              ))}
             </div>
-            <div className="footer-logo-text">
-              <span className="footer-logo-title">
-                Science<span className="text-purple">Platform</span>
+          </div>
+
+          <div className="flex flex-col items-center lg:items-start space-y-8 min-w-[150px]">
+            <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-dark)] flex items-center gap-2">
+              <span className="hidden lg:block w-4 h-px bg-[var(--purple-main)]"></span>
+              Навігація
+              <span className="lg:hidden w-4 h-px bg-[var(--purple-main)]"></span>
+            </h4>
+            <ul className="space-y-4">
+              {[
+                { label: "Головна", path: "/" },
+                { label: "Про нас", path: "/about" },
+                { label: "Блог", path: "/blog" },
+                { label: "Кабінет", path: "/profile" },
+              ].map((link) => (
+                <li key={link.path}>
+                  <Link
+                    to={link.path}
+                    className="group text-sm text-[var(--text-gray)] hover:text-[var(--text-dark)] transition-colors flex items-center justify-center lg:justify-between gap-2 lg:gap-8"
+                  >
+                    {link.label}
+                    <ArrowUpRight
+                      size={14}
+                      className="opacity-0 group-hover:opacity-100 group-hover:text-[var(--purple-main)] transition-all -translate-y-0.5"
+                    />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="flex flex-col items-center lg:items-start space-y-8">
+            <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-dark)] flex items-center gap-2">
+              <span className="hidden lg:block w-4 h-px bg-[var(--purple-main)]"></span>
+              Зв'язок
+              <span className="lg:hidden w-4 h-px bg-[var(--purple-main)]"></span>
+            </h4>
+            <ul className="space-y-8">
+              <li className="flex flex-col lg:flex-row items-center lg:items-start gap-3">
+                <Mail
+                  size={16}
+                  className="text-[var(--purple-main)] shrink-0"
+                />
+                <div className="flex flex-col items-center lg:items-start">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-gray)] mb-1">
+                    Електронна пошта
+                  </p>
+                  <a
+                    href="mailto:support@scienceplatform.edu"
+                    className="text-sm text-[var(--text-dark)] font-medium hover:text-[var(--purple-main)] transition-colors"
+                  >
+                    support@scienceplatform.edu
+                  </a>
+                </div>
+              </li>
+              <li className="flex flex-col lg:flex-row items-center lg:items-start gap-3">
+                <MapPin
+                  size={16}
+                  className="text-[var(--purple-main)] shrink-0"
+                />
+                <div className="flex flex-col items-center lg:items-start">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-[var(--text-gray)] mb-1">
+                    Локація
+                  </p>
+                  <span className="text-sm text-[var(--text-dark)] font-medium italic">
+                    Київ, вул. Головна, буд. 1, Україна
+                  </span>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div className="pt-12 border-t border-[var(--border-color)] flex flex-col md:flex-row justify-between items-center gap-8">
+          <div className="flex flex-col md:flex-row items-center gap-6 text-[10px] font-bold text-[var(--text-gray)] uppercase tracking-[0.2em] text-center md:text-left">
+            <span>&copy; {currentYear} Science Platform</span>
+            <div className="flex items-center gap-3">
+              <span className="w-1.5 h-1.5 bg-[var(--purple-main)] rotate-45" />
+              <span className="text-[var(--text-dark)] opacity-60  normal-case font-medium">
+                Магістерська робота
               </span>
-              <span className="footer-logo-subtitle">Academic Portal</span>
             </div>
-          </Link>
-          <p className="footer-description">
-            Інноваційна система для моніторингу наукових програм та спрощення
-            публікацій. Побудовано для майбутнього української науки.
-          </p>
-
-          <div className="mt-4 flex items-center gap-2">
-            <span className="px-2 py-0.5 mb-1.5 bg-purple-500/10 text-purple-600 text-[10px] font-black rounded border border-purple-500/20 uppercase tracking-widest">
-              v {version}
-            </span>
           </div>
 
-          <div className="footer-socials">
-            <a
-              href="https://github.com"
-              className="social-icon"
-              target="_blank"
-              rel="noreferrer"
-              data-aos="zoom-in"
-              data-aos-delay="400"
-            >
-              <Github size={18} />
-            </a>
-            <a
-              href="https://linkedin.com"
-              className="social-icon"
-              target="_blank"
-              rel="noreferrer"
-              data-aos="zoom-in"
-              data-aos-delay="500"
-            >
-              <Linkedin size={18} />
-            </a>
-            <a
-              href="https://google.com"
-              className="social-icon"
-              target="_blank"
-              rel="noreferrer"
-              data-aos="zoom-in"
-              data-aos-delay="600"
-            >
-              <Globe size={18} />
-            </a>
-          </div>
-        </div>
-
-        <div
-          className="footer-section"
-          data-aos="fade-in"
-          data-aos-anchor-placement="bottom-bottom"
-          data-aos-delay="200"
-        >
-          <h4 className="footer-heading text-center md:text-left">Навігація</h4>
-          <ul className="footer-list">
-            <li>
-              <Link to="/" className="footer-link">
-                Головна
-              </Link>
-            </li>
-            <li>
-              <Link to="/blog" className="footer-link">
-                Блог
-              </Link>
-            </li>
-            <li>
-              <Link to="/about" className="footer-link">
-                Про нас
-              </Link>
-            </li>
-            <li>
-              <Link to="/profile" className="footer-link">
-                Кабінет
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        <div
-          className="footer-section"
-          data-aos="fade-in"
-          data-aos-anchor-placement="bottom-bottom"
-          data-aos-delay="300"
-        >
-          <h4 className="footer-heading text-center md:text-left">Контакти</h4>
-          <ul className="footer-list">
-            <li className="footer-contact-item">
-              <div className="contact-icon-bg">
-                <Mail size={14} />
-              </div>
-              <span>support@scienceplatform.edu</span>
-            </li>
-            <li className="footer-contact-item">
-              <div className="contact-icon-bg">
-                <MapPin size={14} />
-              </div>
-              <span>м. Київ, пр. Науки, 42</span>
-            </li>
-            <li className="footer-contact-item">
-              <div className="contact-icon-bg">
-                <Phone size={14} />
-              </div>
-              <span>+380 (44) 123-45-67</span>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <div className="bottom-bar">
-        <div className="bottom-bar-content">
-          <div className="flex flex-col md:flex-row items-center gap-2">
-            <p>&copy; {currentYear} Science Platform. Магістерська робота.</p>
-          </div>
-          <div className="legal-links">
-            <a href="#privacy">Конфіденційність</a>
-            <a href="#terms">Умови</a>
+          <div className="flex gap-10">
+            {["Конфіденційність", "Умови"].map((item) => (
+              <a
+                key={item}
+                href={`#${item === "Умови" ? "terms" : "privacy"}`}
+                className="text-[10px] font-bold text-[var(--text-gray)] uppercase tracking-widest hover:text-[var(--purple-main)] transition-colors relative group"
+              >
+                {item}
+                <span className="absolute -bottom-1 left-0 w-0 h-px bg-[var(--purple-main)] group-hover:w-full transition-all duration-300"></span>
+              </a>
+            ))}
           </div>
         </div>
       </div>

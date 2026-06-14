@@ -6,10 +6,12 @@ import {
   Plus,
   Edit3,
   Trash2,
-  Layout,
   FileText,
   ExternalLink,
   Search,
+  Calendar,
+  Tag,
+  Settings2,
 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -56,67 +58,78 @@ const ContentPanel = () => {
   );
 
   return (
-    <div className="min-h-screen bg-[var(--bg-main)] flex flex-col transition-colors duration-300">
-      <Toaster position="top-center" />
+    <div className="min-h-screen bg-[var(--bg-main)] flex flex-col transition-colors duration-500">
+      <Toaster position="bottom-right" />
       <Navbar />
 
-      <main className="flex-grow pt-32 pb-20 px-4 md:px-10">
-        <div className="max-w-7xl mx-auto">
-          {/* Header Section */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+      <main className="flex-grow pt-28 pb-20 px-4 md:px-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-10">
             <div>
-              <h1 className="text-5xl font-black text-[var(--text-dark)] tracking-tight flex items-center gap-4">
-                <Layout className="text-[#6d28d9]" size={42} />
-                Контент
+              <div className="flex items-center gap-2 text-[var(--purple-main)] mb-1">
+                <Settings2 size={16} />
+                <span className="text-[10px] font-black uppercase tracking-[0.2em]">
+                  System Manager
+                </span>
+              </div>
+              <h1 className="text-4xl font-black text-[var(--text-dark)] tracking-tight uppercase italic">
+                Контент<span className="text-[var(--purple-main)]">.</span>
               </h1>
-              <p className="text-[var(--text-gray)] font-bold mt-2">
-                Керування публікаціями вашої платформи
-              </p>
             </div>
 
             <button
               onClick={() => navigate("/content-management")}
-              className="bg-[#6d28d9] text-white px-8 py-4 rounded-2xl font-black hover:scale-105 active:scale-95 transition-all shadow-xl shadow-purple-500/20 flex items-center gap-2 w-fit"
+              className="flex items-center gap-2 bg-[var(--purple-main)] text-white px-6 py-3 rounded-xl font-bold text-sm transition-all hover:bg-[var(--text-dark)] hover:-translate-y-0.5 shadow-lg shadow-purple-500/10 active:translate-y-0"
             >
-              <Plus size={20} /> Створити пост
+              <Plus size={18} />
+              Створити пост
             </button>
           </div>
 
-          {/* Search Bar */}
-          <div className="relative mb-8">
-            <Search
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-gray)] opacity-50"
-              size={20}
-            />
-            <input
-              type="text"
-              placeholder="Пошук за заголовком..."
-              className="w-full p-4 pl-12 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl outline-none focus:border-[#6d28d9] transition-all text-[var(--text-dark)]"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-8">
+            <div className="md:col-span-9 relative group">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-gray)] group-focus-within:text-[var(--purple-main)] transition-colors">
+                <Search size={18} />
+              </div>
+              <input
+                type="text"
+                placeholder="Пошук публікацій за назвою..."
+                className="w-full py-4 pl-12 pr-4 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl text-sm font-medium outline-none focus:border-[var(--purple-main)] focus:ring-4 focus:ring-purple-500/5 transition-all text-[var(--text-dark)]"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+
+            <div className="md:col-span-3 bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-2xl flex items-center justify-between">
+              <span className="text-[10px] font-black text-[var(--text-gray)] uppercase tracking-widest">
+                Постів:
+              </span>
+              <span className="text-xl font-black text-[var(--text-dark)] italic">
+                {posts.length}
+              </span>
+            </div>
           </div>
 
-          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-[32px] overflow-hidden shadow-sm transition-colors duration-300">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-[24px] overflow-hidden">
             {loading ? (
-              <div className="p-20 text-center font-black text-[#6d28d9] animate-pulse">
-                Завантаження...
+              <div className="p-24 text-center">
+                <div className="w-10 h-10 border-2 border-[var(--border-color)] border-t-[var(--purple-main)] rounded-full animate-spin mx-auto"></div>
               </div>
             ) : filteredPosts.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead className="bg-[var(--bg-main)] border-b border-[var(--border-color)] transition-colors duration-300">
-                    <tr>
-                      <th className="p-6 text-[10px] font-black uppercase text-[var(--text-gray)] tracking-widest">
-                        Стаття
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-[var(--bg-main)]/50 border-b border-[var(--border-color)]">
+                      <th className="p-5 text-[10px] font-black uppercase text-[var(--text-gray)] tracking-widest">
+                        Назва та обкладинка
                       </th>
-                      <th className="p-6 text-[10px] font-black uppercase text-[var(--text-gray)] tracking-widest">
-                        Категорія
+                      <th className="p-5 text-[10px] font-black uppercase text-[var(--text-gray)] tracking-widest hidden sm:table-cell text-center">
+                        Тип
                       </th>
-                      <th className="p-6 text-[10px] font-black uppercase text-[var(--text-gray)] tracking-widest">
+                      <th className="p-5 text-[10px] font-black uppercase text-[var(--text-gray)] tracking-widest hidden md:table-cell text-center">
                         Дата
                       </th>
-                      <th className="p-6 text-[10px] font-black uppercase text-[var(--text-gray)] tracking-widest text-right">
+                      <th className="p-5 text-[10px] font-black uppercase text-[var(--text-gray)] tracking-widest text-right">
                         Дії
                       </th>
                     </tr>
@@ -125,59 +138,72 @@ const ContentPanel = () => {
                     {filteredPosts.map((post) => (
                       <tr
                         key={post._id}
-                        className="hover:bg-purple-50/10 transition-colors group"
+                        className="hover:bg-[var(--purple-main)]/[0.02] transition-colors group"
                       >
-                        <td className="p-6">
+                        <td className="p-5">
                           <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-color)] overflow-hidden flex-shrink-0 flex items-center justify-center">
+                            <div className="w-12 h-12 rounded-xl bg-[var(--bg-main)] border border-[var(--border-color)] overflow-hidden shrink-0 shadow-sm">
                               {post.coverImage ? (
                                 <img
                                   src={post.coverImage}
-                                  className="w-full h-full object-cover"
+                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                   alt=""
                                 />
                               ) : (
-                                <FileText
-                                  className="text-[var(--text-gray)] opacity-40"
-                                  size={24}
-                                />
+                                <div className="w-full h-full flex items-center justify-center text-[var(--text-gray)] opacity-30">
+                                  <FileText size={20} />
+                                </div>
                               )}
                             </div>
-                            <span className="font-bold text-[var(--text-dark)] line-clamp-1 group-hover:text-[#6d28d9] transition-colors">
-                              {post.title}
-                            </span>
+                            <div>
+                              <h3 className="font-bold text-[var(--text-dark)] text-sm mb-1 line-clamp-1 group-hover:text-[var(--purple-main)] transition-colors">
+                                {post.title}
+                              </h3>
+                              <div className="sm:hidden flex items-center gap-2">
+                                <span className="text-[9px] font-black text-[var(--purple-main)] uppercase tracking-tighter">
+                                  {post.category}
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         </td>
-                        <td className="p-6">
-                          <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-full text-[10px] font-black uppercase text-[#6d28d9]">
+                        <td className="p-5 hidden sm:table-cell text-center">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[10px] font-black text-[var(--text-dark)] uppercase tracking-tighter group-hover:border-[var(--purple-main)]/30 transition-colors">
+                            <Tag
+                              size={10}
+                              className="text-[var(--purple-main)]"
+                            />
                             {post.category}
                           </span>
                         </td>
-                        <td className="p-6 text-sm font-bold text-[var(--text-gray)]">
-                          {new Date(post.createdAt).toLocaleDateString()}
+                        <td className="p-5 hidden md:table-cell text-center">
+                          <div className="flex items-center justify-center gap-1.5 text-[var(--text-gray)] text-[11px] font-medium">
+                            <Calendar size={12} className="opacity-50" />
+                            {new Date(post.createdAt).toLocaleDateString()}
+                          </div>
                         </td>
-                        <td className="p-6">
+                        <td className="p-5">
                           <div className="flex justify-end gap-2">
                             <button
                               onClick={() => navigate(`/blog/${post._id}`)}
-                              className="p-2.5 text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all"
-                              title="Переглянути"
+                              className="w-9 h-9 flex items-center justify-center rounded-lg border border-[var(--border-color)] text-[var(--text-gray)] hover:text-blue-500 hover:border-blue-200 hover:bg-blue-50 transition-all"
+                              title="Відкрити"
                             >
-                              <ExternalLink size={18} />
+                              <ExternalLink size={16} />
                             </button>
                             <button
                               onClick={() => navigate(`/edit-post/${post._id}`)}
-                              className="p-2.5 text-amber-500 hover:bg-amber-500/10 rounded-xl transition-all"
+                              className="w-9 h-9 flex items-center justify-center rounded-lg border border-[var(--border-color)] text-[var(--text-gray)] hover:text-amber-500 hover:border-amber-200 hover:bg-amber-50 transition-all"
                               title="Редагувати"
                             >
-                              <Edit3 size={18} />
+                              <Edit3 size={16} />
                             </button>
                             <button
                               onClick={() => handleDelete(post._id)}
-                              className="p-2.5 text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+                              className="w-9 h-9 flex items-center justify-center rounded-lg border border-[var(--border-color)] text-[var(--text-gray)] hover:text-rose-500 hover:border-rose-200 hover:bg-rose-50 transition-all"
                               title="Видалити"
                             >
-                              <Trash2 size={18} />
+                              <Trash2 size={16} />
                             </button>
                           </div>
                         </td>
@@ -187,8 +213,14 @@ const ContentPanel = () => {
                 </table>
               </div>
             ) : (
-              <div className="p-20 text-center font-bold text-[var(--text-gray)]">
-                Публікацій не знайдено
+              <div className="p-20 text-center">
+                <FileText
+                  className="mx-auto mb-3 text-[var(--border-color)]"
+                  size={40}
+                />
+                <p className="text-xs font-bold text-[var(--text-gray)] uppercase tracking-widest">
+                  Немає публікацій
+                </p>
               </div>
             )}
           </div>

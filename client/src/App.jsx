@@ -18,6 +18,7 @@ import ContentPanel from "./pages/ContentPanel";
 import CreatePost from "./pages/CreatePost";
 import Blog from "./pages/BlogPage";
 import PostDetail from "./pages/PostDetail";
+import RulesPage from "./pages/RulesPage";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import ScrollToTop from "./components/ScrollToTop";
@@ -42,9 +43,11 @@ function App() {
     if (!isAuthenticated) {
       return <Navigate to="/login" replace />;
     }
+
     if (allowedRoles && !allowedRoles.includes(user?.role)) {
       return <Navigate to="/" replace />;
     }
+
     return children;
   };
 
@@ -61,11 +64,14 @@ function App() {
         <Route path="/blog/:id" element={<PostDetail />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/program/:id" element={<ProgramDetails />} />
+        <Route path="/rules" element={<RulesPage />} />
 
         <Route
           path="/content-panel"
           element={
-            <ProtectedRoute allowedRoles={["content-manager", "admin"]}>
+            <ProtectedRoute
+              allowedRoles={["content-manager", "admin", "superadmin"]}
+            >
               <ContentPanel />
             </ProtectedRoute>
           }
@@ -74,7 +80,9 @@ function App() {
         <Route
           path="/content-management"
           element={
-            <ProtectedRoute allowedRoles={["content-manager", "admin"]}>
+            <ProtectedRoute
+              allowedRoles={["content-manager", "admin", "superadmin"]}
+            >
               <CreatePost />
             </ProtectedRoute>
           }
@@ -83,7 +91,9 @@ function App() {
         <Route
           path="/edit-post/:id"
           element={
-            <ProtectedRoute allowedRoles={["content-manager", "admin"]}>
+            <ProtectedRoute
+              allowedRoles={["content-manager", "admin", "superadmin"]}
+            >
               <CreatePost />
             </ProtectedRoute>
           }
@@ -101,7 +111,7 @@ function App() {
         <Route
           path="/admin"
           element={
-            <ProtectedRoute allowedRoles={["admin"]}>
+            <ProtectedRoute allowedRoles={["admin", "superadmin"]}>
               <AdminPage />
             </ProtectedRoute>
           }
@@ -110,7 +120,7 @@ function App() {
         <Route
           path="/reviewer"
           element={
-            <ProtectedRoute allowedRoles={["reviewer"]}>
+            <ProtectedRoute allowedRoles={["reviewer", "superadmin"]}>
               <ReviewerPage />
             </ProtectedRoute>
           }

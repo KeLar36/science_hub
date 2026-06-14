@@ -1,20 +1,36 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import axios from '../api/axios';
-import toast, { Toaster } from 'react-hot-toast';
-import { Lock, Eye, EyeOff, CheckCircle2, Loader2, ArrowRight } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
+/* eslint-disable no-unused-vars */
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import axios from "../api/axios";
+import toast, { Toaster } from "react-hot-toast";
+import {
+  Lock,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  Loader2,
+  ArrowRight,
+  ShieldAlert,
+  ChevronLeft,
+} from "lucide-react";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+import AOS from "aos";
+import "aos/dist/aos.css";
 
 const ResetPassword = () => {
   const { token } = useParams();
   const navigate = useNavigate();
 
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+
+  useEffect(() => {
+    AOS.init({ duration: 800, once: true });
+  }, []);
 
   const handleReset = async (e) => {
     e.preventDefault();
@@ -23,129 +39,233 @@ const ResetPassword = () => {
       return toast.error("Паролі не збігаються");
     }
 
-    if (password.length < 6) {
-      return toast.error("Пароль має бути не менше 6 символів");
+    if (password.length < 8) {
+      return toast.error("Пароль має бути не менше 8 символів");
     }
 
     setLoading(true);
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.post(`${apiUrl}/api/auth/reset-password/${token}`, { password });
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      await axios.post(`${apiUrl}/api/auth/reset-password/${token}`, {
+        password,
+      });
 
       setIsSuccess(true);
-      toast.success("Пароль успішно змінено! 🔒");
+      toast.success("Пароль успішно змінено! 🔒", {
+        style: {
+          borderRadius: "8px",
+          background: "#1a1a1a",
+          color: "#fff",
+          border: "1px solid #7c3aed",
+        },
+      });
 
       setTimeout(() => {
-        navigate('/login');
+        navigate("/login");
       }, 3000);
-
     } catch (err) {
-      toast.error(err.response?.data?.error || "Токен недійсний або термін дії вичерпано", {
-        duration: 5000
-      });
+      toast.error(
+        err.response?.data?.error || "Токен недійсний або термін дії вичерпано",
+        {
+          duration: 5000,
+          style: {
+            borderRadius: "8px",
+            background: "#1a1a1a",
+            color: "#fff",
+            border: "1px solid #ef4444",
+          },
+        },
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--bg-main)] selection:bg-purple-100 transition-colors duration-500">
-      <Toaster position="top-center" />
+    <div className="min-h-screen flex flex-col bg-[var(--bg-main)] font-['Plus_Jakarta_Sans',_sans-serif] text-[var(--text-dark)]">
+      <Toaster position="top-right" />
       <Navbar />
 
-      <main className="flex-grow flex items-center justify-center py-24 px-6 relative overflow-hidden">
-        <div className="absolute top-1/4 left-10 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-10 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl delay-700 animate-pulse"></div>
+      <style>{`
+        .bento-auth-card {
+          background: var(--bg-card);
+          border: 1px solid var(--border-color);
+          position: relative;
+          overflow: hidden;
+        }
+        .bento-auth-card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 4px;
+          height: 100%;
+          background: #7c3aed;
+        }
+        .input-minimal {
+          background: var(--bg-main);
+          border: 1px solid var(--border-color);
+          padding: 12px 16px 12px 48px;
+          width: 100%;
+          font-size: 14px;
+          transition: all 0.2s ease;
+          color: var(--text-dark);
+          outline: none;
+        }
+        .input-minimal:focus {
+          border-color: #7c3aed;
+          background: var(--bg-card);
+        }
+        .label-mono {
+          font-family: 'Space Mono', monospace;
+          font-size: 10px;
+          text-transform: uppercase;
+          letter-spacing: 0.2em;
+          color: var(--text-gray);
+          font-weight: 700;
+        }
+        .grid-bg {
+          background-image: radial-gradient(var(--border-color) 1px, transparent 1px);
+          background-size: 32px 32px;
+          position: absolute;
+          inset: 0;
+          opacity: 0.4;
+          z-index: 0;
+        }
+      `}</style>
 
-        <div
-          className="max-w-md w-full bg-[var(--bg-card)] backdrop-blur-xl rounded-[48px] shadow-2xl p-10 md:p-12 border border-[var(--border-color)] relative z-10 transition-colors duration-500"
-          data-aos="zoom-in"
-        >
-          {isSuccess ? (
-            <div className="text-center py-10 space-y-6">
-              <div className="w-24 h-24 bg-green-500/10 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                <CheckCircle2 size={60} />
-              </div>
-              <h2 className="text-3xl font-black text-[var(--text-dark)]">Готово!</h2>
-              <p className="text-[var(--text-gray)] font-medium">Ваш пароль успішно оновлено. Зараз ви будете перенаправлені на сторінку входу.</p>
-              <Link
-                to="/login"
-                className="inline-flex items-center gap-2 text-[#6d28d9] font-bold hover:underline"
-              >
-                Увійти зараз <ArrowRight size={18} />
-              </Link>
-            </div>
-          ) : (
-            <>
-              <div className="text-center mb-12">
-                <div className="w-20 h-20 bg-gradient-to-tr from-[#6d28d9] to-[#a855f7] rounded-[28px] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-purple-500/20 rotate-3">
-                </div>
-                <h2 className="text-3xl font-black text-[var(--text-dark)] tracking-tight mb-2">Новий пароль</h2>
-                <p className="text-[var(--text-gray)] font-medium italic opacity-70 uppercase text-[10px] tracking-widest">
-                  Встановіть надійний захист
-                </p>
-              </div>
+      <main className="flex-grow flex items-center justify-center py-20 px-6 mt-15 relative">
+        <div className="grid-bg" />
 
-              <form onSubmit={handleReset} className="space-y-6">
-                <div className="space-y-1 group">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-gray)] ml-4 group-focus-within:text-[#6d28d9] transition-colors">
-                    Новий пароль
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-gray)] opacity-50 group-focus-within:text-[#6d28d9] transition-colors" size={18} />
-                    <input
-                      className="w-full pl-14 pr-14 py-4.5 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-3xl focus:ring-4 focus:ring-purple-500/10 focus:border-[#6d28d9] outline-none transition-all font-bold text-[var(--text-dark)]"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-5 top-1/2 -translate-y-1/2 text-[var(--text-gray)] hover:text-[#6d28d9] transition-colors p-1"
-                    >
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-1 group">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-gray)] ml-4 group-focus-within:text-[#6d28d9] transition-colors">
-                    Підтвердіть пароль
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-gray)] opacity-50 group-focus-within:text-[#6d28d9] transition-colors" size={18} />
-                    <input
-                      className="w-full pl-14 pr-6 py-4.5 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-3xl focus:ring-4 focus:ring-purple-500/10 focus:border-[#6d28d9] outline-none transition-all font-bold text-[var(--text-dark)]"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={confirmPassword}
-                      onChange={e => setConfirmPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <button
-                  className="w-full py-5 bg-[#6d28d9] text-white rounded-[24px] font-black text-lg shadow-2xl shadow-purple-500/20 hover:bg-[#5b21b6] hover:-translate-y-1 active:scale-95 disabled:opacity-50 transition-all flex items-center justify-center gap-3"
-                  type="submit"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <Loader2 size={24} className="animate-spin" />
-                  ) : (
-                    <>
-                      <span>Оновити пароль</span>
-                      <ArrowRight size={20} className="opacity-50" />
-                    </>
-                  )}
-                </button>
-              </form>
-            </>
+        <div className="max-w-md w-full relative z-10" data-aos="fade-up">
+          {!isSuccess && (
+            <button
+              onClick={() => navigate("/login")}
+              className="flex items-center gap-2 text-[var(--text-gray)] hover:text-purple-600 text-[10px] font-bold uppercase tracking-widest mb-6 transition-all group"
+            >
+              <ChevronLeft
+                size={14}
+                className="group-hover:-translate-x-1 transition-transform"
+              />
+              Повернутися до входу
+            </button>
           )}
+
+          <div className="bento-auth-card p-8 md:p-12 shadow-2xl shadow-black/20">
+            {isSuccess ? (
+              <div className="text-center py-6" data-aos="zoom-in">
+                <div className="w-16 h-16 bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto mb-6 border border-emerald-500/20">
+                  <CheckCircle2 size={32} />
+                </div>
+                <h2 className="text-xl font-bold tracking-tighter uppercase mb-4">
+                  Пароль оновлено <span className="text-emerald-500">.</span>
+                </h2>
+                <p className="text-[var(--text-gray)] text-[11px] font-medium uppercase tracking-wider mb-8 leading-relaxed">
+                  Ваш доступ успішно відновлено. Зараз ви будете автоматично
+                  перенаправлені.
+                </p>
+                <Link
+                  to="/login"
+                  className="inline-flex items-center gap-3 text-purple-600 font-bold text-[10px] uppercase tracking-[0.2em] hover:text-purple-400 transition-colors"
+                >
+                  Увійти вручну <ArrowRight size={14} />
+                </Link>
+              </div>
+            ) : (
+              <>
+                <div className="mb-10">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-purple-600 flex items-center justify-center text-white">
+                      <Lock size={20} />
+                    </div>
+                    <div className="h-[1px] flex-grow bg-[var(--border-color)]"></div>
+                  </div>
+                  <h2 className="text-2xl font-bold tracking-tighter uppercase mb-2">
+                    Новий пароль <span className="text-purple-600">.</span>
+                  </h2>
+                  <p className="text-[var(--text-gray)] text-[11px] font-medium uppercase tracking-wider">
+                    Встановіть новий захист для вашого профілю
+                  </p>
+                </div>
+
+                <form onSubmit={handleReset} className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="label-mono block">Новий пароль</label>
+                    <div className="relative">
+                      <Lock
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-gray)]"
+                        size={16}
+                      />
+                      <input
+                        className="input-minimal"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-gray)] hover:text-purple-600 transition-colors"
+                      >
+                        {showPassword ? (
+                          <EyeOff size={16} />
+                        ) : (
+                          <Eye size={16} />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="label-mono block">Підтвердження</label>
+                    <div className="relative">
+                      <Lock
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-gray)]"
+                        size={16}
+                      />
+                      <input
+                        className="input-minimal"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full mt-4 py-4 bg-purple-600 text-white font-bold text-xs uppercase tracking-[0.2em] hover:bg-purple-700 active:scale-[0.98] disabled:opacity-50 transition-all flex items-center justify-center gap-3"
+                  >
+                    {loading ? (
+                      <Loader2 size={18} className="animate-spin" />
+                    ) : (
+                      <>
+                        Оновити доступ
+                        <ArrowRight size={14} />
+                      </>
+                    )}
+                  </button>
+                </form>
+
+                <div className="mt-8 flex items-start gap-3 p-4 bg-purple-500/5 border border-purple-500/10">
+                  <ShieldAlert
+                    size={16}
+                    className="text-purple-600 mt-0.5 shrink-0"
+                  />
+                  <p className="text-[9px] text-[var(--text-gray)] leading-relaxed uppercase font-bold tracking-tight">
+                    Переконайтеся, що ваш пароль містить великі літери та цифри
+                    для максимальної безпеки.
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </main>
 

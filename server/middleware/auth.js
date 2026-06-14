@@ -1,14 +1,20 @@
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
+
+const JWT_SECRET = process.env.JWT_SECRET || "secret_key";
 
 const verifyToken = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
+  const token =
+    req.header("x-auth-token") ||
+    req.header("Authorization")?.replace("Bearer ", "");
 
   if (!token) {
-    return res.status(401).json({ message: "Доступ заборонено. Токен відсутній." });
+    return res
+      .status(401)
+      .json({ message: "Доступ заборонено. Токен відсутній." });
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
     req.user = decoded;
     next();
   } catch (err) {
@@ -19,7 +25,9 @@ const verifyToken = (req, res, next) => {
 const checkRole = (roles) => {
   return (req, res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {
-      return res.status(403).json({ message: "У вас недостатньо прав для цієї дії." });
+      return res
+        .status(403)
+        .json({ message: "У вас недостатньо прав для цієї дії." });
     }
     next();
   };

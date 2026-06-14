@@ -2,15 +2,9 @@ const mongoose = require("mongoose");
 
 const CommentSchema = new mongoose.Schema({
   user: {
-    id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    name: {
-      type: String,
-      required: true,
-    },
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "UserTemp",
+    required: true,
   },
   text: {
     type: String,
@@ -24,36 +18,30 @@ const CommentSchema = new mongoose.Schema({
 });
 
 const PostSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true,
-  },
-  content: {
-    type: String,
-    required: true,
-  },
-  category: {
-    type: String,
-    required: true,
-  },
+  title: { type: String, required: true },
+  content: { type: String, required: true },
+  category: { type: String, required: true },
   authorId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+    ref: "UserTemp",
     required: true,
     index: true,
   },
-  coverImage: {
-    type: String,
-  },
+  coverImage: { type: String },
   status: {
     type: String,
     enum: ["draft", "published"],
     default: "draft",
   },
-  views: {
-    type: Number,
-    default: 0,
+  views: { type: Number, default: 0 },
+
+  reactions: {
+    fire: [{ type: mongoose.Schema.Types.ObjectId, ref: "UserTemp" }],
+    heart: [{ type: mongoose.Schema.Types.ObjectId, ref: "UserTemp" }],
+    clap: [{ type: mongoose.Schema.Types.ObjectId, ref: "UserTemp" }],
+    idea: [{ type: mongoose.Schema.Types.ObjectId, ref: "UserTemp" }],
   },
+
   comments: [CommentSchema],
   createdAt: {
     type: Date,

@@ -1,44 +1,30 @@
-const { S3Client } = require('@aws-sdk/client-s3');
-const multer = require('multer');
-const multerS3 = require('multer-s3');
-require('dotenv').config();
+const cloudinary = require("cloudinary").v2;
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const multer = require("multer");
 
-const s3 = new S3Client({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY,
-    secretAccessKey: process.env.AWS_SECRET_KEY,
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    const isImage = file.mimetype.startsWith("image/");
+
+    return {
+      folder: isImage ? "science_hub/covers" : "science_hub/articles",
+      resource_type: "auto",
+      public_id: `${Date.now()}-${file.originalname.split(".")[0]}`,
+      access_mode: "public",
+    };
   },
 });
 
 const upload = multer({
-  storage: multerS3({
-    s3: s3,
-    bucket: process.env.AWS_BUCKET_NAME,
-    contentType: multerS3.AUTO_CONTENT_TYPE,
-    key: function (req, file, cb) {
-      const folder = file.mimetype.startsWith('image/') ? 'covers' : 'articles';
-      cb(null, `${folder}/${Date.now()}-${file.originalname}`);
-    },
-  }),
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = [
-      'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'image/jpeg',
-      'image/png',
-      'image/webp'
-    ];
-
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Недопустимий формат! Дозволено: PDF, DOCX, JPG, PNG, WEBP'), false);
-    }
-  },
-  limits: {
-    fileSize: 10 * 1024 * 1024 
-  }
+  storage: storage,
+  limits: { fileSize: 10 * 1024 * 1024 },
 });
 
 module.exports = upload;
