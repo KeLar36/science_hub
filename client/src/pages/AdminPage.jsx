@@ -60,7 +60,7 @@ const AdminPage = () => {
 
         const [meRes, statsRes, usersRes, projectsRes, programsRes] =
           await Promise.all([
-            axios.get("/auth/me", { signal: controller.signal }),
+            axios.get("/me", { signal: controller.signal }),
             axios.get("/users/stats", { signal: controller.signal }),
             axios.get("/users", { signal: controller.signal }),
             axios.get("/projects", { signal: controller.signal }),
