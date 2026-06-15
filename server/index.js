@@ -62,14 +62,9 @@ app.get("/", (req, res) => {
   res.send("Science Platform API is running...");
 });
 
-if (process.env.NODE_ENV !== "production") {
-  const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => {
-    console.log(`🚀 Local server running on http://localhost:${PORT}`);
-  });
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`🚀 Local server running on http://localhost:${PORT}`);
+});
 
-  module.exports = app;
-} else {
-  const serverless = require("serverless-http");
-  module.exports = serverless(app);
-}
+module.exports = app;
