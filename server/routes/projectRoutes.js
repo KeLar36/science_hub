@@ -234,4 +234,21 @@ router.get("/archive", async (req, res) => {
   }
 });
 
+router.get(
+  "/",
+  verifyToken,
+  checkRole(["admin", "superadmin"]),
+  async (req, res) => {
+    try {
+      const projects = await Project.find()
+        .populate("authorId", "name email")
+        .populate("programId", "title")
+        .sort({ createdAt: -1 });
+      res.json(projects);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+);
+
 module.exports = router;

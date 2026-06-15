@@ -170,4 +170,13 @@ router.post("/reset-password/:token", async (req, res) => {
   }
 });
 
+router.get("/me", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+    if (!user) return res.status(404).json({ message: "Не знайдено" });
+    res.json({ user });
+  } catch (err) {
+    res.status(500).json({ message: "Помилка сервера" });
+  }
+});
 module.exports = router;

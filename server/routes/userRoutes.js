@@ -7,8 +7,6 @@ const { verifyToken, checkRole } = require("../middleware/auth");
 
 const adminAccess = checkRole(["admin", "superadmin"]);
 
-// ── Admin routes ──────────────────────────────────────────────────────────────
-
 router.get("/all", verifyToken, adminAccess, async (req, res) => {
   try {
     const users = await User.find().select("-password").sort({ createdAt: -1 });
@@ -224,6 +222,15 @@ router.patch("/update-profile", verifyToken, async (req, res) => {
     res.json(updatedUser);
   } catch (err) {
     res.status(400).json({ message: "Не вдалося оновити профіль" });
+  }
+});
+
+router.get("/", verifyToken, adminAccess, async (req, res) => {
+  try {
+    const users = await User.find().select("-password").sort({ createdAt: -1 });
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 
