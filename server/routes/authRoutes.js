@@ -128,7 +128,6 @@ router.post("/forgot-password", async (req, res) => {
 
 router.get("/bookmarks/check/:id", verifyToken, async (req, res) => {
   try {
-    // Оскільки в jwt.sign було { id: user._id }, то req.user.id працюватиме супер
     const user = await User.findById(req.user.id);
     if (!user)
       return res.status(404).json({ error: "Користувача не знайдено" });

@@ -52,7 +52,6 @@ const connectDB = async (req, res, next) => {
 
 app.use("/api", connectDB);
 
-// Роути
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/projects", require("./routes/projectRoutes"));
 app.use("/api/programs", require("./routes/programRoutes"));
