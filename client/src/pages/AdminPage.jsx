@@ -15,10 +15,10 @@ import {
 
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import DashboardTab from "../components/Admin/DashboardTab";
-import UsersTab from "../components/Admin/UsersTab";
-import ProgramsTab from "../components/Admin/ProgramsTab";
-import ProjectsTab from "../components/Admin/ProjectsTab";
+import DashboardTab from "../components/admin/DashboardTab";
+import UsersTab from "../components/admin/UsersTab";
+import ProgramsTab from "../components/admin/ProgramsTab";
+import ProjectsTab from "../components/admin/ProjectsTab";
 
 const AdminPage = () => {
   const navigate = useNavigate();
