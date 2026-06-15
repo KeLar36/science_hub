@@ -6,6 +6,9 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext"; //  Додано імпорт провайдера
+import { useAuth } from "./hooks/useAuth"; //  Виправлено шлях (якщо App в /src)
+
 import HomePage from "./pages/homePage";
 import LoginPage from "./pages/loginPage";
 import RegisterPage from "./pages/registerPage";
@@ -21,12 +24,26 @@ import PostDetail from "./pages/PostDetail";
 import RulesPage from "./pages/RulesPage";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
-import ArchivePage from "./pages/ArchivePage"; // Нова сторінка архіву
+import ArchivePage from "./pages/ArchivePage";
 import ScrollToTop from "./components/ScrollToTop";
 import AOS from "aos";
 import "aos/dist/aos.css";
 
-function App() {
+const ProtectedRoute = ({ children, allowedRoles }) => {
+  const { isAuthenticated, user } = useAuth();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && !allowedRoles.includes(user?.role)) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
+
+function AppContent() {
   useEffect(() => {
     AOS.init({
       duration: 800,
@@ -35,22 +52,6 @@ function App() {
       offset: 100,
     });
   }, []);
-
-  const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const isAuthenticated = !!token;
-
-  const ProtectedRoute = ({ children, allowedRoles }) => {
-    if (!isAuthenticated) {
-      return <Navigate to="/login" replace />;
-    }
-
-    if (allowedRoles && !allowedRoles.includes(user?.role)) {
-      return <Navigate to="/" replace />;
-    }
-
-    return children;
-  };
 
   return (
     <Router>
@@ -66,7 +67,8 @@ function App() {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/program/:id" element={<ProgramDetails />} />
         <Route path="/rules" element={<RulesPage />} />
-        <Route path="/archive" element={<ArchivePage />} />{" "}
+        <Route path="/archive" element={<ArchivePage />} />
+
         <Route
           path="/content-panel"
           element={
@@ -127,4 +129,10 @@ function App() {
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}

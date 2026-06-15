@@ -6,24 +6,10 @@ const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 
+const { verifyToken, checkRole } = require("../middleware/auth");
+
 const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
 const JWT_SECRET = process.env.JWT_SECRET || "secret_key";
-
-const auth = (req, res, next) => {
-  const token =
-    req.header("x-auth-token") ||
-    req.header("Authorization")?.replace("Bearer ", "");
-
-  if (!token) return res.status(401).json({ error: "Авторизація відхилена" });
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    res.status(401).json({ error: "Токен недійсний" });
-  }
-};
 
 router.post("/register", async (req, res) => {
   try {
@@ -140,8 +126,9 @@ router.post("/forgot-password", async (req, res) => {
   }
 });
 
-router.get("/bookmarks/check/:id", auth, async (req, res) => {
+router.get("/bookmarks/check/:id", verifyToken, async (req, res) => {
   try {
+    // Оскільки в jwt.sign було { id: user._id }, то req.user.id працюватиме супер
     const user = await User.findById(req.user.id);
     if (!user)
       return res.status(404).json({ error: "Користувача не знайдено" });

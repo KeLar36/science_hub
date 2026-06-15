@@ -8,11 +8,11 @@ import {
   GraduationCap,
   Sun,
   Moon,
-  ArrowRight,
   User,
-  Archive, // Імпортовано іконку архіву для майбутнього використання
+  Archive,
 } from "lucide-react";
 import { useDarkMode } from "../hooks/useDarkMode";
+import { useAuth } from "../hooks/useAuth";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -20,16 +20,13 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [theme, toggleTheme] = useDarkMode();
-  const user = JSON.parse(localStorage.getItem("user"));
+
+  const { user, logout } = useAuth();
 
   const closeMenu = () => setIsOpen(false);
 
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
-    }
+    document.body.style.overflow = isOpen ? "hidden" : "unset";
     return () => {
       document.body.style.overflow = "unset";
     };
@@ -42,12 +39,11 @@ const Navbar = () => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.clear();
+    logout();
     navigate("/login");
     closeMenu();
   };
 
-  // Додано пункт "Архів" до загальних лінків навігації
   const navLinks = [
     { label: "Програми", path: "/" },
     { label: "Архів", path: "/archive" },
@@ -104,7 +100,7 @@ const Navbar = () => {
             ))}
           </div>
 
-          <div className="flex justify-center items-center gap-2 ">
+          <div className="flex justify-center items-center gap-2">
             <button
               onClick={toggleTheme}
               className="p-2 text-[var(--text-gray)] hover:text-[var(--purple-main)]"
@@ -156,6 +152,7 @@ const Navbar = () => {
         </div>
       </div>
 
+      {/* Мобільне меню */}
       <div
         className={`fixed inset-0 bg-[var(--bg-main)] z-[105] transition-all duration-500 ease-in-out lg:hidden ${
           isOpen
@@ -190,7 +187,7 @@ const Navbar = () => {
                 <p className="text-xl font-bold text-[var(--text-dark)] text-center mb-4">
                   {user.name}
                 </p>
-                <div className="flex justify-center  gap-4">
+                <div className="flex justify-center gap-4">
                   <button
                     onClick={handleLogout}
                     className="text-[10px] font-black uppercase tracking-widest text-rose-500"
