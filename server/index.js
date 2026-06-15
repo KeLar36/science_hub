@@ -18,7 +18,7 @@ app.use(
           "'self'",
           "http://localhost:5000",
           "https://science-hub-six.vercel.app",
-        ], // Додав твій Vercel до дозволених
+        ],
         imgSrc: ["'self'", "data:", "*.amazonaws.com"],
         objectSrc: ["'none'"],
         upgradeInsecureRequests: [],
@@ -67,6 +67,9 @@ if (process.env.NODE_ENV !== "production") {
   app.listen(PORT, () => {
     console.log(`🚀 Local server running on http://localhost:${PORT}`);
   });
-}
 
-module.exports = app;
+  module.exports = app;
+} else {
+  const serverless = require("serverless-http");
+  module.exports = serverless(app);
+}
