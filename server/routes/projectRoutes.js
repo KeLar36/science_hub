@@ -251,4 +251,41 @@ router.get(
   },
 );
 
+router.patch(
+  "/status/:id",
+  verifyToken,
+  checkRole(["admin", "superadmin"]),
+  async (req, res) => {
+    try {
+      const { status } = req.body;
+      const { id } = req.params;
+
+      // Валідація статусу (опціонально, але бажано)
+      const allowedStatuses = [
+        "На розгляді",
+        "Затверджено",
+        "Відхилено",
+        "Очікує",
+      ];
+      if (!allowedStatuses.includes(status)) {
+        return res.status(400).json({ error: "Неприпустимий статус проекту" });
+      }
+
+      const project = await Project.findByIdAndUpdate(
+        id,
+        { status },
+        { new: true }, // Повертає оновлений документ
+      );
+
+      if (!project) {
+        return res.status(404).json({ error: "Проект не знайдено" });
+      }
+
+      res.json({ message: "Статус успішно оновлено", project });
+    } catch (err) {
+      res.status(500).json({ error: "Помилка при оновленні статусу" });
+    }
+  },
+);
+
 module.exports = router;

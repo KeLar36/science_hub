@@ -1,17 +1,10 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable no-unused-vars */
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "../api/axios";
+import axiosInstance from "../api/axios";
+import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
-import {
-  BarChart3,
-  ShieldCheck,
-  Users,
-  FileText,
-  AlertTriangle,
-  Loader2,
-} from "lucide-react";
+import { BarChart3, ShieldCheck, Users, FileText, Loader2 } from "lucide-react";
 
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -28,7 +21,6 @@ const AdminPage = () => {
   const [loading, setLoading] = useState(true);
   const [loadingAction, setLoadingAction] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
-
   const [users, setUsers] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -36,7 +28,6 @@ const AdminPage = () => {
     users: 0,
     projects: 0,
     approvedProjects: 0,
-    pendingProjects: 0,
   });
 
   const [newProgram, setNewProgram] = useState({
@@ -51,131 +42,141 @@ const AdminPage = () => {
       navigate("/login");
       return;
     }
-
     const controller = new AbortController();
 
     const fetchAdminData = async () => {
       try {
         setLoading(true);
-
         const [meRes, statsRes, usersRes, projectsRes, programsRes] =
           await Promise.all([
-            axios.get("/me", { signal: controller.signal }),
-            axios.get("/users/stats", { signal: controller.signal }),
-            axios.get("/users", { signal: controller.signal }),
-            axios.get("/projects", { signal: controller.signal }),
-            axios.get("/programs", { signal: controller.signal }),
+            axiosInstance.get("/users/me", { signal: controller.signal }),
+            axiosInstance.get("/users/count", { signal: controller.signal }),
+            axiosInstance.get("/users/all", { signal: controller.signal }),
+            axiosInstance.get("/projects/all", { signal: controller.signal }),
+            axiosInstance.get("/programs", { signal: controller.signal }),
           ]);
 
-        const role = meRes.data.user?.role;
-        if (role !== "admin" && role !== "superadmin") {
+        const userData = meRes.data;
+        if (userData?.role !== "admin" && userData?.role !== "superadmin") {
           toast.error("Доступ заборонено");
           navigate("/profile");
           return;
         }
 
-        setCurrentUser(meRes.data.user);
-        setStats(statsRes.data);
-        setUsers(usersRes.data);
-        setProjects(projectsRes.data);
-        setPrograms(programsRes.data);
+        setCurrentUser(userData);
+
+        // ВАЖЛИВА ПРАВКА: обробка {count: 6}
+        const userCount = statsRes.data?.count ?? statsRes.data?.users ?? 0;
+        setStats({
+          users: userCount,
+          projects: projectsRes.data?.length || 0,
+          approvedProjects:
+            projectsRes.data?.filter((p) => p.status === "Прийнято").length ||
+            0,
+        });
+
+        setUsers(usersRes.data || []);
+        setProjects(projectsRes.data || []);
+        setPrograms(programsRes.data || []);
       } catch (err) {
-        if (axios.isCancel(err)) {
-          console.log(
-            "Попередній дублюючий запит StrictMode успішно скасовано.",
-          );
-        } else {
-          console.error("Помилка завантаження адмін-панелі:", err);
-          toast.error("Не вдалося завантажити дані контенту");
-          if (err.response?.status === 401) {
-            localStorage.removeItem("token");
-            navigate("/login");
-          }
-        }
+        if (!axios.isCancel(err)) toast.error("Не вдалося завантажити дані");
       } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     };
 
     fetchAdminData();
-
-    return () => {
-      controller.abort();
-    };
+    return () => controller.abort();
   }, [token, navigate]);
+
+  const dashboardData = useMemo(() => {
+    const projArray = Array.isArray(projects) ? projects : [];
+
+    const approved = projArray.filter((p) => p.status === "Прийнято").length;
+    const pending = projArray.filter((p) => p.status === "На розгляді").length;
+    const rejected = projArray.filter((p) => p.status === "Відхилено").length;
+
+    const pieData = [
+      { name: "Схвалено", value: approved },
+      { name: "На розгляді", value: pending },
+      { name: "Відхилено", value: rejected },
+    ];
+
+    const domains = projArray.reduce((acc, p) => {
+      const domain = p.domain || "Без напрямку";
+      acc[domain] = (acc[domain] || 0) + 1;
+      return acc;
+    }, {});
+
+    const chartData = Object.entries(domains).map(([name, count]) => ({
+      name,
+      count,
+    }));
+
+    const authorCounts = projArray.reduce((acc, p) => {
+      const name = p.authorId?.name || "Невідомий";
+      acc[name] = (acc[name] || 0) + 1;
+      return acc;
+    }, {});
+
+    const topAuthors = Object.entries(authorCounts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    return { chartData, pieData, topAuthors };
+  }, [projects]);
+
+  const safeStats = useMemo(
+    () => ({
+      users: Number(stats.users),
+      projects: Number(projects.length),
+      approvedProjects: Number(
+        projects.filter((p) => p.status === "Прийнято").length,
+      ),
+      programs: Number(programs.length),
+    }),
+    [stats, projects, programs],
+  );
 
   const handleUpdateRole = async (userId, newRole) => {
     try {
-      setLoadingAction(userId);
-      await axios.put(`/users/${userId}/role`, { role: newRole });
+      await axiosInstance.patch(`/users/role/${userId}`, { role: newRole });
       setUsers(
         users.map((u) => (u._id === userId ? { ...u, role: newRole } : u)),
       );
-      toast.success("Роль користувача успішно змінено");
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Помилка зміни ролі");
-    } finally {
-      setLoadingAction(null);
+      toast.success("Роль змінено");
+    } catch {
+      toast.error("Помилка зміни ролі");
     }
   };
 
-  const handleToggleBan = async (userId, currentBanStatus) => {
+  const handleToggleBan = async (userId, status) => {
     try {
-      setLoadingAction(userId);
-      await axios.put(`/users/${userId}/ban`, {
-        isBanned: !currentBanStatus,
-      });
+      await axiosInstance.patch(`/users/ban/${userId}`, { isBanned: !status });
       setUsers(
-        users.map((u) =>
-          u._id === userId ? { ...u, isBanned: !currentBanStatus } : u,
-        ),
+        users.map((u) => (u._id === userId ? { ...u, isBanned: !status } : u)),
       );
-      toast.success(
-        currentBanStatus ? "Користувача розбанено" : "Користувача забанено",
-      );
-    } catch (err) {
-      toast.error("Помилка керування блокуванням");
-    } finally {
-      setLoadingAction(null);
+      toast.success(status ? "Розбанено" : "Забанено");
+    } catch {
+      toast.error("Помилка блокування");
     }
   };
 
   const handleUpdateProjectStatus = async (projectId, newStatus) => {
     try {
       setLoadingAction(projectId);
-      await axios.put(`/projects/${projectId}/status`, {
+      await axiosInstance.patch(`/projects/status/${projectId}`, {
         status: newStatus,
       });
-
       setProjects(
         projects.map((p) =>
           p._id === projectId ? { ...p, status: newStatus } : p,
         ),
       );
-
-      setStats((prev) => {
-        const oldProject = projects.find((p) => p._id === projectId);
-        let approvedDiff = 0;
-        let pendingDiff = 0;
-
-        if (oldProject?.status === "Очікує") pendingDiff--;
-        if (oldProject?.status === "Затверджено") approvedDiff--;
-
-        if (newStatus === "Очікує") pendingDiff++;
-        if (newStatus === "Затверджено") approvedDiff++;
-
-        return {
-          ...prev,
-          approvedProjects: prev.approvedProjects + approvedDiff,
-          pendingProjects: prev.pendingProjects + pendingDiff,
-        };
-      });
-
-      toast.success(`Статус проекту змінено на: ${newStatus}`);
-    } catch (err) {
-      toast.error("Помилка зміни статусу проекту");
+      toast.success(`Статус: ${newStatus}`);
+    } catch {
+      toast.error("Помилка статусу");
     } finally {
       setLoadingAction(null);
     }
@@ -185,148 +186,85 @@ const AdminPage = () => {
     e.preventDefault();
     try {
       setLoadingAction("create-program");
-      const res = await axios.post("/programs", newProgram);
-
+      const res = await axiosInstance.post("/programs", newProgram);
       setPrograms([res.data, ...programs]);
-
       setNewProgram({
         title: "",
         description: "",
         category: "Гранти",
         deadline: new Date(),
       });
-      toast.success("Програму успішно опубліковано!");
-    } catch (err) {
-      toast.error("Помилка при створенні програми");
+      toast.success("Програму створено!");
+    } catch {
+      toast.error("Помилка створення");
     } finally {
       setLoadingAction(null);
     }
   };
 
-  const chartData = useMemo(() => {
-    const months = [
-      "Січ",
-      "Лют",
-      "Бер",
-      "Квіт",
-      "Трав",
-      "Черв",
-      "Лип",
-      "Серп",
-      "Верес",
-      "Жовт",
-      "Лист",
-      "Груд",
-    ];
-    const counts = Array(12).fill(0);
-
-    projects.forEach((p) => {
-      if (p.createdAt) {
-        const m = new Date(p.createdAt).getMonth();
-        if (m >= 0 && m < 12) counts[m]++;
-      }
-    });
-
-    return months.map((name, index) => ({
-      name,
-      "Подано робіт": counts[index],
-    }));
-  }, [projects]);
-
-  const pieData = useMemo(() => {
-    const domainsMap = {};
-    projects.forEach((p) => {
-      const domain = p.scientificDomain || "Інші дослідження";
-      domainsMap[domain] = (domainsMap[domain] || 0) + 1;
-    });
-
-    return Object.keys(domainsMap).map((key) => ({
-      name: key,
-      value: domainsMap[key],
-    }));
-  }, [projects]);
-
-  const topAuthorsData = useMemo(() => {
-    const authorsMap = {};
-    projects.forEach((p) => {
-      if (p.authors && p.status === "Затверджено") {
-        authorsMap[p.authors] = (authorsMap[p.authors] || 0) + 1;
-      }
-    });
-
-    return Object.keys(authorsMap)
-      .map((name) => ({ name, count: authorsMap[name] }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
-  }, [projects]);
+  const handleAssignReviewer = async (projectId, reviewerId) => {
+    try {
+      setLoadingAction(projectId);
+      await axiosInstance.patch(`/projects/assign/${projectId}`, {
+        reviewerId,
+      });
+      setProjects(
+        projects.map((p) =>
+          p._id === projectId ? { ...p, reviewerId: { _id: reviewerId } } : p,
+        ),
+      );
+      toast.success("Рецензента призначено");
+    } catch {
+      toast.error("Помилка призначення");
+    } finally {
+      setLoadingAction(null);
+    }
+  };
 
   const tabs = [
     { id: "overview", label: "Аналітика", icon: BarChart3 },
     { id: "users", label: "Користувачі", icon: Users },
     { id: "projects", label: "Наукові роботи", icon: FileText },
-    { id: "programs", label: "Програми & Гранти", icon: ShieldCheck },
+    { id: "programs", label: "Програми", icon: ShieldCheck },
   ];
 
-  if (loading) {
+  if (loading)
     return (
-      <div className="min-h-screen bg-[var(--bg-main)] flex flex-col items-center justify-center gap-4">
+      <div className="min-h-screen flex items-center justify-center">
         <Loader2 size={32} className="animate-spin text-purple-600" />
-        <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-gray)] animate-pulse">
-          Завантаження Bento системи аналітики... Фіолетовий колір
-          завантажується...
-        </p>
       </div>
     );
-  }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-dark)] flex flex-col font-sans selection:bg-purple-500/10 selection:text-purple-600">
-      <Toaster position="top-center" reverseOrder={false} />
+    <div className="min-h-screen bg-[var(--bg-main)] flex flex-col text-[var(--text-dark)]">
+      <Toaster />
       <Navbar />
-
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mt-18 mb-12">
-          <div>
-            <div className="flex items-center gap-2.5 text-xs font-black text-purple-600 uppercase tracking-widest mb-2 bg-purple-600/5 px-3 py-1.5 rounded-lg w-fit border border-purple-500/10">
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-ping" />
-              Панель керування системи
-            </div>
-            <h1 className="text-3xl font-black tracking-tight text-[var(--text-dark)] md:text-4xl">
-              SciencePlatform <span className="text-purple-600">Admin</span>
-            </h1>
-          </div>
-
-          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-1.5 rounded-2xl flex flex-wrap gap-1 shadow-xs w-fit">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
-                    isActive
-                      ? "bg-purple-600 text-white shadow-md shadow-purple-600/10 scale-[1.02]"
-                      : "text-[var(--text-gray)] hover:text-[var(--text-dark)] hover:bg-[var(--bg-main)]"
-                  }`}
-                >
-                  <Icon size={14} />
-                  {tab.label}
-                </button>
-              );
-            })}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-12">
+        <div className="flex flex-col md:flex-row justify-between gap-6 mb-12 mt-18">
+          <h1 className="text-3xl font-black">
+            SciencePlatform <span className="text-purple-600">Admin</span>
+          </h1>
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-1.5 rounded-2xl flex gap-1">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase ${activeTab === tab.id ? "bg-purple-600 text-white" : "text-[var(--text-gray)]"}`}
+              >
+                <tab.icon size={14} /> {tab.label}
+              </button>
+            ))}
           </div>
         </div>
 
         {activeTab === "overview" && (
           <DashboardTab
-            stats={stats}
-            chartData={chartData}
-            pieData={pieData}
-            topAuthors={topAuthorsData}
+            stats={safeStats}
+            chartData={dashboardData.chartData}
+            pieData={dashboardData.pieData}
+            topAuthors={dashboardData.topAuthors}
           />
         )}
-
         {activeTab === "users" && (
           <UsersTab
             users={users}
@@ -336,21 +274,21 @@ const AdminPage = () => {
             loadingAction={loadingAction}
           />
         )}
-
+        {activeTab === "projects" && (
+          <ProjectsTab
+            projects={projects}
+            onUpdateStatus={handleUpdateProjectStatus}
+            loadingAction={loadingAction}
+            onAssignReviewer={handleAssignReviewer}
+            users={users || []}
+          />
+        )}
         {activeTab === "programs" && (
           <ProgramsTab
             programs={programs}
             newProgram={newProgram}
             setNewProgram={setNewProgram}
             onCreateProgram={handleCreateProgram}
-            loadingAction={loadingAction}
-          />
-        )}
-
-        {activeTab === "projects" && (
-          <ProjectsTab
-            projects={projects}
-            onUpdateStatus={handleUpdateProjectStatus}
             loadingAction={loadingAction}
           />
         )}

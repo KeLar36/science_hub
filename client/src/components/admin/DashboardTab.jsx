@@ -23,38 +23,51 @@ import {
 } from "lucide-react";
 import { COLORS } from "../../constants/adminConstants";
 
-const DashboardTab = ({ stats, chartData, pieData, topAuthors = [] }) => {
-  const successRate = stats.projects
-    ? Math.round((stats.approvedProjects / stats.projects) * 100)
-    : 0;
+const DashboardTab = ({
+  stats = {},
+  chartData = [],
+  pieData = [],
+  topAuthors = [],
+}) => {
+  // Безпечне отримання значень
+  const s = {
+    users: stats.users ?? 0,
+    projects: stats.projects ?? 0,
+    approvedProjects: stats.approvedProjects ?? 0,
+    programs: stats.programs ?? 0,
+  };
+
+  const successRate =
+    s.projects > 0 ? Math.round((s.approvedProjects / s.projects) * 100) : 0;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-200">
+      {/* Статистичні картки */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <StatCard
           label="Всього користувачів"
-          val={stats.users}
+          val={s.users || "—"}
           icon={Users}
           color="text-blue-500"
           bg="bg-blue-500/5"
         />
         <StatCard
           label="Подано робіт"
-          val={stats.projects}
+          val={s.projects || "—"}
           icon={FileText}
           color="text-purple-500"
           bg="bg-purple-500/5"
         />
         <StatCard
           label="Схвалено праць"
-          val={stats.approvedProjects}
+          val={s.approvedProjects || "—"}
           icon={CheckCircle}
           color="text-emerald-500"
           bg="bg-emerald-500/5"
         />
         <StatCard
           label="Активні програми"
-          val={stats.programs}
+          val={s.programs || "—"}
           icon={AlertTriangle}
           color="text-amber-500"
           bg="bg-amber-500/5"
@@ -62,6 +75,7 @@ const DashboardTab = ({ stats, chartData, pieData, topAuthors = [] }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Коефіцієнт схвалення */}
         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-3xl shadow-xs flex items-center justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider">
@@ -69,7 +83,7 @@ const DashboardTab = ({ stats, chartData, pieData, topAuthors = [] }) => {
               Коефіцієнт схвалення
             </div>
             <p className="text-xs text-[var(--text-gray)] font-medium max-w-[180px]">
-              Відсоток наукових робіт, які успішно пройшли модерацію платформи.
+              Відсоток наукових робіт, які успішно пройшли модерацію.
             </p>
           </div>
           <div className="relative flex items-center justify-center shrink-0 w-24 h-24">
@@ -99,6 +113,7 @@ const DashboardTab = ({ stats, chartData, pieData, topAuthors = [] }) => {
           </div>
         </div>
 
+        {/* Найактивніші дослідники */}
         <div className="md:col-span-2 bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-3xl shadow-xs">
           <div className="flex items-center gap-2 mb-4">
             <Award size={16} className="text-purple-500" />
@@ -108,31 +123,27 @@ const DashboardTab = ({ stats, chartData, pieData, topAuthors = [] }) => {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             {topAuthors.length === 0 ? (
-              <div className="col-span-full text-center py-2 text-xs text-[var(--text-gray)] font-medium">
-                Немає даних про авторів
+              <div className="col-span-full py-8 text-center text-xs text-[var(--text-gray)]">
+                Недостатньо даних
               </div>
             ) : (
               topAuthors.map((author, idx) => (
                 <div
                   key={author.name}
-                  className="bg-[var(--bg-main)] border border-[var(--border-color)]/60 p-3.5 rounded-2xl flex flex-col justify-between gap-2 min-w-0"
+                  className="bg-[var(--bg-main)] border border-[var(--border-color)]/60 p-3.5 rounded-2xl flex flex-col gap-1"
                 >
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-black text-purple-500/50">
-                      #{idx + 1}
-                    </span>
-                    <div
-                      className="text-xs font-bold text-[var(--text-dark)] truncate w-full"
-                      title={author.name}
-                    >
-                      {author.name}
-                    </div>
+                  <span className="text-[10px] font-black text-purple-500/50">
+                    #{idx + 1}
+                  </span>
+                  <div
+                    className="text-xs font-bold text-[var(--text-dark)] truncate"
+                    title={author.name}
+                  >
+                    {author.name}
                   </div>
-                  <div className="text-[10px] font-bold text-[var(--text-gray)] uppercase tracking-wider">
+                  <div className="text-[10px] font-bold text-[var(--text-gray)] uppercase">
                     Праць:{" "}
-                    <strong className="text-purple-600 font-black">
-                      {author.count}
-                    </strong>
+                    <strong className="text-purple-600">{author.count}</strong>
                   </div>
                 </div>
               ))
@@ -142,6 +153,7 @@ const DashboardTab = ({ stats, chartData, pieData, topAuthors = [] }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Графік по напрямках */}
         <div className="lg:col-span-2 bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-3xl shadow-xs">
           <div className="flex items-center gap-2 mb-6">
             <BarChart3 size={18} className="text-purple-500" />
@@ -149,49 +161,54 @@ const DashboardTab = ({ stats, chartData, pieData, topAuthors = [] }) => {
               Публікації за напрямками
             </h3>
           </div>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={chartData}
-                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="var(--border-color)"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="name"
-                  stroke="var(--text-gray)"
-                  fontSize={11}
-                  tickLine={false}
-                />
-                <YAxis
-                  stroke="var(--text-gray)"
-                  fontSize={11}
-                  tickLine={false}
-                  allowDecimals={false}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "var(--bg-card)",
-                    borderColor: "var(--border-color)",
-                    borderRadius: "12px",
-                    color: "var(--text-dark)",
-                  }}
-                  itemStyle={{ color: "var(--purple-600)" }}
-                />
-                <Bar
-                  dataKey="count"
-                  fill="#8b5cf6"
-                  radius={[6, 6, 0, 0]}
-                  maxBarSize={40}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="h-80 flex items-center justify-center">
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={chartData}
+                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="var(--border-color)"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="name"
+                    stroke="var(--text-gray)"
+                    fontSize={11}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    stroke="var(--text-gray)"
+                    fontSize={11}
+                    tickLine={false}
+                    allowDecimals={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "var(--bg-card)",
+                      borderColor: "var(--border-color)",
+                      borderRadius: "12px",
+                    }}
+                  />
+                  <Bar
+                    dataKey="count"
+                    fill="#8b5cf6"
+                    radius={[6, 6, 0, 0]}
+                    maxBarSize={40}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-xs text-[var(--text-gray)]">
+                Дані для графіка ще готуються
+              </p>
+            )}
           </div>
         </div>
 
+        {/* Статуси робіт (Pie Chart) */}
         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-3xl shadow-xs flex flex-col">
           <div className="flex items-center gap-2 mb-6">
             <PieIcon size={18} className="text-purple-500" />
@@ -199,51 +216,57 @@ const DashboardTab = ({ stats, chartData, pieData, topAuthors = [] }) => {
               Статуси робіт
             </h3>
           </div>
-          <div className="h-64 flex-grow relative">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "var(--bg-card)",
-                    borderColor: "var(--border-color)",
-                    borderRadius: "12px",
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+          <div className="h-64 flex-grow relative flex items-center justify-center">
+            {pieData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {pieData.map((_, index) => (
+                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "var(--bg-card)",
+                      borderColor: "var(--border-color)",
+                      borderRadius: "12px",
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-xs text-[var(--text-gray)]">Немає статусів</p>
+            )}
           </div>
-          <div className="grid grid-cols-2 gap-2 pt-4 border-t border-[var(--border-color)]">
-            {pieData.map((entry, index) => (
-              <div key={entry.name} className="flex items-center gap-2 text-xs">
+          {pieData.length > 0 && (
+            <div className="grid grid-cols-2 gap-2 pt-4 border-t border-[var(--border-color)]">
+              {pieData.map((entry, index) => (
                 <div
-                  className="w-2.5 h-2.5 rounded-full shrink-0"
-                  style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                />
-                <span className="text-[var(--text-gray)] truncate">
-                  {entry.name}:{" "}
-                  <strong className="text-[var(--text-dark)]">
-                    {entry.value}
-                  </strong>
-                </span>
-              </div>
-            ))}
-          </div>
+                  key={entry.name}
+                  className="flex items-center gap-2 text-xs"
+                >
+                  <div
+                    className="w-2.5 h-2.5 rounded-full"
+                    style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                  />
+                  <span className="text-[var(--text-gray)] truncate">
+                    {entry.name}:{" "}
+                    <strong className="text-[var(--text-dark)]">
+                      {entry.value}
+                    </strong>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

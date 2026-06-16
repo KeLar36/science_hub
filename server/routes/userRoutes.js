@@ -20,7 +20,6 @@ router.patch("/role/:id", verifyToken, adminAccess, async (req, res) => {
   try {
     const { role } = req.body;
 
-    // req.user.id comes from jwt.sign({ id: user._id, role: ... })
     if (req.params.id === req.user.id)
       return res.status(400).json({ message: "Не можна змінити власну роль" });
 
@@ -188,18 +187,17 @@ router.get("/community", async (req, res) => {
   }
 });
 
-// Отримання даних власного профілю
 router.get("/me", verifyToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
     if (!user)
       return res.status(404).json({ message: "Користувача не знайдено" });
-    res.json(user);
+
+    res.json({ user });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
-
 router.patch("/update-profile", verifyToken, async (req, res) => {
   try {
     const { name, bio, topics, city, socials, image } = req.body;

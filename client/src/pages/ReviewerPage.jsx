@@ -41,11 +41,9 @@ const ReviewerPage = () => {
     }
   }, []);
 
-  // 2. Функція завантаження даних
   const loadMyAssignments = async () => {
     const { userId, token } = userData;
 
-    // Важливо: перевіряємо наявність userId перед запитом
     if (!userId || !token) {
       console.warn("Синхронізація сесії: ID або токен не знайдено");
       setLoading(false);
@@ -54,8 +52,7 @@ const ReviewerPage = () => {
 
     try {
       setLoading(true);
-      // Тепер бекенд прийме цей запит завдяки mongoose.Types.ObjectId
-      const res = await axios.get(`/api/projects/reviewer/${userId}`, {
+      const res = await axios.get(`/projects/reviewer/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -66,7 +63,6 @@ const ReviewerPage = () => {
       setMyProjects(activeProjects);
     } catch (err) {
       console.error("Деталі помилки:", err);
-      // Показуємо помилку лише якщо це не порожній результат
       if (err.response?.status !== 404) {
         const errorMessage =
           err.response?.data?.message || "Не вдалося завантажити чергу";
@@ -77,24 +73,25 @@ const ReviewerPage = () => {
     }
   };
 
-  // 3. Єдиний useEffect для завантаження
   useEffect(() => {
     if (userData.userId) {
       loadMyAssignments();
     }
   }, [userData.userId]);
 
-  // 4. Обробка рішення рецензента
   const handleSubmitDecision = async (projectId, newStatus) => {
-    if (!commentText && newStatus !== "Прийнято") {
-      toast.error("Додайте обґрунтування рішення");
+    if (
+      newStatus !== "Прийнято" &&
+      (!commentText || commentText.trim() === "")
+    ) {
+      toast.error("Будь ласка, додайте обґрунтування для цього рішення");
       return;
     }
 
     const { token } = userData;
 
     const decisionPromise = axios.patch(
-      `/api/projects/submit-review/${projectId}`,
+      `/projects/submit-review/${projectId}`,
       { status: newStatus, reviewerComments: commentText },
       { headers: { Authorization: `Bearer ${token}` } },
     );
@@ -105,10 +102,12 @@ const ReviewerPage = () => {
         setMyProjects((prev) => prev.filter((p) => p._id !== projectId));
         setActiveCommentId(null);
         setCommentText("");
-        return <b>Рішення збережено в системі! 🟣</b>;
+        return <b>Рішення успішно збережено! 🟣</b>;
       },
-      error: (err) =>
-        `Помилка: ${err.response?.data?.message || "Доступ обмежено"}`,
+      error: (err) => {
+        console.error(err);
+        return `Помилка: ${err.response?.data?.error || "Спробуйте пізніше"}`;
+      },
     });
   };
 
@@ -122,7 +121,6 @@ const ReviewerPage = () => {
       <Navbar />
 
       <main className="flex-grow max-w-6xl mx-auto w-full py-12 px-6 mt-20">
-        {/* Заголовок терміналу */}
         <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-12 border-b border-[var(--border-color)] pb-10">
           <div>
             <div className="flex items-center gap-2 text-[var(--purple-main)] mb-2">
@@ -154,7 +152,6 @@ const ReviewerPage = () => {
           </div>
         </div>
 
-        {/* Контентна частина */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-32">
             <div className="w-12 h-12 border-4 border-[var(--border-color)] border-t-[var(--purple-main)] rounded-full animate-spin"></div>
