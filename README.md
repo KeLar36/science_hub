@@ -1,26 +1,37 @@
 # Science Hub 🔬📝
 
-Science Hub is a full-stack scientific journal and article management platform built on the MERN stack. The system streamlines the entire lifecycle of scientific publishing—from draft submission and peer review workflows to community discussion and administrative tracking.
+Science Hub is a comprehensive, full-stack scientific journal, article management, and community blogging platform built on the MERN stack. The system orchestrates the entire lifecycle of scientific publishing—from draft submission and rigorous peer review workflows to public discussions, institutional blogging, and advanced administrative tracking.
 
-Designed with a high-performance Role-Based Access Control (RBAC) architecture, the platform ensures secure and tailored workspaces for 5 distinct user types, backed by data-driven analytics.
+Designed with a high-performance Role-Based Access Control (RBAC) architecture, the platform delivers tailored, secure workspaces for 5 distinct user types, backed by data-driven analytics.
 
 ---
 
-## 🚀 Key Features & Architecture
+## 🚀 Key Features & System Modules
 
-### 🔐 Multi-Tier Access Control (RBAC)
+### 🔐 Advanced Access Control (RBAC) & Dedicated Workspaces
 
 The application implements a secure middleware-driven authentication system supporting 5 separate user roles based on the principle of least privilege:
 
-- User / Author: Submit drafts, track review status, and engage in the public archive.
-- Reviewer: Dedicated workspace to audit pending drafts and submit approval/rejection feedback.
-- Content Manager: Manage journal metadata and oversee publication queues.
-- Admin & Superadmin: Advanced control panels for content moderation, log audits, and system configuration.
+- Author: Submit scientific drafts to active academic programs, track review statuses, and manage personal submissions.
+- Reviewer Panel: A dedicated workspace where assigned experts audit pending drafts, read submissions, and provide structured approval/rejection feedback and editorial notes.
+- Content Manager Panel: A fully-featured content management dashboard allowing designated users to publish, edit, and maintain the institutional blog.
+- Admin & Superadmin Dashboard: The ultimate control center featuring aggregated system analytics, user account management, article moderation, and the ability to create and configure new academic Programs (Projects).
 
-### 📊 Data & Analytics Dashboards
+### 📰 Academic Publishing Workflow (State Machine)
 
-- Data Aggregation: Frontend interactive charts displaying publishing trends, active users, and approval ratios based on dynamic backend data filtering.
-- State Machine Pipeline: Fully managed submission workflow mapping states from Draft -> Under Review -> Revisions Required -> Approved.
+- Seamless submission pipeline mapping states from Draft -> Under Review -> Revisions Required -> Approved & Archived.
+- Automatic permission shifts: articles become read-only for authors while undergoing active reviewer audits.
+- Public Archive: Approved articles are instantly moved to a publicly accessible archive for global readers.
+
+### 💬 Community Engagement & Blogging
+
+- Dynamic Blog Module: Allows Content Managers to post updates, academic news, and articles.
+- Interactive Discussion System: Full support for user comments under blog posts, enabling open community discussions and feedback loops.
+- Informational Hub: Dedicated, clean pages for platform documentation, "About Us" sections, and publishing guidelines.
+
+### 📊 Admin Analytics
+
+- Frontend interactive charts displaying publishing trends, registration metrics, and approval ratios based on dynamic backend data filtering.
 
 ---
 
@@ -28,15 +39,15 @@ The application implements a secure middleware-driven authentication system supp
 
 - Frontend: React.js, React Router, Axios, UI Charts.
 - Backend: Node.js, Express.js (Modular routing, RBAC middlewares, centralized error handling).
-- Database: MongoDB (Mongoose ODM, Specialized Indexing).
-- Authentication: JSON Web Tokens (JWT).
+- Database: MongoDB (Mongoose ODM, Schema References & Relationships).
+- Authentication: JSON Web Tokens (JWT) stored client-side.
 
 ---
 
 ## 🗺️ Roadmap & Tech Debt Optimization (In Progress)
 
-To prepare the system for production-scale loads and enhanced security, the following architectural upgrades are currently being implemented:
+To prepare the system for production-scale loads and enterprise-grade security, the following architectural upgrades are currently being implemented:
 
-1. Security Hardening: Migrating JWT storage from localStorage to secure HTTP-Only Cookies to completely mitigate XSS vulnerability vectors.
-2. Database Performance: Replacing application-level data processing with heavy MongoDB Aggregation Pipelines (`$match`, `$group`) to compute dashboard metrics directly on the database level.
-3. DevOps & Deployment: Containerizing the application using Docker & Docker-Compose for seamless environment replication and setting up a reverse proxy using Nginx.
+1. Security Hardening: Migrating JWT storage from application memory/localStorage to secure, encrypted HTTP-Only & SameSite Cookies to completely mitigate XSS vulnerability vectors.
+2. Database Performance: Replacing application-level data mapping with heavy MongoDB Aggregation Pipelines (`$match`, $group, `$lookup`) to compute complex dashboard metrics and comment threads directly on the database level.
+3. DevOps & Containerization: Packaging the application using Docker & Docker-Compose for seamless environment replication and setting up an Nginx reverse proxy for enhanced routing security.
