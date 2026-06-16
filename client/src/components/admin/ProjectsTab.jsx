@@ -13,7 +13,6 @@ const ProjectsTab = ({
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
-  // 2. Безпечне фільтрування
   const reviewers = useMemo(() => {
     return Array.isArray(users)
       ? users.filter((u) =>
@@ -22,7 +21,6 @@ const ProjectsTab = ({
       : [];
   }, [users]);
 
-  // 3. Безпечне фільтрування проектів
   const filteredProjects = useMemo(() => {
     if (!Array.isArray(projects)) return [];
 
@@ -95,7 +93,6 @@ const ProjectsTab = ({
                       {item.programId?.title || "—"}
                     </td>
 
-                    {/* Вибір рецензента */}
                     <td className="p-4">
                       <select
                         className="bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-3 py-1.5 text-xs w-full max-w-[160px] cursor-pointer"
