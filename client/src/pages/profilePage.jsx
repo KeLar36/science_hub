@@ -93,7 +93,7 @@ const ProfilePage = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${currentToken}` } };
       const resMe = await axios.get(`${apiUrl}/api/users/me`, config);
-      const user = resMe.data;
+      const user = resMe.data.user;
       setUserData(user);
 
       localStorage.setItem("user", JSON.stringify(user));
@@ -109,6 +109,10 @@ const ProfilePage = () => {
           website: user.socials?.website || "",
         },
       });
+
+      if (!user || !user._id) {
+        throw new Error("User ID is missing");
+      }
 
       const [resArticles, resPrograms, resSaved] = await Promise.all([
         axios.get(`${apiUrl}/api/projects/user/${user._id}`, config),

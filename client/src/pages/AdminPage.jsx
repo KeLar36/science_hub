@@ -56,7 +56,8 @@ const AdminPage = () => {
             axiosInstance.get("/programs", { signal: controller.signal }),
           ]);
 
-        const userData = meRes.data;
+        const userData = meRes.data.user || meRes.data;
+
         if (userData?.role !== "admin" && userData?.role !== "superadmin") {
           toast.error("Доступ заборонено");
           navigate("/profile");
