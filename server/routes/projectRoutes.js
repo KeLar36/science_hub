@@ -260,21 +260,30 @@ router.patch(
       const { status } = req.body;
       const { id } = req.params;
 
-      // Валідація статусу (опціонально, але бажано)
+      if (!status) {
+        return res.status(400).json({ error: "Статус не надано" });
+      }
+
       const allowedStatuses = [
-        "На розгляді",
-        "Затверджено",
-        "Відхилено",
-        "Очікує",
+        "на розгляді",
+        "прийнято",
+        "на доопрацюванні",
+        "відхилено",
       ];
-      if (!allowedStatuses.includes(status)) {
+
+      const normalizedStatus = status.trim().toLowerCase();
+
+      if (!allowedStatuses.includes(normalizedStatus)) {
         return res.status(400).json({ error: "Неприпустимий статус проекту" });
       }
 
       const project = await Project.findByIdAndUpdate(
         id,
-        { status },
-        { new: true }, // Повертає оновлений документ
+        { status: status.trim() },
+        {
+          returnDocument: "after",
+          runValidators: true,
+        },
       );
 
       if (!project) {
@@ -283,6 +292,7 @@ router.patch(
 
       res.json({ message: "Статус успішно оновлено", project });
     } catch (err) {
+      console.error("Помилка при оновленні статусу:", err);
       res.status(500).json({ error: "Помилка при оновленні статусу" });
     }
   },

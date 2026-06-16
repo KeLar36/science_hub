@@ -11,6 +11,7 @@ import {
   Layers,
   Award,
   Users,
+  Filter,
 } from "lucide-react";
 
 export default function ArchivePage() {
@@ -18,8 +19,8 @@ export default function ArchivePage() {
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedDomain, setSelectedDomain] = useState("Всі");
 
-  // Отримуємо адресу сервера з конфігу (чи .env), або беремо фолбек на локалхост
   const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
   useEffect(() => {
@@ -27,7 +28,6 @@ export default function ArchivePage() {
       setLoading(true);
       setError(null);
       try {
-        // ВИПРАВЛЕНО: Запит тепер точно летить на адресу бекенду, а не фронтенду
         const response = await fetch(`${API_BASE_URL}/api/projects/archive`);
         if (!response.ok) {
           throw new Error("Не вдалося завантажити архів статей");
@@ -44,6 +44,17 @@ export default function ArchivePage() {
 
     fetchArchiveData();
   }, [API_BASE_URL]);
+
+  const domains = useMemo(() => {
+    if (!articles.length) return ["Всі"];
+    const unique = new Set(articles.map((a) => a.domain).filter(Boolean));
+    return ["Всі", ...Array.from(unique)];
+  }, [articles]);
+
+  const filteredArticles = useMemo(() => {
+    if (selectedDomain === "Всі") return articles;
+    return articles.filter((a) => a.domain === selectedDomain);
+  }, [articles, selectedDomain]);
 
   const stats = useMemo(() => {
     if (!articles.length) return { total: 0, domains: 0, authors: 0 };
@@ -62,12 +73,10 @@ export default function ArchivePage() {
     };
   }, [articles]);
 
-  // ВИПРАВЛЕНО: Замість зашитого localhost підставляємо динамічний домен сервера
   const getDownloadUrl = (path) => {
     if (!path) return "#";
     if (path.startsWith("http")) return path;
 
-    // Прибираємо зайві косі риски, щоб посилання не ламалося (наприклад, якщо path починається з "/")
     const cleanPath = path.startsWith("/") ? path.slice(1) : path;
     return `${API_BASE_URL}/${cleanPath}`;
   };
@@ -77,70 +86,68 @@ export default function ArchivePage() {
       <Navbar />
 
       <div className="min-h-screen bg-[var(--bg-main)] pt-28 pb-16 px-6 transition-colors duration-300">
-        {/* Шапка та статистика */}
-        <div className="max-w-7xl mx-auto mb-12" data-aos="fade-down">
-          <div className="relative overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--bg-card)] p-8 md:p-12 shadow-xs transition-all duration-300">
-            {/* Ефект легкого фіолетового свічення */}
-            <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-[var(--purple-main)]/5 blur-3xl rounded-full pointer-events-none" />
+        <div className="max-w-7xl mx-auto mb-16" data-aos="fade-down">
+          <div className="relative overflow-hidden rounded-[2.5rem] border border-[var(--border-color)] bg-[var(--bg-card)] p-8 md:p-16 lg:p-20 shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 -mt-24 -mr-24 w-[600px] h-[600px] bg-purple-600/10 blur-[150px] rounded-full pointer-events-none" />
+            <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-purple-500/5 blur-[100px] rounded-full pointer-events-none" />
 
-            <div className="flex flex-col gap-8 relative z-10">
-              <div className="max-w-3xl space-y-4">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[var(--purple-main)]/10 text-[var(--purple-main)] border border-[var(--purple-main)]/20">
-                  🚀 Репозиторій екосистеми
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 relative z-10 items-center">
+              <div className="lg:col-span-7 space-y-6 text-left">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest bg-purple-600/10 text-purple-600 border border-purple-600/20">
+                  ⚡️ Відкрита Наука та Інновації
                 </div>
-                <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-[var(--text-dark)] leading-none">
-                  Архів{" "}
-                  <span className="text-[var(--purple-main)]">
+                <h1 className="text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-tight text-[var(--text-dark)] leading-[0.95]">
+                  Архів <br />
+                  <span className="bg-gradient-to-r from-purple-600 to-purple-400 bg-clip-text text-transparent">
                     Затверджених Робіт
                   </span>
                 </h1>
-                <p className="text-sm text-[var(--text-gray)] font-medium leading-relaxed max-w-2xl">
-                  Централізована наукова база публікацій, досліджень та
-                  інноваційних проєктів, які успішно пройшли незалежне
-                  рецензування експертною радою Science Platform.
+                <p className="text-base text-[var(--text-gray)] font-medium leading-relaxed max-w-xl">
+                  Глобальний централізований репозиторій наукових публікацій,
+                  фундаментальних досліджень та стартап-проєктів, які пройшли
+                  суворе рецензування нашою експертною радою.
                 </p>
               </div>
 
-              {/* Картки статистики з виправленим колірним фоном іконок */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl w-full">
-                <div className="bg-[var(--bg-main)] border border-[var(--border-color)] rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 hover:border-[var(--purple-main)]/40 group/stat">
-                  <div className="w-12 h-12 rounded-xl bg-[var(--purple-main)]/10 flex items-center justify-center transition-transform group-hover/stat:scale-105 flex-shrink-0">
-                    <Award size={20} className="text-[var(--purple-main)]" />
+              <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-4 w-full">
+                <div className="bg-[var(--bg-main)] border border-[var(--border-color)] rounded-2xl p-5 flex items-center gap-5 transition-all duration-300 hover:border-purple-600/40 group/stat shadow-xs">
+                  <div className="w-14 h-14 rounded-2xl bg-purple-600/10 flex items-center justify-center transition-transform group-hover/stat:scale-105 flex-shrink-0">
+                    <Award size={24} className="text-purple-600" />
                   </div>
                   <div>
-                    <div className="text-2xl font-black text-[var(--text-dark)] tracking-tight">
+                    <div className="text-3xl font-black text-[var(--text-dark)] tracking-tight">
                       {loading ? "..." : stats.total}
                     </div>
-                    <div className="text-[10px] font-bold text-[var(--text-gray)] uppercase tracking-wider">
-                      Публікацій
+                    <div className="text-[10px] font-bold text-[var(--text-gray)] uppercase tracking-widest mt-0.5">
+                      Валідованих Публікацій
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-[var(--bg-main)] border border-[var(--border-color)] rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 hover:border-[var(--purple-main)]/40 group/stat">
-                  <div className="w-12 h-12 rounded-xl bg-[var(--purple-main)]/10 flex items-center justify-center transition-transform group-hover/stat:scale-105 flex-shrink-0">
-                    <Layers size={20} className="text-[var(--purple-main)]" />
+                <div className="bg-[var(--bg-main)] border border-[var(--border-color)] rounded-2xl p-5 flex items-center gap-5 transition-all duration-300 hover:border-purple-600/40 group/stat shadow-xs">
+                  <div className="w-14 h-14 rounded-2xl bg-purple-600/10 flex items-center justify-center transition-transform group-hover/stat:scale-105 flex-shrink-0">
+                    <Layers size={24} className="text-purple-600" />
                   </div>
                   <div>
-                    <div className="text-2xl font-black text-[var(--text-dark)] tracking-tight">
+                    <div className="text-3xl font-black text-[var(--text-dark)] tracking-tight">
                       {loading ? "..." : stats.domains}
                     </div>
-                    <div className="text-[10px] font-bold text-[var(--text-gray)] uppercase tracking-wider">
-                      Напрямків
+                    <div className="text-[10px] font-bold text-[var(--text-gray)] uppercase tracking-widest mt-0.5">
+                      Наукових Напрямків
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-[var(--bg-main)] border border-[var(--border-color)] rounded-2xl p-4 flex items-center gap-4 transition-all duration-300 hover:border-[var(--purple-main)]/40 group/stat">
-                  <div className="w-12 h-12 rounded-xl bg-[var(--purple-main)]/10 flex items-center justify-center transition-transform group-hover/stat:scale-105 flex-shrink-0">
-                    <Users size={20} className="text-[var(--purple-main)]" />
+                <div className="bg-[var(--bg-main)] border border-[var(--border-color)] rounded-2xl p-5 flex items-center gap-5 transition-all duration-300 hover:border-purple-600/40 group/stat shadow-xs">
+                  <div className="w-14 h-14 rounded-2xl bg-purple-600/10 flex items-center justify-center transition-transform group-hover/stat:scale-105 flex-shrink-0">
+                    <Users size={24} className="text-purple-600" />
                   </div>
                   <div>
-                    <div className="text-2xl font-black text-[var(--text-dark)] tracking-tight">
+                    <div className="text-3xl font-black text-[var(--text-dark)] tracking-tight">
                       {loading ? "..." : stats.authors}
                     </div>
-                    <div className="text-[10px] font-bold text-[var(--text-gray)] uppercase tracking-wider">
-                      Авторів
+                    <div className="text-[10px] font-bold text-[var(--text-gray)] uppercase tracking-widest mt-0.5">
+                      Активних Дослідників
                     </div>
                   </div>
                 </div>
@@ -149,10 +156,35 @@ export default function ArchivePage() {
           </div>
         </div>
 
-        {/* Секція карток з матеріалами */}
+        <div className="max-w-7xl mx-auto mb-12" data-aos="fade-up">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-2xl flex flex-col md:flex-row items-start md:items-center gap-4 shadow-xs">
+            <div className="flex items-center gap-2 text-[var(--text-gray)] font-black text-xs uppercase tracking-wider pl-2 flex-shrink-0">
+              <Filter size={14} className="text-purple-600" />
+              <span>Фільтр галузей:</span>
+            </div>
+
+            {/* Скролл-контейнер для кнопок, якщо категорій багато */}
+            <div className="flex items-center gap-2 overflow-x-auto w-full pb-1 md:pb-0 scrollbar-none snap-x">
+              {domains.map((domain) => (
+                <button
+                  key={domain}
+                  onClick={() => setSelectedDomain(domain)}
+                  className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all snap-shrink whitespace-nowrap border ${
+                    selectedDomain === domain
+                      ? "bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-600/10"
+                      : "bg-[var(--bg-main)] text-[var(--text-gray)] border-[var(--border-color)] hover:border-purple-600/40 hover:text-[var(--text-dark)]"
+                  }`}
+                >
+                  {domain}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
         <div className="max-w-7xl mx-auto">
           {loading ? (
-            <div className="text-center py-20 text-[var(--purple-main)] font-black text-sm uppercase tracking-widest animate-pulse">
+            <div className="text-center py-20 text-purple-600 font-black text-sm uppercase tracking-widest animate-pulse">
               Завантаження матеріалів архіву...
             </div>
           ) : error ? (
@@ -161,24 +193,24 @@ export default function ArchivePage() {
                 Помилка: {error}
               </p>
             </div>
-          ) : articles.length === 0 ? (
+          ) : filteredArticles.length === 0 ? (
             <div className="text-center py-16 bg-[var(--bg-card)] border border-dashed border-[var(--border-color)] rounded-2xl p-6">
               <p className="text-[var(--text-gray)] text-xs font-bold uppercase tracking-widest">
-                Наразі в архіві немає опублікованих робіт.
+                Наразі у вибраній галузі немає опублікованих робіт.
               </p>
             </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2">
-              {articles.map((article, index) => (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {filteredArticles.map((article, index) => (
                 <div
                   key={article._id}
-                  className="bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] shadow-xs hover:shadow-md hover:border-[var(--purple-main)]/40 transition-all duration-300 p-6 flex flex-col justify-between group"
+                  className="bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] shadow-xs hover:shadow-md hover:border-purple-600/40 transition-all duration-300 p-6 flex flex-col justify-between group"
                   data-aos="fade-up"
-                  data-aos-delay={index * 50}
+                  data-aos-delay={index * 30}
                 >
                   <div>
                     <div className="flex flex-wrap items-center gap-2 mb-4">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-[var(--purple-main)]/10 text-[var(--purple-main)] border border-[var(--purple-main)]/20">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-purple-600/10 text-purple-600 border border-purple-600/20">
                         ✓ Прийнято рецензентом
                       </span>
                       <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-bold bg-[var(--bg-main)] text-[var(--text-gray)] border border-[var(--border-color)] uppercase tracking-tight">
@@ -186,16 +218,13 @@ export default function ArchivePage() {
                       </span>
                     </div>
 
-                    <h2 className="text-lg font-black text-[var(--text-dark)] leading-snug mb-3 uppercase tracking-wide line-clamp-2 transition-colors group-hover:text-[var(--purple-main)]">
+                    <h2 className="text-lg font-black text-[var(--text-dark)] leading-snug mb-3 uppercase tracking-wide line-clamp-2 transition-colors group-hover:text-purple-600">
                       {article.title}
                     </h2>
 
                     <div className="flex flex-col gap-2 mb-4 text-[10px] font-bold text-[var(--text-gray)] uppercase tracking-wider">
                       <div className="flex items-center gap-2">
-                        <UserIcon
-                          size={12}
-                          className="text-[var(--purple-main)]"
-                        />
+                        <UserIcon size={12} className="text-purple-600" />
                         <span>
                           Автор:{" "}
                           <span className="text-[var(--text-dark)]">
@@ -204,10 +233,7 @@ export default function ArchivePage() {
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <BookOpen
-                          size={12}
-                          className="text-[var(--purple-main)]"
-                        />
+                        <BookOpen size={12} className="text-purple-600" />
                         <span>
                           Програма:{" "}
                           <span className="text-[var(--text-dark)]">
@@ -216,10 +242,7 @@ export default function ArchivePage() {
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Calendar
-                          size={12}
-                          className="text-[var(--purple-main)]"
-                        />
+                        <Calendar size={12} className="text-purple-600" />
                         <span>
                           Дата:{" "}
                           <span className="text-[var(--text-dark)]">
@@ -243,7 +266,7 @@ export default function ArchivePage() {
                   <div className="grid grid-cols-2 gap-3 mt-auto pt-2">
                     <button
                       onClick={() => setSelectedArticle(article)}
-                      className="text-center py-3 border border-[var(--border-color)] text-[var(--text-dark)] bg-[var(--bg-main)] font-bold text-[10px] uppercase tracking-widest rounded-xl transition-all hover:bg-[var(--purple-main)] hover:text-white hover:border-[var(--purple-main)] active:scale-[0.98]"
+                      className="text-center py-3 border border-[var(--border-color)] text-[var(--text-dark)] bg-[var(--bg-main)] font-bold text-[10px] uppercase tracking-widest rounded-xl transition-all hover:bg-purple-600 hover:text-white hover:border-purple-600 active:scale-[0.98]"
                     >
                       Читати деталі
                     </button>
@@ -251,7 +274,7 @@ export default function ArchivePage() {
                       href={getDownloadUrl(article.fileUrl)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 py-3 bg-[var(--purple-main)] text-white font-bold text-[10px] uppercase tracking-widest rounded-xl transition-all hover:bg-opacity-90 active:scale-[0.98] group/btn"
+                      className="flex items-center justify-center gap-2 py-3 bg-purple-600 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl transition-all hover:bg-opacity-90 active:scale-[0.98] group/btn"
                     >
                       <Download
                         size={12}
@@ -266,7 +289,6 @@ export default function ArchivePage() {
           )}
         </div>
 
-        {/* Модальне вікно (Деталі статті) */}
         {selectedArticle && (
           <div className="fixed inset-0 z-[200] overflow-y-auto bg-black/70 flex items-center justify-center p-4 backdrop-blur-xs transition-opacity duration-300">
             <div
@@ -276,7 +298,7 @@ export default function ArchivePage() {
             >
               <div className="p-6 border-b border-[var(--border-color)] flex items-start justify-between bg-[var(--bg-card)] rounded-t-3xl">
                 <div className="space-y-1 pr-4">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-white bg-[var(--purple-main)] px-2 py-1 rounded">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-white bg-purple-600 px-2 py-1 rounded">
                     Архівний запис № {selectedArticle._id?.slice(-6)}
                   </span>
                   <h3 className="text-xl font-black text-[var(--text-dark)] mt-3 uppercase tracking-wide leading-tight">
@@ -350,12 +372,12 @@ export default function ArchivePage() {
                         {selectedArticle.versions.map((ver, idx) => (
                           <div
                             key={ver._id || idx}
-                            className="flex items-center justify-between p-3 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-xs hover:border-[var(--purple-main)] transition-colors"
+                            className="flex items-center justify-between p-3 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-xs hover:border-purple-600 transition-colors"
                           >
                             <div className="flex items-center gap-2 text-[var(--text-dark)] font-medium truncate max-w-[70%]">
                               <FileText
                                 size={14}
-                                className="text-[var(--purple-main)] flex-shrink-0"
+                                className="text-purple-600 flex-shrink-0"
                               />
                               <span className="truncate">
                                 {ver.fileName || `Файл_версії_${idx + 1}`}
@@ -380,7 +402,7 @@ export default function ArchivePage() {
                   href={getDownloadUrl(selectedArticle.fileUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 py-3 px-5 bg-[var(--purple-main)] text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all hover:bg-opacity-90 active:scale-[0.98] group/modal-btn"
+                  className="flex items-center gap-2 py-3 px-5 bg-purple-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all hover:bg-opacity-90 active:scale-[0.98] group/modal-btn"
                 >
                   <Download
                     size={12}

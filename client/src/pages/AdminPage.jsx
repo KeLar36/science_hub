@@ -167,7 +167,7 @@ const AdminPage = () => {
   const handleUpdateProjectStatus = async (projectId, newStatus) => {
     try {
       setLoadingAction(projectId);
-      await axiosInstance.patch(`/projects/status/${projectId}`, {
+      await axiosInstance.patch(`projects/status/${projectId}`, {
         status: newStatus,
       });
       setProjects(
