@@ -6,7 +6,6 @@ import toast, { Toaster } from "react-hot-toast";
 import Loader2 from "lucide-react/dist/esm/icons/loader-2";
 import AOS from "aos";
 import "aos/dist/aos.css";
-
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import ProfileHeader from "../components/profile/ProfileHeader";
@@ -16,7 +15,6 @@ import EditProfileModal from "../components/profile/EditProfileModal";
 import ArticlesList from "../components/profile/ArticlesList";
 import BookmarksList from "../components/profile/BookmarksList";
 import SubmissionForm from "../components/profile/SubmissionForm";
-
 import { FileText, Bookmark, Award, Target } from "lucide-react";
 
 const SCIENTIFIC_DOMAINS = [
@@ -35,7 +33,6 @@ export default function ProfilePage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [token] = useState(() => localStorage.getItem("token"));
   const [userData, setUserData] = useState(null);
   const [view, setView] = useState(location.state?.programId ? "form" : "list");
   const [loading, setLoading] = useState(false);
@@ -60,24 +57,10 @@ export default function ProfilePage() {
     domain: location.state?.domain || "Інше",
   });
 
-  const authConfig = useMemo(
-    () => ({
-      headers: { Authorization: `Bearer ${token}` },
-    }),
-    [token],
-  );
-
   const fetchData = useCallback(async () => {
-    const currentToken = localStorage.getItem("token");
-    if (!currentToken) {
-      navigate("/login");
-      return;
-    }
-
     setLoading(true);
     try {
-      const config = { headers: { Authorization: `Bearer ${currentToken}` } };
-      const resMe = await axios.get(`${apiUrl}/api/users/me`, config);
+      const resMe = await axios.get(`${apiUrl}/api/users/me`);
       const user = resMe.data.user;
       setUserData(user);
 
@@ -100,9 +83,9 @@ export default function ProfilePage() {
       }
 
       const [resArticles, resPrograms, resSaved] = await Promise.all([
-        axios.get(`${apiUrl}/api/projects/user/${user._id}`, config),
+        axios.get(`${apiUrl}/api/projects/user/${user._id}`),
         axios.get(`${apiUrl}/api/programs`),
-        axios.get(`${apiUrl}/api/users/bookmarks/all`, config),
+        axios.get(`${apiUrl}/api/users/bookmarks/all`),
       ]);
 
       setArticles(resArticles.data);
@@ -111,7 +94,6 @@ export default function ProfilePage() {
     } catch (err) {
       console.error("Fetch Error:", err);
       if (err.response?.status === 403 || err.response?.status === 401) {
-        localStorage.removeItem("token");
         navigate("/login");
       } else {
         toast.error("Помилка завантаження даних");
@@ -132,7 +114,6 @@ export default function ProfilePage() {
       const res = await axios.patch(
         `${apiUrl}/api/users/update-profile`,
         editForm,
-        authConfig,
       );
       setUserData(res.data);
       localStorage.setItem("user", JSON.stringify(res.data));
@@ -146,11 +127,7 @@ export default function ProfilePage() {
   const handleToggleBookmark = async (e, postId) => {
     e.stopPropagation();
     try {
-      await axios.post(
-        `${apiUrl}/api/users/bookmarks/toggle/${postId}`,
-        {},
-        authConfig,
-      );
+      await axios.post(`${apiUrl}/api/users/bookmarks/toggle/${postId}`);
       setSavedPosts((prev) => prev.filter((p) => p._id !== postId));
       toast.success("Закладку видалено");
     } catch (err) {
@@ -181,7 +158,6 @@ export default function ProfilePage() {
     try {
       await axios.post(`${apiUrl}/api/projects/create`, formData, {
         headers: {
-          ...authConfig.headers,
           "Content-Type": "multipart/form-data",
         },
       });
