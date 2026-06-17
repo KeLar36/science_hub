@@ -1,17 +1,15 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import axios from "axios";
+import axios from "../api/axios"; // Використовуємо твій конфіг axios
 import toast, { Toaster } from "react-hot-toast";
 import {
   UserPlus,
   Mail,
   Lock,
   User,
-  ArrowRight,
   Eye,
   EyeOff,
-  ShieldCheck,
   Loader2,
   ChevronLeft,
   MapPin,
@@ -36,7 +34,6 @@ const SCIENTIFIC_DOMAINS = [
 ];
 
 const RegisterPage = () => {
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -78,10 +75,7 @@ const RegisterPage = () => {
       status: "Offline",
     };
 
-    const registerPromise = axios.post(
-      `${apiUrl}/api/auth/register`,
-      finalData,
-    );
+    const registerPromise = axios.post("/api/auth/register", finalData);
 
     toast
       .promise(
@@ -110,66 +104,21 @@ const RegisterPage = () => {
       .finally(() => setLoading(false));
   };
 
+  const inputClass =
+    "w-full bg-[var(--bg-main)] border border-[var(--border-color)] pl-12 pr-4 py-3 text-sm transition-all text-[var(--text-dark)] outline-none focus:border-purple-600 focus:bg-[var(--bg-card)] rounded-lg appearance-none";
+
   return (
     <div className="min-h-screen flex flex-col bg-[var(--bg-main)] font-['Plus_Jakarta_Sans',_sans-serif] text-[var(--text-dark)]">
       <Toaster position="top-right" />
       <Navbar />
 
-      <style>{`
-        .bento-auth-card {
-          background: var(--bg-card);
-          border: 1px solid var(--border-color);
-          position: relative;
-          overflow: hidden;
-        }
-        .bento-auth-card::before {
-          content: '';
-          position: absolute;
-          top: 0; left: 0; width: 4px; height: 100%;
-          background: #7c3aed;
-        }
-        .input-minimal, .select-minimal {
-          background: var(--bg-main);
-          border: 1px solid var(--border-color);
-          padding: 12px 16px 12px 48px;
-          width: 100%;
-          font-size: 14px;
-          transition: all 0.2s ease;
-          color: var(--text-dark);
-          outline: none;
-          appearance: none;
-        }
-        .input-minimal:focus, .select-minimal:focus {
-          border-color: #7c3aed;
-          background: var(--bg-card);
-        }
-        .label-mono {
-          font-family: 'Space Mono', monospace;
-          font-size: 10px;
-          text-transform: uppercase;
-          letter-spacing: 0.2em;
-          color: var(--text-gray);
-          font-weight: 700;
-        }
-        .grid-bg {
-          background-image: radial-gradient(var(--border-color) 1px, transparent 1px);
-          background-size: 32px 32px;
-          position: absolute;
-          inset: 0; opacity: 0.4; z-index: 0;
-        }
-        select option {
-          background: #1a1a1a;
-          color: #fff;
-        }
-      `}</style>
-
       <main className="flex-grow flex items-center justify-center py-24 px-6 mt-10 relative">
-        <div className="grid-bg" />
+        <div className="absolute inset-0 opacity-40 z-0 pointer-events-none bg-[radial-gradient(var(--border-color)_1px,transparent_1px)] bg-[size:32px_32px]" />
 
         <div className="max-w-2xl w-full relative z-10" data-aos="fade-up">
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-2 text-[var(--text-gray)] hover:text-purple-600 text-[10px] font-bold uppercase tracking-[0.3em] mb-8 transition-all group"
+            className="flex items-center gap-2 text-[var(--text-gray)] hover:text-purple-600 text-[10px] font-bold uppercase tracking-[0.3em] mb-8 transition-all group bg-transparent border-none cursor-pointer"
           >
             <ChevronLeft
               size={14}
@@ -178,7 +127,7 @@ const RegisterPage = () => {
             Повернутися до головної
           </button>
 
-          <div className="bento-auth-card p-10 md:p-14 shadow-2xl shadow-black/20">
+          <div className="relative overflow-hidden bg-[var(--bg-card)] border border-[var(--border-color)] p-10 md:p-14 shadow-2xl shadow-black/20 before:content-[''] before:absolute before:top-0 before:left-0 before:w-1 before:h-full before:bg-purple-600">
             <div className="mb-12">
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-12 h-12 bg-purple-600 flex items-center justify-center text-white rounded-xl shadow-lg shadow-purple-600/20">
@@ -199,7 +148,7 @@ const RegisterPage = () => {
               className="grid grid-cols-1 md:grid-cols-2 gap-6"
             >
               <div className="space-y-2 md:col-span-2">
-                <label className="label-mono block">
+                <label className="font-['Space_Mono',_monospace] text-[10px] uppercase tracking-[0.2em] text-[var(--text-gray)] font-700 block">
                   Повне ім'я (для сертифікатів)
                 </label>
                 <div className="relative">
@@ -209,7 +158,7 @@ const RegisterPage = () => {
                   />
                   <input
                     name="name"
-                    className="input-minimal rounded-lg"
+                    className={inputClass}
                     type="text"
                     placeholder="Дмитро Мельник"
                     value={formData.name}
@@ -220,7 +169,9 @@ const RegisterPage = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="label-mono block">Електронна пошта</label>
+                <label className="font-['Space_Mono',_monospace] text-[10px] uppercase tracking-[0.2em] text-[var(--text-gray)] font-700 block">
+                  Електронна пошта
+                </label>
                 <div className="relative">
                   <Mail
                     className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-gray)]"
@@ -228,7 +179,7 @@ const RegisterPage = () => {
                   />
                   <input
                     name="email"
-                    className="input-minimal rounded-lg"
+                    className={inputClass}
                     type="email"
                     placeholder="melnyk@univ.edu"
                     value={formData.email}
@@ -239,7 +190,7 @@ const RegisterPage = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="label-mono block">
+                <label className="font-['Space_Mono',_monospace] text-[10px] uppercase tracking-[0.2em] text-[var(--text-gray)] font-700 block">
                   Місто проживання/базування
                 </label>
                 <div className="relative">
@@ -249,16 +200,27 @@ const RegisterPage = () => {
                   />
                   <select
                     name="city"
-                    className="select-minimal rounded-lg cursor-pointer"
+                    className="bg-[#1a1a1a] text-white placeholder:text-[var(--text-gray)] border border-[var(--border-color)] focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b5cf6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                    }}
                     value={formData.city}
                     onChange={handleChange}
                     required
                   >
-                    <option value="" disabled>
+                    <option
+                      value=""
+                      disabled
+                      className="bg-[#1a1a1a] text-white"
+                    >
                       Оберіть місто
                     </option>
                     {UKRAINIAN_CITIES.map((city) => (
-                      <option key={city} value={city}>
+                      <option
+                        key={city}
+                        value={city}
+                        className="bg-[#1a1a1a] text-white"
+                      >
                         {city}
                       </option>
                     ))}
@@ -267,7 +229,9 @@ const RegisterPage = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="label-mono block">Наукова галузь</label>
+                <label className="font-['Space_Mono',_monospace] text-[10px] uppercase tracking-[0.2em] text-[var(--text-gray)] font-700 block">
+                  Наукова галузь
+                </label>
                 <div className="relative">
                   <BookOpen
                     className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-gray)]"
@@ -275,13 +239,20 @@ const RegisterPage = () => {
                   />
                   <select
                     name="domain"
-                    className="select-minimal rounded-lg cursor-pointer"
+                    className={`${inputClass} cursor-pointer pr-10 bg-no-repeat bg-[right_1rem_center] bg-[length:1em] [appearance:none]`}
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b5cf6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                    }}
                     value={formData.domain}
                     onChange={handleChange}
                     required
                   >
                     {SCIENTIFIC_DOMAINS.map((domain) => (
-                      <option key={domain} value={domain}>
+                      <option
+                        key={domain}
+                        value={domain}
+                        className="bg-[#1a1a1a] text-white"
+                      >
                         {domain}
                       </option>
                     ))}
@@ -290,7 +261,9 @@ const RegisterPage = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="label-mono block">Пароль</label>
+                <label className="font-['Space_Mono',_monospace] text-[10px] uppercase tracking-[0.2em] text-[var(--text-gray)] font-700 block">
+                  Пароль
+                </label>
                 <div className="relative">
                   <Lock
                     className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-gray)]"
@@ -298,7 +271,7 @@ const RegisterPage = () => {
                   />
                   <input
                     name="password"
-                    className="input-minimal rounded-lg"
+                    className={inputClass}
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     value={formData.password}
@@ -318,7 +291,7 @@ const RegisterPage = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="md:col-span-2  ml-2 mt-6 py-5 bg-purple-600 text-white font-black text-[10px] uppercase tracking-[0.25em] hover:bg-purple-700 active:scale-[0.98] disabled:opacity-50 transition-all flex items-center justify-center gap-4 rounded-xl shadow-xl shadow-purple-600/10"
+                className="md:col-span-2 mt-6 py-5 bg-purple-600 text-white font-black text-[10px] uppercase tracking-[0.25em] hover:bg-purple-700 active:scale-[0.98] disabled:opacity-50 transition-all flex items-center justify-center gap-4 rounded-xl shadow-xl shadow-purple-600/10 cursor-pointer"
               >
                 {loading ? (
                   <Loader2 size={18} className="animate-spin" />

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { FolderOpen, FileUp } from "lucide-react";
-import RevisionModal from "./RevisionModal";
+import RevisionModal from "../profile/RevisionModal";
 
 export default function ArticlesList({ items, onRefresh }) {
   const [selectedArticle, setSelectedArticle] = useState(null);

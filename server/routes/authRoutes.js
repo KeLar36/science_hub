@@ -56,7 +56,7 @@ router.post("/register", async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: email.toLowerCase() }); // приведення до нижнього регістру про всяк випадок
 
     if (!user || user.isBanned) {
       return res
@@ -70,11 +70,17 @@ router.post("/login", async (req, res) => {
     }
 
     const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, {
-      expiresIn: "1d",
+      expiresIn: "30d",
+    });
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
     res.json({
-      token,
       user: {
         id: user._id,
         name: user.name,
@@ -82,8 +88,18 @@ router.post("/login", async (req, res) => {
       },
     });
   } catch (err) {
+    console.error("LOGIN ERROR:", err);
     res.status(500).json({ error: "Помилка сервера" });
   }
+});
+
+router.post("/logout", (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+  });
+  res.json({ message: "Вихід із системи успішний" });
 });
 
 router.post("/forgot-password", async (req, res) => {

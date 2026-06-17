@@ -3,14 +3,12 @@ const jwt = require("jsonwebtoken");
 const JWT_SECRET = process.env.JWT_SECRET || "secret_key";
 
 const verifyToken = (req, res, next) => {
-  const token =
-    req.header("x-auth-token") ||
-    req.header("Authorization")?.replace("Bearer ", "");
+  const token = req.cookies ? req.cookies.token : null;
 
   if (!token) {
     return res
       .status(401)
-      .json({ message: "Доступ заборонено. Токен відсутній." });
+      .json({ message: "Доступ заборонено. Авторизаційну куку не знайдено." });
   }
 
   try {
@@ -18,7 +16,9 @@ const verifyToken = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (err) {
-    res.status(403).json({ message: "Недійсний токен." });
+    return res
+      .status(403)
+      .json({ message: "Недійсний або прострочений токен." });
   }
 };
 

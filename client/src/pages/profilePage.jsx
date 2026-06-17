@@ -9,13 +9,13 @@ import "aos/dist/aos.css";
 
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import ProfileHeader from "../components/ProfileHeader";
-import MiniStatCard from "../components/MiniStatCard";
-import ProfileTabs from "../components/ProfileTabs";
-import EditProfileModal from "../components/EditProfileModal";
-import ArticlesList from "../components/ArticlesList";
-import BookmarksList from "../components/BookmarksList";
-import SubmissionForm from "../components/SubmissionForm";
+import ProfileHeader from "../components/profile/ProfileHeader";
+import MiniStatCard from "../components/profile/MiniStatCard";
+import ProfileTabs from "../components/profile/ProfileTabs";
+import EditProfileModal from "../components/profile/EditProfileModal";
+import ArticlesList from "../components/profile/ArticlesList";
+import BookmarksList from "../components/profile/BookmarksList";
+import SubmissionForm from "../components/profile/SubmissionForm";
 
 import { FileText, Bookmark, Award, Target } from "lucide-react";
 

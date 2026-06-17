@@ -39,7 +39,6 @@ const AboutPage = () => {
       <Navbar />
 
       <main className="relative">
-        {/* Анімований фон для всієї сторінки */}
         <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
           <div
             className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-purple-600/10 rounded-full blur-[120px] animate-pulse"
@@ -51,7 +50,6 @@ const AboutPage = () => {
           />
         </div>
 
-        {/* --- ENHANCED HERO SECTION --- */}
         <header className="relative pt-40 pb-24 px-6 border-b border-[var(--border-color)] overflow-hidden">
           <div
             className="absolute inset-0 z-0 opacity-[0.03]"
@@ -137,7 +135,6 @@ const AboutPage = () => {
                 data-aos="fade-left"
               >
                 <div className="relative">
-                  {/* Декоративні рамки навколо іконки */}
                   <div className="absolute -top-10 -right-10 w-32 h-32 border-t-2 border-r-2 border-purple-600/30"></div>
                   <div className="absolute -bottom-10 -left-10 w-32 h-32 border-b-2 border-l-2 border-purple-600/30"></div>
 
@@ -162,7 +159,6 @@ const AboutPage = () => {
           </div>
         </header>
 
-        {/* --- FEATURES SECTION --- */}
         <section className="border-b border-[var(--border-color)] bg-[var(--bg-main)] relative z-10">
           <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-3">
@@ -204,7 +200,6 @@ const AboutPage = () => {
           </div>
         </section>
 
-        {/* --- STEPS SECTION --- */}
         <section className="py-28 px-6 bg-[var(--bg-card)]/10 relative overflow-hidden">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-20 gap-8">
@@ -275,7 +270,6 @@ const AboutPage = () => {
           </div>
         </section>
 
-        {/* --- TECH STACK SECTION --- */}
         <section className="py-28 px-6 border-b border-[var(--border-color)]">
           <div className="max-w-7xl mx-auto">
             <div className="grid lg:grid-cols-2 gap-24 items-center">
@@ -348,7 +342,6 @@ const AboutPage = () => {
           </div>
         </section>
 
-        {/* --- CALL TO ACTION --- */}
         <section className="py-40 px-6 mb-20 relative overflow-hidden">
           <div
             className="max-w-5xl mx-auto text-center relative z-10 space-y-12"
@@ -386,7 +379,6 @@ const AboutPage = () => {
             </button>
           </div>
 
-          {/* Декоративний фон для CTA */}
           <div className="absolute inset-0 z-0 opacity-10">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,var(--purple-main)_0,transparent_70%)] opacity-20"></div>
           </div>

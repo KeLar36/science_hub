@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { X, UploadCloud, RefreshCw } from "lucide-react";
 import toast from "react-hot-toast";
-import axios from "../api/axios";
+import axios from "../../api/axios";
 
 export default function RevisionModal({
   isOpen,

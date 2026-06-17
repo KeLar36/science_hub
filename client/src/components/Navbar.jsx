@@ -38,10 +38,15 @@ const Navbar = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-    closeMenu();
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Помилка під час логауту користувача:", error);
+    } finally {
+      closeMenu();
+      navigate("/login");
+    }
   };
 
   const navLinks = [
@@ -152,7 +157,6 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Мобільне меню */}
       <div
         className={`fixed inset-0 bg-[var(--bg-main)] z-[105] transition-all duration-500 ease-in-out lg:hidden ${
           isOpen

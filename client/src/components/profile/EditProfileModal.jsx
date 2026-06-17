@@ -1,6 +1,6 @@
 import React from "react";
 import { X, ChevronDown, Save } from "lucide-react";
-import { UKRAINIAN_CITIES } from "../constants/cities";
+import { UKRAINIAN_CITIES } from "../../constants/cities";
 
 export default function EditProfileModal({
   isOpen,
