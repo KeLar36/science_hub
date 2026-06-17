@@ -8,6 +8,7 @@ const cookieParser = require("cookie-parser");
 require("dotenv").config();
 
 const app = express();
+app.enable("trust proxy");
 
 app.use(
   helmet({
@@ -28,12 +29,26 @@ app.use(
   }),
 );
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://science-hub-six.vercel.app",
+];
+
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://science-hub-six.vercel.app"],
-    credentials: true,
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true, // ЦЕЙ РЯДОК КРИТИЧНО ОБОВ'ЯЗКОВИЙ ДЛЯ HTTP-ONLY КУК!
   }),
 );
+
 app.use(morgan("dev"));
 app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
