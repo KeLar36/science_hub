@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+} from "react";
 import axios from "../api/axios";
 
 export const AuthContext = createContext(null);
@@ -7,10 +13,16 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
+
+  const isChecking = useRef(false);
+
   const checkAuth = async () => {
+    if (isChecking.current || isAuthChecked) return;
+    isChecking.current = true;
+
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      const res = await axios.get(`${apiUrl}/api/auth/me`);
+      const res = await axios.get("/auth/me");
 
       if (res.data && res.data.user) {
         setUser(res.data.user);
@@ -21,6 +33,8 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
     } finally {
       setLoading(false);
+      setIsAuthChecked(true);
+      isChecking.current = false;
     }
   };
 
@@ -30,16 +44,17 @@ export const AuthProvider = ({ children }) => {
 
   const login = (newUser) => {
     setUser(newUser);
+    setIsAuthChecked(true);
   };
 
   const logout = async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      await axios.post(`${apiUrl}/api/auth/logout`);
+      await axios.post("/auth/logout");
     } catch (err) {
       console.error("Помилка під час логауту на сервері:", err);
     } finally {
       setUser(null);
+      setLoading(false);
     }
   };
 
@@ -54,7 +69,13 @@ export const AuthProvider = ({ children }) => {
         checkAuth,
       }}
     >
-      {!loading && children}
+      {loading ? (
+        <div className="min-h-screen bg-[#0d0d0e] flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-[var(--purple-main)] border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 };

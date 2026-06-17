@@ -6,8 +6,8 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext"; //  Додано імпорт провайдера
-import { useAuth } from "./hooks/useAuth"; //  Виправлено шлях (якщо App в /src)
+import { AuthProvider } from "./context/AuthContext";
+import { useAuth } from "./hooks/useAuth";
 
 import HomePage from "./pages/homePage";
 import LoginPage from "./pages/loginPage";
@@ -30,7 +30,15 @@ import AOS from "aos";
 import "aos/dist/aos.css";
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0d0d0e] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[var(--purple-main)] border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
