@@ -7,7 +7,8 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 
 const { verifyToken, checkRole } = require("../middleware/auth");
-
+const isProd =
+  process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
 const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
 const JWT_SECRET = process.env.JWT_SECRET || "secret_key";
 
@@ -75,9 +76,9 @@ router.post("/login", async (req, res) => {
 
     res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 30 * 24 * 60 * 60 * 1000,
+      secure: true,
+      sameSite: "none",
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 днів
     });
 
     res.json({
@@ -96,8 +97,8 @@ router.post("/login", async (req, res) => {
 router.post("/logout", (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    secure: true,
+    sameSite: "none",
   });
   res.json({ message: "Вихід із системи успішний" });
 });

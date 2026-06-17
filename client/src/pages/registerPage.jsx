@@ -75,7 +75,7 @@ const RegisterPage = () => {
       status: "Offline",
     };
 
-    const registerPromise = axios.post("/api/auth/register", finalData);
+    const registerPromise = axios.post("/auth/register", finalData);
 
     toast
       .promise(
