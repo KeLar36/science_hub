@@ -142,6 +142,7 @@ export default function ProfilePage() {
       const res = await axios.patch(
         `${apiUrl}/api/users/update-profile`,
         editForm,
+        { withCredentials: true },
       );
       setUserData(res.data);
       localStorage.setItem("user", JSON.stringify(res.data));

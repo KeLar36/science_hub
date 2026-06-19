@@ -7,22 +7,22 @@ import React, {
 } from "react";
 import axios from "../api/axios";
 
+axios.defaults.withCredentials = true;
+
 export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-
   const [isAuthChecked, setIsAuthChecked] = useState(false);
-
   const isChecking = useRef(false);
 
-  const checkAuth = async () => {
-    if (isChecking.current || isAuthChecked) return;
+  const checkAuth = async (force = false) => {
+    if (isChecking.current || (isAuthChecked && !force)) return;
     isChecking.current = true;
 
     try {
-      const res = await axios.get("/auth/me");
+      const res = await axios.get("/auth/me", { withCredentials: true });
 
       if (res.data && res.data.user) {
         setUser(res.data.user);
@@ -30,6 +30,7 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
       }
     } catch (err) {
+      console.error("Помилка авторизації в контексті:", err);
       setUser(null);
     } finally {
       setLoading(false);
@@ -47,9 +48,13 @@ export const AuthProvider = ({ children }) => {
     setIsAuthChecked(true);
   };
 
+  const updateUserState = (updatedUser) => {
+    setUser(updatedUser);
+  };
+
   const logout = async () => {
     try {
-      await axios.post("/auth/logout");
+      await axios.post("/auth/logout", {}, { withCredentials: true });
     } catch (err) {
       console.error("Помилка під час логауту на сервері:", err);
     } finally {
@@ -67,6 +72,7 @@ export const AuthProvider = ({ children }) => {
         login,
         logout,
         checkAuth,
+        updateUserState,
       }}
     >
       {loading ? (
