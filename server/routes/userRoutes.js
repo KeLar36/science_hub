@@ -4,9 +4,148 @@ const User = require("../models/UserTemp");
 const Post = require("../models/Post");
 
 const { verifyToken, checkRole } = require("../middleware/auth");
-
 const adminAccess = checkRole(["admin", "superadmin"]);
 
+// ==========================================
+// 1. БЛОК ПОТОЧНОГО КОРИСТУВАЧА (МЕНЕ)
+// ==========================================
+
+// Отримання профілю поточного користувача
+router.get("/me", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+    if (!user)
+      return res.status(404).json({ message: "Користувача не знайдено" });
+
+    res.json({ user });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Оновлення профілю поточного користувача
+router.patch("/update-profile", verifyToken, async (req, res) => {
+  try {
+    const { name, bio, topics, city, socials, image } = req.body;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      {
+        $set: {
+          name,
+          bio,
+          topics,
+          city,
+          socials,
+          image,
+        },
+      },
+      { new: true, runValidators: true },
+    ).select("-password");
+
+    res.json(updatedUser);
+  } catch (err) {
+    res.status(400).json({ message: "Не вдалося оновити профіль" });
+  }
+});
+
+// ==========================================
+// 2. БЛОК ЗАКЛАДОК (Усі статичні під-шляхи)
+// ==========================================
+
+// Отримання всіх закладок користувача (ТЕПЕР ВІН ТУТ, ВИЩЕ ЗА /:id!)
+router.get("/bookmarks/all", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user)
+      return res.status(404).json({ message: "Користувача не знайдено" });
+
+    const bookmarkedPosts = await Post.find({
+      _id: { $in: user.bookmarks },
+    }).sort({ createdAt: -1 });
+
+    res.json(bookmarkedPosts);
+  } catch (err) {
+    res.status(500).json({ message: "Помилка при отриманні закладок" });
+  }
+});
+
+// Перевірка конкретної закладки
+router.get("/bookmarks/check/:id", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user)
+      return res.status(404).json({ message: "Користувача не знайдено" });
+
+    const isBookmarked = user.bookmarks
+      ? user.bookmarks.includes(req.params.id)
+      : false;
+    res.json({ isBookmarked });
+  } catch (err) {
+    res.status(500).json({ message: "Помилка сервера" });
+  }
+});
+
+// Додати/видалити з закладок
+router.post("/bookmarks/toggle/:id", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user)
+      return res.status(404).json({ message: "Користувача не знайдено" });
+
+    const postId = req.params.id;
+    if (!user.bookmarks) user.bookmarks = [];
+
+    const index = user.bookmarks.indexOf(postId);
+    if (index === -1) {
+      user.bookmarks.push(postId);
+    } else {
+      user.bookmarks.splice(index, 1);
+    }
+
+    await user.save();
+    res.json({
+      isBookmarked: index === -1,
+      message: index === -1 ? "Додано до закладок" : "Видалено з закладок",
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Помилка закладок" });
+  }
+});
+
+// ==========================================
+// 3. БЛОК ЗАГАЛЬНОДОСТУПНИХ СТАТИЧНИХ РОУТІВ
+// ==========================================
+
+// Отримання списку учасників спільноти
+router.get("/community", async (req, res) => {
+  try {
+    const users = await User.find(
+      { isBanned: false },
+      "name role image bio topics city socials status createdAt",
+    ).sort({ status: 1, createdAt: -1 });
+
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: "Помилка при отриманні списку спільноти" });
+  }
+});
+
+// Кількість користувачів
+router.get("/count", verifyToken, async (req, res) => {
+  try {
+    const count = await User.countDocuments();
+    res.json({ count });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ==========================================
+// 4. АДМІНІСТРАТИВНІ РОУТИ (Тільки для адмінів)
+// ==========================================
+
+// Отримання списку всіх користувачів (для адмін-панелі)
 router.get("/all", verifyToken, adminAccess, async (req, res) => {
   try {
     const users = await User.find().select("-password").sort({ createdAt: -1 });
@@ -16,6 +155,17 @@ router.get("/all", verifyToken, adminAccess, async (req, res) => {
   }
 });
 
+// Корневий GET для /api/users (дублював /all, лишаємо під адмінкою внизу)
+router.get("/", verifyToken, adminAccess, async (req, res) => {
+  try {
+    const users = await User.find().select("-password").sort({ createdAt: -1 });
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Зміна ролі користувача
 router.patch("/role/:id", verifyToken, adminAccess, async (req, res) => {
   try {
     const { role } = req.body;
@@ -50,6 +200,7 @@ router.patch("/role/:id", verifyToken, adminAccess, async (req, res) => {
   }
 });
 
+// Блокування користувача
 router.patch("/ban/:id", verifyToken, adminAccess, async (req, res) => {
   try {
     const { isBanned } = req.body;
@@ -80,6 +231,7 @@ router.patch("/ban/:id", verifyToken, adminAccess, async (req, res) => {
   }
 });
 
+// Видалення користувача (СУВОРІ ДИНАМІЧНІ РОУТИ — НАЙНИЖЧЕ СЕРЕД УСІХ)
 router.delete("/:id", verifyToken, adminAccess, async (req, res) => {
   try {
     if (req.params.id === req.user.id)
@@ -102,131 +254,6 @@ router.delete("/:id", verifyToken, adminAccess, async (req, res) => {
 
     await User.findByIdAndDelete(req.params.id);
     res.json({ message: "Користувача видалено" });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-router.get("/count", verifyToken, async (req, res) => {
-  try {
-    const count = await User.countDocuments();
-    res.json({ count });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-router.get("/bookmarks/check/:id", verifyToken, async (req, res) => {
-  try {
-    // req.user.id — matches jwt.sign({ id: user._id })
-    const user = await User.findById(req.user.id);
-    if (!user)
-      return res.status(404).json({ message: "Користувача не знайдено" });
-
-    const isBookmarked = user.bookmarks
-      ? user.bookmarks.includes(req.params.id)
-      : false;
-    res.json({ isBookmarked });
-  } catch (err) {
-    res.status(500).json({ message: "Помилка сервера" });
-  }
-});
-
-router.post("/bookmarks/toggle/:id", verifyToken, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id);
-    if (!user)
-      return res.status(404).json({ message: "Користувача не знайдено" });
-
-    const postId = req.params.id;
-    if (!user.bookmarks) user.bookmarks = [];
-
-    const index = user.bookmarks.indexOf(postId);
-    if (index === -1) {
-      user.bookmarks.push(postId);
-    } else {
-      user.bookmarks.splice(index, 1);
-    }
-
-    await user.save();
-    res.json({
-      isBookmarked: index === -1,
-      message: index === -1 ? "Додано до закладок" : "Видалено з закладок",
-    });
-  } catch (err) {
-    res.status(500).json({ message: "Помилка закладок" });
-  }
-});
-
-router.get("/bookmarks/all", verifyToken, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id);
-    if (!user)
-      return res.status(404).json({ message: "Користувача не знайдено" });
-
-    const bookmarkedPosts = await Post.find({
-      _id: { $in: user.bookmarks },
-    }).sort({ createdAt: -1 });
-
-    res.json(bookmarkedPosts);
-  } catch (err) {
-    res.status(500).json({ message: "Помилка при отриманні закладок" });
-  }
-});
-
-router.get("/community", async (req, res) => {
-  try {
-    const users = await User.find(
-      { isBanned: false },
-      "name role image bio topics city socials status createdAt",
-    ).sort({ status: 1, createdAt: -1 });
-
-    res.json(users);
-  } catch (err) {
-    res.status(500).json({ message: "Помилка при отриманні списку спільноти" });
-  }
-});
-
-router.get("/me", verifyToken, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select("-password");
-    if (!user)
-      return res.status(404).json({ message: "Користувача не знайдено" });
-
-    res.json({ user });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-router.patch("/update-profile", verifyToken, async (req, res) => {
-  try {
-    const { name, bio, topics, city, socials, image } = req.body;
-
-    const updatedUser = await User.findByIdAndUpdate(
-      req.user.id,
-      {
-        $set: {
-          name,
-          bio,
-          topics,
-          city,
-          socials,
-          image,
-        },
-      },
-      { new: true, runValidators: true },
-    ).select("-password");
-
-    res.json(updatedUser);
-  } catch (err) {
-    res.status(400).json({ message: "Не вдалося оновити профіль" });
-  }
-});
-
-router.get("/", verifyToken, adminAccess, async (req, res) => {
-  try {
-    const users = await User.find().select("-password").sort({ createdAt: -1 });
-    res.json(users);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
