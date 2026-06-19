@@ -60,10 +60,12 @@ export default function ProfilePage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const resMe = await axios.get(`${apiUrl}/api/users/me`);
+      const resMe = await axios.get(`${apiUrl}/api/users/me`, {
+        withCredentials: true,
+      });
       const user = resMe.data.user;
-      setUserData(user);
 
+      setUserData(user);
       localStorage.setItem("user", JSON.stringify(user));
 
       setEditForm({
@@ -79,34 +81,38 @@ export default function ProfilePage() {
       });
 
       if (!user || !user._id) {
-        throw new Error("User ID is missing");
+        toast.error("Не вдалося отримати дані користувача");
+        return; // Якщо ID немає, далі йти немає сенсу
       }
 
-      const [resArticles, resPrograms, resSaved] = await Promise.all([
-        axios.get(`${apiUrl}/api/projects/user/${user._id}`),
-        axios.get(`${apiUrl}/api/programs`),
-        // Додаємо ?_t=... щоб URL завжди був унікальним і не кешувався
+      const axiosConfig = { withCredentials: true };
+      const axiosConfigNoCache = {
+        withCredentials: true,
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      };
+
+      const [resArticles, resPrograms, resBookmarks] = await Promise.all([
+        axios.get(`${apiUrl}/api/projects/user/${user._id}`, axiosConfig),
+        axios.get(`${apiUrl}/api/programs`, axiosConfig),
         axios.get(
           `${apiUrl}/api/users/bookmarks/all?_t=${new Date().getTime()}`,
-          {
-            headers: {
-              "Cache-Control": "no-cache",
-              Pragma: "no-cache",
-              Expires: "0",
-            },
-          },
+          axiosConfigNoCache,
         ),
       ]);
 
       setArticles(resArticles.data);
       setPrograms(resPrograms.data);
-      setSavedPosts(resSaved.data);
+      setSavedPosts(resBookmarks.data);
     } catch (err) {
-      console.error("Fetch Error:", err);
+      console.error("Fetch data error:", err);
       if (err.response?.status === 403 || err.response?.status === 401) {
         navigate("/login");
       } else {
-        toast.error("Помилка завантаження даних");
+        toast.error("Помилка завантаження даних користувача");
       }
     } finally {
       setLoading(false);
@@ -120,6 +126,18 @@ export default function ProfilePage() {
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
+    if (!editForm.name || editForm.name.trim() === "") {
+      toast.error("Ім'я не може бути порожнім!", {
+        duration: 4000,
+        position: "top-center",
+        style: {
+          borderRadius: "8px",
+          background: "#333",
+          color: "#fff",
+        },
+      });
+      return;
+    }
     try {
       const res = await axios.patch(
         `${apiUrl}/api/users/update-profile`,
