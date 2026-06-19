@@ -85,7 +85,17 @@ export default function ProfilePage() {
       const [resArticles, resPrograms, resSaved] = await Promise.all([
         axios.get(`${apiUrl}/api/projects/user/${user._id}`),
         axios.get(`${apiUrl}/api/programs`),
-        axios.get(`${apiUrl}/api/users/bookmarks/all`),
+        // Додаємо ?_t=... щоб URL завжди був унікальним і не кешувався
+        axios.get(
+          `${apiUrl}/api/users/bookmarks/all?_t=${new Date().getTime()}`,
+          {
+            headers: {
+              "Cache-Control": "no-cache",
+              Pragma: "no-cache",
+              Expires: "0",
+            },
+          },
+        ),
       ]);
 
       setArticles(resArticles.data);
