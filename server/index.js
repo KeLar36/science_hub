@@ -40,7 +40,6 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Дозволяємо запити без origin (наприклад, Postman або мобільні додатки)
       if (!origin) return callback(null, true);
 
       if (allowedOrigins.includes(origin)) {
@@ -51,8 +50,15 @@ app.use(
     },
     credentials: true,
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
-    allowedHeaders:
-      "Content-Type, Authorization, X-Requested-With, Accept, Cookie",
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "Accept",
+      "Cache-Control",
+      "Pragma",
+      "Expires",
+    ].join(", "),
   }),
 );
 

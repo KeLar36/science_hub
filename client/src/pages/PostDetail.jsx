@@ -3,10 +3,10 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import parse from "html-react-parser";
 import axios from "../api/axios";
-import { AuthContext, useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
+import "../index.css";
 import {
   Calendar,
-  Clock,
   ChevronLeft,
   User,
   Share2,
@@ -18,8 +18,6 @@ import {
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import toast, { Toaster } from "react-hot-toast";
-import DOMPurify from "dompurify";
-
 import Hypher from "hypher";
 import ukrainian from "hyphenation.uk";
 
@@ -38,7 +36,6 @@ const PostDetail = () => {
   const { user, isAuthenticated } = useAuth();
   const chatEndRef = useRef(null);
   const isAuth = !!localStorage.getItem("token");
-  const currentUser = JSON.parse(localStorage.getItem("user"));
   const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
   const hypher = useMemo(() => new Hypher(ukrainian), []);
@@ -100,7 +97,9 @@ const PostDetail = () => {
         { withCredentials: true },
       );
       setIsBookmarked(!isBookmarked);
-      toast.success(isBookmarked ? "Видалено" : "Збережено");
+      toast.success(
+        isBookmarked ? "Видалено з закладок" : "Збережено в закладки",
+      );
     } catch (err) {
       toast.error("Помилка синхронізації");
     } finally {
@@ -126,12 +125,12 @@ const PostDetail = () => {
   };
 
   const handleReaction = async (type) => {
-    if (!isAuth) return toast.error("Увійдіть");
+    if (!isAuth) return toast.error("Увійдіть для реакції");
     try {
       const res = await axios.post(`${apiUrl}/api/posts/${id}/react`, { type });
       setPost((prev) => ({ ...prev, reactions: res.data.reactions }));
     } catch (err) {
-      toast.error("Помилка");
+      toast.error("Помилка при збереженні реакції");
     }
   };
 
@@ -149,270 +148,156 @@ const PostDetail = () => {
       <Toaster position="bottom-right" />
       <Navbar />
 
-      <style>{`
-  .post-content-container {
-    hyphens: auto;
-    -webkit-hyphens: auto;
-    text-align: left; /* Для rich-text краще використовувати ліве вирівнювання, щоб уникнути величезних дірок між словами */
-    color: var(--text-main);
-    font-size: 1.125rem;
-    line-height: 1.8;
-  }
+      <main className="flex-grow max-w-4xl mx-auto px-4 w-full pt-28 pb-20 flex flex-col gap-5">
+        <div data-aos="fade-right">
+          <button
+            onClick={() => navigate("/blog")}
+            className="flex items-center gap-2 text-[var(--text-gray)] hover:text-[var(--text-dark)] text-xs font-bold transition-colors group"
+          >
+            <ChevronLeft
+              size={16}
+              className="group-hover:-translate-x-0.5 transition-transform"
+            />
+            Назад до блогу
+          </button>
+        </div>
 
-  /* Стилізація заголовків із збереженням регістру автора */
-  .post-content-container h1,
-  .post-content-container h2,
-  .post-content-container h3,
-  .post-content-container h4 {
-    color: var(--text-dark);
-    font-weight: 800;
-    tracking: tracking-tight;
-    margin-top: 2.5rem;
-    margin-bottom: 1rem;
-    line-height: 1.3;
-  }
-  
-  /* Прибираємо uppercase, щоб текст читався легко */
-  .post-content-container h1 { font-size: 2.25rem; }
-  .post-content-container h2 { font-size: 1.75rem; }
-  .post-content-container h3 { font-size: 1.5rem; }
-
-  .post-content-container p {
-    margin-bottom: 1.5rem;
-    font-weight: 400; /* Звичайний текст має бути normal, а не напівжирним */
-  }
-
-  /* Списки: повертаємо їм нормальні відступи та стандартний вигляд */
-  .post-content-container ul, 
-  .post-content-container ol {
-    margin-left: 1.5rem;
-    margin-bottom: 1.5rem;
-    padding-left: 0.5rem;
-  }
-  .post-content-container ul { list-style-type: disc; }
-  .post-content-container ol { list-style-type: decimal; }
-  
-  .post-content-container li { 
-    margin-bottom: 0.75rem; 
-    font-weight: 400;
-    line-height: 1.6;
-  }
-  
-  /* Важливий фікс для вкладених strong елементів у списках */
-  .post-content-container li strong {
-    font-weight: 700 !important;
-    color: var(--text-dark);
-  }
-
-  /* Елегантна цитата (blockquote), як у менеджера, але з вашим фіолетовим акцентом */
-  .post-content-container blockquote {
-    border-left: 4px solid #6d28d9; /* Фірмовий фіолетовий */
-    padding: 0.75rem 1.5rem;
-    margin: 2rem 0;
-    background: rgba(109, 40, 217, 0.03); /* Легкий фіолетовий тинт */
-    border-radius: 0 16px 16px 0;
-    color: var(--text-main);
-  }
-  
-  .post-content-container blockquote p {
-    margin-bottom: 0;
-    font-style: normal;
-  }
-
-  /* Оновлені картки та мета-дані */
-  .post-card { 
-    background: var(--bg-card); 
-    border-radius: 32px; 
-    border: 1px solid var(--border-color); 
-    transition: border-color 0.3s ease;
-  }
-  .post-card:hover {
-    border-color: rgba(109, 40, 217, 0.2);
-  }
-
-  .meta-item { 
-    background: var(--bg-main); 
-    border: 1px solid var(--border-color); 
-    border-radius: 16px; 
-    padding: 12px 20px; 
-    display: flex; 
-    align-items: center; 
-    gap: 12px; 
-  }
-  
-  .reaction-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    background: var(--bg-main);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    transition: all 0.2s ease;
-  }
-  .reaction-btn:hover {
-    border-color: #6d28d9;
-    transform: translateY(-2px);
-  }
-
-  .sidebar-anim { 
-    transform: translateX(${showComments ? "0" : "100%"}); 
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
-  }
-`}</style>
-
-      <main className="flex-grow max-w-4xl mx-auto px-4 w-full pt-28 pb-20">
-        <button
-          onClick={() => navigate("/blog")}
-          className="flex items-center gap-2 text-[var(--text-gray)] hover:text-[var(--text-dark)] text-sm font-bold mb-8 transition-colors group"
-          data-aos="fade-right"
+        <header
+          className="bento-card p-6 md:p-10 rounded-3xl flex flex-col gap-4 animate-reveal"
+          data-aos="fade-up"
         >
-          <ChevronLeft
-            size={18}
-            className="group-hover:-translate-x-1 transition-transform"
-          />
-          Назад до блогу
-        </button>
-
-        <article className="post-card overflow-hidden" data-aos="fade-up">
-          <div className="p-8 md:p-12">
-            <span className="inline-block px-3 py-1 bg-purple-500/10 text-[#6d28d9] rounded-lg text-[10px] font-black uppercase tracking-widest mb-6">
+          <div>
+            <span className="inline-block px-2.5 py-1 bg-purple-500/10 text-[#6d28d9] dark:text-[#a78bfa] rounded-lg text-[10px] font-black uppercase tracking-wider mb-4">
               {post.category}
             </span>
-
-            <h1 className="text-4xl md:text-5xl font-black text-[var(--text-dark)] mb-10 tracking-tight leading-[1.1]">
+            <h1 className="text-3xl md:text-4xl font-black text-[var(--text-dark)] tracking-tight leading-tight">
               {post.title}
             </h1>
-
-            <div className="flex flex-wrap gap-4 pt-8 border-t border-[var(--border-color)]">
-              <div className="meta-item group/meta">
-                <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center text-[#6d28d9] transition-transform group-hover/meta:scale-105">
-                  <User size={18} />
-                </div>
-                <div>
-                  <p className="text-[9px] font-black text-[var(--text-gray)] uppercase">
-                    Автор
-                  </p>
-                  <p className="text-sm font-bold text-[var(--text-dark)]">
-                    {post.authorId?.name || "Admin"}
-                  </p>
-                </div>
-              </div>
-              <div className="meta-item group/meta">
-                <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500 transition-transform group-hover/meta:scale-105">
-                  <Calendar size={18} />
-                </div>
-                <div>
-                  <p className="text-[9px] font-black text-[var(--text-gray)] uppercase">
-                    Дата
-                  </p>
-                  <p className="text-sm font-bold text-[var(--text-dark)]">
-                    {new Date(post.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
 
-          <div className="px-8 md:px-12 py-4">
-            {/* Оновлено виведення контенту: розставляємо дефіси, а потім парсимо рядок у React DOM */}
-            <div className="post-content-container text-lg" lang="uk">
-              {parse(getHyphenatedHtml(post.content || ""))}
+          <div className="flex flex-wrap gap-3 pt-4 border-t border-[var(--border-color)]">
+            <div className="flex items-center gap-2 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-2 text-xs font-bold text-[var(--text-main)]">
+              <User size={14} className="text-[#6d28d9]" />
+              <span className="text-[var(--text-gray)] font-medium">
+                Автор:
+              </span>{" "}
+              {post.authorId?.name || "Admin"}
             </div>
+            <div className="flex items-center gap-2 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-2 text-xs font-bold text-[var(--text-main)]">
+              <Calendar size={14} className="text-purple-500" />
+              <span className="text-[var(--text-gray)] font-medium">
+                Опубліковано:
+              </span>{" "}
+              {new Date(post.createdAt).toLocaleDateString()}
+            </div>
+          </div>
+        </header>
 
-            <div
-              className="flex flex-wrap gap-3 mt-12 pt-8 border-t border-[var(--border-color)]"
-              data-aos="fade-up"
-              data-aos-delay="100"
+        <article
+          className="bento-card p-6 md:p-10 rounded-3xl animate-reveal"
+          data-aos="fade-up"
+          data-aos-delay="50"
+        >
+          <div className="post-content-container" lang="uk">
+            {parse(getHyphenatedHtml(post.content || ""))}
+          </div>
+        </article>
+
+        <footer
+          className="bento-card p-4 md:p-6 rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-4 animate-reveal"
+          data-aos="fade-up"
+          data-aos-delay="100"
+        >
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-center sm:justify-start">
+            {[
+              { e: "🔥", l: "fire" },
+              { e: "❤️", l: "heart" },
+              { e: "👏", l: "clap" },
+              { e: "💡", l: "idea" },
+            ].map((item) => (
+              <button
+                key={item.l}
+                onClick={() => handleReaction(item.l)}
+                className="flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl hover:border-[#6d28d9] transition-all active:scale-95 group"
+              >
+                <span className="text-base group-hover:scale-110 transition-transform">
+                  {item.e}
+                </span>
+                <span className="text-xs font-black text-[var(--text-dark)]">
+                  {Array.isArray(post.reactions?.[item.l])
+                    ? post.reactions[item.l].length
+                    : post.reactions?.[item.l] || 0}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-end">
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.href);
+                toast.success("Посилання скопійовано");
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-xs font-bold text-[var(--text-gray)] hover:text-[#6d28d9] hover:border-[#6d28d9] transition-all"
             >
-              {[
-                { e: "🔥", l: "fire" },
-                { e: "❤️", l: "heart" },
-                { e: "👏", l: "clap" },
-                { e: "💡", l: "idea" },
-              ].map((item) => (
-                <button
-                  key={item.l}
-                  onClick={() => handleReaction(item.l)}
-                  className="reaction-btn group"
-                >
-                  <span className="text-xl group-active:scale-125 transition-transform">
-                    {item.e}
-                  </span>
-                  <span className="text-xs font-black text-[var(--text-dark)]">
-                    {Array.isArray(post.reactions?.[item.l])
-                      ? post.reactions[item.l].length
-                      : post.reactions?.[item.l] || 0}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
+              <Share2 size={14} /> Поділитись
+            </button>
 
-          <div className="mt-8 p-6 md:p-8 bg-[var(--bg-main)]/30 border-t border-[var(--border-color)] flex flex-wrap justify-between items-center gap-4">
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(window.location.href);
-                  toast.success("Скопійовано");
-                }}
-                className="flex items-center gap-2 px-6 py-3 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl text-xs font-bold text-[var(--text-gray)] hover:text-[#6d28d9] hover:border-[#6d28d9] transition-all active:scale-[0.98]"
-              >
-                <Share2 size={16} /> Поділитися
-              </button>
-              <button
-                onClick={handleBookmark}
-                className={`p-3 border rounded-2xl transition-all active:scale-[0.98] ${
-                  isBookmarked
-                    ? "bg-[#6d28d9] border-[#6d28d9] text-white shadow-md shadow-purple-500/10"
-                    : "bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-gray)] hover:border-[#6d28d9] hover:text-[#6d28d9]"
-                }`}
-              >
-                <Bookmark
-                  size={18}
-                  fill={isBookmarked ? "currentColor" : "none"}
-                />
-              </button>
-            </div>
+            <button
+              onClick={handleBookmark}
+              className={`p-2.5 border rounded-xl transition-all ${
+                isBookmarked
+                  ? "bg-[#6d28d9] border-[#6d28d9] text-white"
+                  : "bg-[var(--bg-main)] border-[var(--border-color)] text-[var(--text-gray)] hover:border-[#6d28d9] hover:text-[#6d28d9]"
+              }`}
+            >
+              <Bookmark
+                size={14}
+                fill={isBookmarked ? "currentColor" : "none"}
+              />
+            </button>
 
             <button
               onClick={() => setShowComments(true)}
-              className="flex items-center gap-3 bg-[#6d28d9] text-white px-10 py-4 rounded-2xl font-black text-sm hover:bg-[#5b21b6] transition-all shadow-lg shadow-purple-500/20 active:scale-[0.98]"
+              className="flex items-center gap-2 bg-[#6d28d9] hover:bg-[#5b21b6] text-white px-5 py-2.5 rounded-xl font-black text-xs transition-all shadow-md shadow-purple-500/10"
             >
-              <MessageSquare size={18} /> Обговорити ({comments.length})
+              <MessageSquare size={14} /> Обговорення ({comments.length})
             </button>
           </div>
-        </article>
+        </footer>
       </main>
 
-      {/* Шторка коментарів */}
       <div
-        className={`fixed inset-0 bg-black/20 backdrop-blur-xs z-[999] transition-opacity duration-300 ${showComments ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+        className={`fixed inset-0 bg-black/40 backdrop-blur-xs z-[999] transition-opacity duration-300 ${showComments ? "opacity-100" : "opacity-0 pointer-events-none"}`}
         onClick={() => setShowComments(false)}
       />
+
       <aside
-        className={`fixed top-0 right-0 h-screen w-full max-w-[400px] bg-[var(--bg-card)] z-[1000] border-l border-[var(--border-color)] flex flex-col sidebar-anim shadow-2xl`}
+        className={`sidebar-drawer bg-[var(--bg-card)] border-l border-[var(--border-color)] shadow-2xl ${
+          showComments ? "translate-x-0" : "translate-x-full"
+        }`}
       >
-        <div className="p-6 border-b border-[var(--border-color)] flex justify-between items-center">
-          <h3 className="text-lg font-black text-[var(--text-dark)] uppercase tracking-tight">
-            Коментарі
+        <div className="p-5 border-b border-[var(--border-color)] flex justify-between items-center">
+          <h3 className="text-sm font-black text-[var(--text-dark)] uppercase tracking-wider">
+            Коментарі ({comments.length})
           </h3>
           <button
             onClick={() => setShowComments(false)}
-            className="p-2 hover:bg-[var(--bg-main)] rounded-xl transition-colors text-[var(--text-gray)] hover:text-[var(--text-dark)]"
+            className="p-1.5 hover:bg-[var(--bg-main)] rounded-lg transition-colors text-[var(--text-gray)] hover:text-[var(--text-dark)]"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
-        <div className="flex-grow overflow-y-auto p-6 space-y-6 custom-scrollbar">
+
+        <div className="flex-grow overflow-y-auto p-5 space-y-4 custom-scrollbar">
           {comments.map((c) => (
-            <div key={c._id} className="flex gap-3 transition-all duration-300">
-              <div className="w-8 h-8 rounded-xl bg-purple-500/10 flex items-center justify-center text-[#6d28d9] text-[10px] font-black shrink-0">
+            <div key={c._id} className="flex gap-3 animate-reveal">
+              <div className="w-7 h-7 rounded-lg bg-purple-500/10 flex items-center justify-center text-[#6d28d9] text-[10px] font-black shrink-0">
                 {(c.user?.name || "U").charAt(0).toUpperCase()}
               </div>
-              <div className="flex flex-col max-w-[80%]">
-                <span className="text-[10px] font-black text-[var(--text-gray)] mb-1">
-                  {c.user?.name}
+              <div className="flex flex-col max-w-[85%]">
+                <span className="text-[10px] font-black text-[var(--text-gray)] mb-0.5">
+                  {c.user?.name || "Користувач"}
                 </span>
                 <div className="p-3 rounded-2xl text-xs font-medium bg-[var(--bg-main)] text-[var(--text-dark)] border border-[var(--border-color)] rounded-tl-none leading-relaxed">
                   {c.text}
@@ -422,22 +307,23 @@ const PostDetail = () => {
           ))}
           <div ref={chatEndRef} />
         </div>
+
         <form
           onSubmit={handleSendComment}
-          className="p-6 border-t border-[var(--border-color)] bg-[var(--bg-main)]/50"
+          className="p-4 border-t border-[var(--border-color)] bg-[var(--bg-main)]/30"
         >
           <div className="relative">
             <input
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Напишіть щось..."
-              className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl px-4 py-3.5 pr-12 text-xs font-medium focus:border-[#6d28d9] outline-none transition-all"
+              placeholder="Напишіть коментар..."
+              className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-3 pr-10 text-xs font-medium focus:border-[#6d28d9] outline-none transition-all"
             />
             <button
               type="submit"
-              className="absolute right-2 top-2 p-2 bg-[#6d28d9] text-white rounded-xl hover:bg-[#5b21b6] transition-colors flex items-center justify-center"
+              className="absolute right-1.5 top-1.5 p-1.5 bg-[#6d28d9] text-white rounded-lg hover:bg-[#5b21b6] transition-colors flex items-center justify-center"
             >
-              <Send size={16} />
+              <Send size={14} />
             </button>
           </div>
         </form>

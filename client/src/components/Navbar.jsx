@@ -9,7 +9,8 @@ import {
   Sun,
   Moon,
   User,
-  Archive,
+  ArrowRight,
+  Mail,
 } from "lucide-react";
 import { useDarkMode } from "../hooks/useDarkMode";
 import { useAuth } from "../hooks/useAuth";
@@ -61,27 +62,30 @@ const Navbar = () => {
     <nav
       className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 ${
         scrolled || isOpen
-          ? "bg-[var(--bg-main)] shadow-xl border-b border-[var(--border-color)] py-4"
-          : "bg-transparent py-8"
+          ? "bg-[var(--bg-main)]/80 backdrop-blur-md shadow-lg shadow-purple-500/[0.02] border-b border-[var(--border-color)] py-3.5"
+          : "bg-transparent py-6"
       }`}
     >
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between relative z-[110]">
+          {/* Логотип */}
           <Link
             to="/"
             onClick={closeMenu}
             className="flex items-center gap-3 group"
           >
-            <div className="w-9 h-9 border border-[var(--border-color)] flex items-center justify-center transition-all group-hover:border-[var(--purple-main)]">
+            <div className="w-9 h-9 border border-[var(--border-color)] rounded-lg bg-[var(--bg-card)]/50 flex items-center justify-center transition-all duration-300 group-hover:border-[#6d28d9] group-hover:shadow-md group-hover:shadow-purple-500/15">
               <GraduationCap
-                size={20}
-                className="text-[var(--text-dark)] group-hover:text-[var(--purple-main)]"
+                size={18}
+                className="text-[var(--text-dark)] group-hover:text-[#6d28d9] transition-colors"
               />
             </div>
             <div className="flex flex-col leading-none">
               <span className="text-sm font-black tracking-[0.2em] text-[var(--text-dark)] uppercase">
                 Science
-                <span className="text-[var(--purple-main)]">Platform</span>
+                <span className="text-[#6d28d9] dark:text-[#a78bfa]">
+                  Platform
+                </span>
               </span>
               <span className="text-[8px] font-bold text-[var(--text-gray)] uppercase tracking-widest mt-1">
                 Екосистема 2026
@@ -89,50 +93,63 @@ const Navbar = () => {
             </div>
           </Link>
 
-          <div className="hidden lg:flex items-center gap-10">
-            {navLinks.map((link, idx) => (
-              <Link
-                key={idx}
-                to={link.path}
-                className={`text-[10px] uppercase tracking-[0.25em] font-black transition-all relative py-1 ${
-                  location.pathname === link.path
-                    ? "text-[var(--purple-main)]"
-                    : "text-[var(--text-gray)] hover:text-[var(--text-dark)]"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
+          {/* Десктопна навігація */}
+          <div className="hidden lg:flex items-center gap-8">
+            {navLinks.map((link, idx) => {
+              const isActive = location.pathname === link.path;
+              return (
+                <Link
+                  key={idx}
+                  to={link.path}
+                  className={`text-[10px] uppercase tracking-[0.25em] font-black transition-all relative py-2 group/link ${
+                    isActive
+                      ? "text-[#6d28d9] dark:text-[#a78bfa]"
+                      : "text-[var(--text-gray)] hover:text-[var(--text-dark)]"
+                  }`}
+                >
+                  {link.label}
+                  <span
+                    className={`absolute bottom-0 left-0 h-[2px] bg-[#6d28d9] dark:bg-[#a78bfa] transition-all duration-300 ${
+                      isActive ? "w-full" : "w-0 group-hover/link:w-full"
+                    }`}
+                  />
+                </Link>
+              );
+            })}
           </div>
 
+          {/* Права частина з діями */}
           <div className="flex justify-center items-center gap-2">
             <button
               onClick={toggleTheme}
-              className="p-2 text-[var(--text-gray)] hover:text-[var(--purple-main)]"
+              className="p-2.5 rounded-xl border border-transparent text-[var(--text-gray)] hover:text-[#6d28d9] hover:bg-[var(--bg-card)] transition-all duration-300"
+              aria-label="Toggle theme"
             >
               {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
             </button>
 
+            {/* Авторизація */}
             {user ? (
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <Link
                   to="/profile"
                   onClick={closeMenu}
-                  className="w-8 h-8 rounded-full border border-[var(--border-color)] overflow-hidden bg-[var(--bg-card)] flex items-center justify-center"
+                  className="w-9 h-9 rounded-xl border border-[var(--border-color)] overflow-hidden bg-[var(--bg-card)] flex items-center justify-center transition-all hover:border-[#6d28d9]"
                 >
                   {user.image ? (
                     <img
                       src={user.image}
-                      alt="User"
+                      alt="User profile"
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <User size={14} />
+                    <User size={16} className="text-[var(--text-dark)]" />
                   )}
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="hidden lg:block text-[var(--text-gray)] hover:text-rose-500"
+                  className="hidden lg:flex p-2.5 rounded-xl text-[var(--text-gray)] hover:text-rose-500 hover:bg-rose-500/5 transition-all duration-300"
+                  title="Вийти з акаунту"
                 >
                   <LogOut size={16} />
                 </button>
@@ -141,7 +158,7 @@ const Navbar = () => {
               <Link
                 to="/login"
                 onClick={closeMenu}
-                className="hidden lg:block text-[10px] font-black uppercase tracking-widest text-[var(--text-dark)]"
+                className="hidden lg:block text-[10px] font-black uppercase tracking-widest text-[var(--text-dark)] bg-[var(--bg-card)] border border-[var(--border-color)] px-5 py-2.5 rounded-xl hover:border-[#6d28d9] transition-all duration-300"
               >
                 Увійти
               </Link>
@@ -149,75 +166,119 @@ const Navbar = () => {
 
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="lg:hidden p-2 text-[var(--text-dark)]"
+              className="lg:hidden p-2.5 rounded-xl text-[var(--text-dark)] transition-colors"
+              aria-label="Toggle menu"
             >
-              {isOpen ? <X size={26} /> : <Menu size={26} />}
+              {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
         </div>
       </div>
 
+      {/* Виправлене повноекранне мобільне меню */}
       <div
-        className={`fixed inset-0 bg-[var(--bg-main)] z-[105] transition-all duration-500 ease-in-out lg:hidden ${
+        className={`fixed inset-x-0 top-0 bottom-0 h-screen bg-[var(--bg-main)] z-[9999] transition-all duration-500 ease-in-out lg:hidden flex flex-col justify-between ${
           isOpen
             ? "translate-y-0 opacity-100 visible"
             : "-translate-y-full opacity-0 invisible"
         }`}
       >
-        <div className="h-full flex flex-col-reverse pt-32 justify-end pb-10 px-8 overflow-y-auto">
-          <div className="flex flex-col gap-8 items-center">
-            {navLinks.map((link, idx) => (
-              <Link
-                key={idx}
-                to={link.path}
-                onClick={closeMenu}
-                className={`text-2xl font-black uppercase tracking-tighter flex justify-between items-center ${
-                  location.pathname === link.path
-                    ? "text-[var(--purple-main)]"
-                    : "text-[var(--text-dark)]"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
+        {/* Контент лінків із внутрішнім скролом */}
+        <div className="flex-1 overflow-y-auto pt-28 px-8 pb-6 space-y-8">
+          <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--text-gray)] border-b border-[var(--border-color)] pb-2">
+            Навігація по екосистемі
+          </p>
+          <div className="flex flex-col gap-6">
+            {navLinks.map((link, idx) => {
+              const isActive = location.pathname === link.path;
+              return (
+                <Link
+                  key={idx}
+                  to={link.path}
+                  onClick={closeMenu}
+                  className={`text-3xl font-black uppercase tracking-tighter flex justify-between items-center group py-1 ${
+                    isActive
+                      ? "text-[#6d28d9] dark:text-[#a78bfa]"
+                      : "text-[var(--text-dark)]"
+                  }`}
+                >
+                  <span>{link.label}</span>
+                  <ArrowRight
+                    size={20}
+                    className={`opacity-40 group-hover:opacity-100 group-hover:translate-x-2 transition-all duration-300 ${isActive ? "text-[#6d28d9] opacity-100" : ""}`}
+                  />
+                </Link>
+              );
+            })}
           </div>
+        </div>
 
-          <div className="mb-10 space-y-4">
-            {user ? (
-              <div className="p-3 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl">
-                <p className="text-[10px] font-black text-[var(--text-gray)] text-center uppercase tracking-widest mb-1">
-                  Вітаємо,
-                </p>
-                <p className="text-xl font-bold text-[var(--text-dark)] text-center mb-4">
-                  {user.name}
-                </p>
-                <div className="flex justify-center gap-4">
-                  <button
-                    onClick={handleLogout}
-                    className="text-[10px] font-black uppercase tracking-widest text-rose-500"
-                  >
-                    Вийти
-                  </button>
+        {/* Нижня частина меню з профілем та діями */}
+        <div className="p-8 border-t border-[var(--border-color)] bg-[var(--bg-main)] shadow-[0_-10px_30px_rgba(0,0,0,0.05)] relative z-20">
+          {user ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl border border-[var(--border-color)] overflow-hidden bg-[var(--bg-card)] flex items-center justify-center shrink-0">
+                  {user.image ? (
+                    <img
+                      src={user.image}
+                      alt="Avatar"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <User size={20} className="text-[var(--text-dark)]" />
+                  )}
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-[var(--text-gray)]">
+                    Авторизовано як
+                  </span>
+                  <span className="text-base font-bold text-[var(--text-dark)] truncate">
+                    {user.name}
+                  </span>
                 </div>
               </div>
-            ) : (
-              <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-2 gap-3 pt-2">
                 <Link
-                  to="/register"
+                  to="/profile"
                   onClick={closeMenu}
-                  className="w-full py-5 bg-[var(--purple-main)] text-white text-center text-[10px] font-black uppercase tracking-widest rounded-2xl"
+                  className="py-3.5 bg-[var(--bg-card)] border border-[var(--border-color)] text-center text-[10px] font-black uppercase tracking-widest rounded-xl text-[var(--text-dark)] active:scale-98 transition-transform"
                 >
-                  Реєстрація
+                  Кабінет
                 </Link>
-                <Link
-                  to="/login"
-                  onClick={closeMenu}
-                  className="w-full py-5 border border-[var(--border-color)] text-[var(--text-dark)] text-center text-[10px] font-black uppercase tracking-widest rounded-2xl"
+                <button
+                  onClick={handleLogout}
+                  className="py-3.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 text-center text-[10px] font-black uppercase tracking-widest rounded-xl transition-colors active:scale-98 transition-transform"
                 >
-                  Увійти
-                </Link>
+                  Вийти
+                </button>
               </div>
-            )}
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Link
+                to="/login"
+                onClick={closeMenu}
+                className="flex-1 py-4 border border-[var(--border-color)] text-[var(--text-dark)] text-center text-[10px] font-black uppercase tracking-widest rounded-xl bg-[var(--bg-card)]"
+              >
+                Увійти
+              </Link>
+              <Link
+                to="/register"
+                onClick={closeMenu}
+                className="flex-1 py-4 bg-[#6d28d9] text-white text-center text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-purple-500/10"
+              >
+                Реєстрація
+              </Link>
+            </div>
+          )}
+
+          {/* Системний футер меню */}
+          <div className="mt-6 pt-4 border-t border-[var(--border-color)]/60 flex justify-between items-center text-[9px] text-[var(--text-gray)] font-medium">
+            <span className="flex items-center gap-1.5">
+              <Mail size={12} /> support@scienceplatform.edu
+            </span>
+            <span>v1.4.0</span>
           </div>
         </div>
       </div>
