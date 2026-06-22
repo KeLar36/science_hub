@@ -67,7 +67,6 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Секція Навігації (2 колонки) */}
           <div className="lg:col-span-2 space-y-6 flex flex-col items-center lg:items-start">
             <h4 className="text-[10px] font-black uppercase tracking-[0.25em] text-[var(--text-dark)] flex items-center gap-2">
               <span className="w-1.5 h-1.5 bg-[#6d28d9] rounded-xs rotate-45"></span>
@@ -96,7 +95,6 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* НОВА Секція Ресурсів / Інструментів (2 колонки) */}
           <div className="lg:col-span-2 space-y-6 flex flex-col items-center lg:items-start">
             <h4 className="text-[10px] font-black uppercase tracking-[0.25em] text-[var(--text-dark)] flex items-center gap-2">
               <span className="w-1.5 h-1.5 bg-[#6d28d9] rounded-xs rotate-45"></span>

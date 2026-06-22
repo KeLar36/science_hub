@@ -175,15 +175,13 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Виправлене повноекранне мобільне меню */}
       <div
-        className={`fixed inset-x-0 top-0 bottom-0 h-screen bg-[var(--bg-main)] z-[9999] transition-all duration-500 ease-in-out lg:hidden flex flex-col justify-between ${
+        className={`fixed inset-x-0 top-0 bottom-0 h-[100dvh] bg-[var(--bg-main)] z-[9999] transition-all duration-500 ease-in-out lg:hidden flex flex-col justify-between ${
           isOpen
             ? "translate-y-0 opacity-100 visible"
             : "-translate-y-full opacity-0 invisible"
         }`}
       >
-        {/* Контент лінків із внутрішнім скролом */}
         <div className="flex-1 overflow-y-auto pt-28 px-8 pb-6 space-y-8">
           <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--text-gray)] border-b border-[var(--border-color)] pb-2">
             Навігація по екосистемі
@@ -213,8 +211,7 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Нижня частина меню з профілем та діями */}
-        <div className="p-8 border-t border-[var(--border-color)] bg-[var(--bg-main)] shadow-[0_-10px_30px_rgba(0,0,0,0.05)] relative z-20">
+        <div className="p-8 pb-10 border-t border-[var(--border-color)] bg-[var(--bg-main)] shadow-[0_-10px_30px_rgba(0,0,0,0.05)] relative z-20 layout-safe-bottom">
           {user ? (
             <div className="space-y-4">
               <div className="flex items-center gap-4">
@@ -241,7 +238,6 @@ const Navbar = () => {
               <div className="grid grid-cols-2 gap-3 pt-2">
                 <Link
                   to="/profile"
-                  onClick={closeMenu}
                   className="py-3.5 bg-[var(--bg-card)] border border-[var(--border-color)] text-center text-[10px] font-black uppercase tracking-widest rounded-xl text-[var(--text-dark)] active:scale-98 transition-transform"
                 >
                   Кабінет
@@ -273,7 +269,6 @@ const Navbar = () => {
             </div>
           )}
 
-          {/* Системний футер меню */}
           <div className="mt-6 pt-4 border-t border-[var(--border-color)]/60 flex justify-between items-center text-[9px] text-[var(--text-gray)] font-medium">
             <span className="flex items-center gap-1.5">
               <Mail size={12} /> support@scienceplatform.edu
