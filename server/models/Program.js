@@ -6,6 +6,11 @@ const ProgramSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
+  shortDescription: {
+    type: String,
+    trim: true,
+    maxlength: 300,
+  },
   description: {
     type: String,
     required: true,
@@ -14,7 +19,6 @@ const ProgramSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
-
   type: {
     type: String,
     required: true,
@@ -27,7 +31,6 @@ const ProgramSchema = new mongoose.Schema({
       "Курс",
     ],
   },
-
   domain: {
     type: String,
     required: true,
@@ -46,10 +49,24 @@ const ProgramSchema = new mongoose.Schema({
   amount: {
     type: String,
   },
+  organizer: {
+    type: String,
+    trim: true,
+  },
+  externalLink: {
+    type: String,
+    trim: true,
+  },
 
+  // Системні поля
   active: {
     type: Boolean,
     default: true,
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "UserTemp",
+    required: true,
   },
   createdAt: {
     type: Date,

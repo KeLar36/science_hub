@@ -20,29 +20,12 @@ import Footer from "../components/Footer";
 import AOS from "aos";
 import "aos/dist/aos.css";
 
-const DOMAINS = [
-  "Всі галузі",
-  "Штучний інтелект & IT",
-  "Медицина та фармація",
-  "Економіка та фінанси",
-  "Право та юриспруденція",
-  "Природничі науки",
-  "Гуманітарні науки",
-  "Технічні науки & Інженерія",
-];
+import { SCIENTIFIC_DOMAINS, PROGRAM_TYPES } from "../constants/domains";
 
-const TYPES = [
-  "Всі типи",
-  "Науковий журнал",
-  "Стаття",
-  "Грант",
-  "Конференція",
-  "Датасет",
-  "Курс",
-];
-
+const parser = new DOMParser();
 const stripHtml = (html) => {
-  const doc = new DOMParser().parseFromString(html, "text/html");
+  if (!html) return "";
+  const doc = parser.parseFromString(html, "text/html");
   return doc.body.textContent || "";
 };
 
@@ -53,6 +36,9 @@ const HomePage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDomain, setSelectedDomain] = useState("Всі галузі");
   const [selectedType, setSelectedType] = useState("Всі типи");
+
+  const domainsList = useMemo(() => ["Всі галузі", ...SCIENTIFIC_DOMAINS], []);
+  const typesList = useMemo(() => ["Всі типи", ...PROGRAM_TYPES], []);
 
   useEffect(() => {
     AOS.init({ duration: 1000, once: true });
@@ -194,7 +180,11 @@ const HomePage = () => {
               },
               { icon: <Globe2 size={16} />, label: "Країн", val: "24" },
               { icon: <Users size={16} />, label: "Науковців", val: "3k+" },
-              { icon: <Zap size={16} />, label: "Галузей", val: "8" },
+              {
+                icon: <Zap size={16} />,
+                label: "Галузей",
+                val: SCIENTIFIC_DOMAINS.length,
+              },
             ].map((s, i) => (
               <div
                 key={i}
@@ -234,7 +224,7 @@ const HomePage = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-20">
-        {/* Блок фільтрів (Уніфікований стиль) */}
+        {/* Блок фільтрів */}
         <div className="mb-20 space-y-12" data-aos="fade-up">
           {/* Галузі */}
           <div className="flex flex-col gap-6">
@@ -245,7 +235,7 @@ const HomePage = () => {
               </span>
             </div>
             <div className="flex items-center gap-x-8 overflow-x-auto no-scrollbar pb-4 border-b border-[var(--border-color)]">
-              {DOMAINS.map((d) => (
+              {domainsList.map((d) => (
                 <button
                   key={d}
                   onClick={() => setSelectedDomain(d)}
@@ -266,7 +256,7 @@ const HomePage = () => {
               </span>
             </div>
             <div className="flex items-center gap-x-8 overflow-x-auto no-scrollbar pb-4 border-b border-[var(--border-color)]">
-              {TYPES.map((t) => (
+              {typesList.map((t) => (
                 <button
                   key={t}
                   onClick={() => setSelectedType(t)}
@@ -308,13 +298,19 @@ const HomePage = () => {
 
                   <div className="flex justify-between items-start mb-8 mt-5 relative z-10">
                     <div className="flex flex-col gap-3">
-                      <div className="flex gap-2 items-center">
+                      <div className="flex flex-wrap gap-2 items-center">
                         <span className="label-mono !text-purple-600 font-bold bg-purple-600/5 px-2 py-1 rounded">
-                          {prog.type || "Публікація"}
+                          {prog.type || "Програма"}
                         </span>
-                        {prog.impactFactor > 0 && (
+                        {prog.type === "Науковий журнал" &&
+                          prog.impactFactor > 0 && (
+                            <span className="text-[9px] font-black bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-2 py-1 rounded uppercase tracking-tighter">
+                              IF: {prog.impactFactor}
+                            </span>
+                          )}
+                        {prog.type === "Грант" && prog.amount && (
                           <span className="text-[9px] font-black bg-amber-500/10 text-amber-600 border border-amber-500/20 px-2 py-1 rounded uppercase tracking-tighter">
-                            IF: {prog.impactFactor}
+                            💰 {prog.amount}
                           </span>
                         )}
                       </div>
@@ -356,11 +352,11 @@ const HomePage = () => {
                             : "TBA"}
                         </div>
                       </div>
-                    </div>
+                    </div>{" "}
                     {isUrgent && (
-                      <div className="flex items-center gap-1.5 px-3 py-1 bg-[var(--purple-main)]/15 rounded-full">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--purple-main)] animate-ping" />
-                        <span className="text-[9px] font-black uppercase text-[var(--purple-main)]">
+                      <div className="flex items-center gap-1.5 px-3 py-1 bg-purple-600/15 rounded-full">
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-600 animate-ping" />
+                        <span className="text-[9px] font-black uppercase text-purple-600">
                           Термін спливає
                         </span>
                       </div>
@@ -414,11 +410,9 @@ const HomePage = () => {
               <input
                 type="email"
                 placeholder="ЕЛЕКТРОННА_ПОШТА"
-                /* Оновлені класи для інпуту: колір тексту та плейсхолдера тепер адаптивні */
                 className="flex-grow bg-transparent border-b-2 border-[var(--border-color)] px-4 py-5 text-sm font-black outline-none focus:border-purple-600 transition-all text-[var(--text-dark)] placeholder:text-[var(--text-gray)]/50"
               />
               <button
-                /* Оновлені класи для кнопки: */
                 className="bg-purple-600 text-white px-10 py-5 text-[11px] font-black uppercase tracking-[0.3em] 
                    hover:bg-purple-700 dark:hover:bg-purple-500 
                    hover:shadow-[0_10px_20px_rgba(147,51,234,0.3)]

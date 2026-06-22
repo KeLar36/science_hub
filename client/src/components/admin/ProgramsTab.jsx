@@ -10,25 +10,39 @@ import {
   BarChart3,
 } from "lucide-react";
 
-// Імпортуємо твої глобальні константи
 import { SCIENTIFIC_DOMAINS, PROGRAM_TYPES } from "../../constants/domains";
 
 const ProgramsTab = ({
-  programs,
+  programs = [],
   newProgram,
   setNewProgram,
   onCreateProgram,
   loadingAction,
 }) => {
+  const handleTypeChange = (e) => {
+    const selectedType = e.target.value;
+
+    const clearedFields = {
+      type: selectedType,
+      amount: selectedType === "Грант" ? newProgram.amount : "",
+      issn: selectedType === "Науковий журнал" ? newProgram.issn : "",
+      impactFactor:
+        selectedType === "Науковий журнал" ? newProgram.impactFactor : 0,
+    };
+
+    setNewProgram({
+      ...newProgram,
+      ...clearedFields,
+    });
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-200">
-      {/* Форма створення */}
       <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-3xl shadow-xs h-fit">
         <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--text-gray)] mb-6">
           Створити програму конкурсу
         </h3>
         <form onSubmit={onCreateProgram} className="space-y-4">
-          {/* Назва */}
           <div>
             <label className="text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider block mb-1.5 ml-1">
               Назва програми
@@ -38,25 +52,26 @@ const ProgramsTab = ({
               required
               placeholder="Наприклад: Міжнародний грант НАНУ 2026"
               className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-dark)] rounded-xl px-4 py-3 text-sm focus:border-purple-500 outline-none transition-colors"
-              value={newProgram.title}
+              value={newProgram.title || ""}
               onChange={(e) =>
                 setNewProgram({ ...newProgram, title: e.target.value })
               }
             />
           </div>
 
-          {/* Тип програми */}
           <div>
             <label className="text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider block mb-1.5 ml-1">
               Тип програми
             </label>
             <select
               className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-dark)] rounded-xl px-4 py-3 text-sm focus:border-purple-500 outline-none admin-select-custom cursor-pointer"
-              value={newProgram.type || PROGRAM_TYPES[0]}
-              onChange={(e) =>
-                setNewProgram({ ...newProgram, type: e.target.value })
-              }
+              value={newProgram.type || ""}
+              required
+              onChange={handleTypeChange}
             >
+              <option value="" disabled>
+                Оберіть тип...
+              </option>
               {PROGRAM_TYPES.map((t) => (
                 <option key={t} value={t}>
                   {t}
@@ -65,19 +80,17 @@ const ProgramsTab = ({
             </select>
           </div>
 
-          {/* Галузь / Домен */}
           <div>
             <label className="text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider block mb-1.5 ml-1">
               Галузь / Напрямок
             </label>
             <select
               className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-dark)] rounded-xl px-4 py-3 text-sm focus:border-purple-500 outline-none admin-select-custom cursor-pointer"
-              value={newProgram.domain || SCIENTIFIC_DOMAINS[0]}
+              value={newProgram.domain || "Всі галузі"}
               onChange={(e) =>
                 setNewProgram({ ...newProgram, domain: e.target.value })
               }
             >
-              {/* Додаємо дефолтний варіант "Всі галузі", якщо на бекенді він потрібен за замовчуванням */}
               <option value="Всі галузі">Всі галузі</option>
               {SCIENTIFIC_DOMAINS.map((d) => (
                 <option key={d} value={d}>
@@ -87,7 +100,6 @@ const ProgramsTab = ({
             </select>
           </div>
 
-          {/* ДИНАМІЧНЕ ПОЛЕ: Бюджет (Тільки для Грантів) */}
           {newProgram.type === "Грант" && (
             <div className="animate-in slide-in-from-top-2 duration-200">
               <label className="text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider block mb-1.5 ml-1">
@@ -96,6 +108,7 @@ const ProgramsTab = ({
               <div className="relative">
                 <input
                   type="text"
+                  required
                   placeholder="Наприклад: 50 000 USD або до 200 000 ₴"
                   className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-dark)] rounded-xl pl-10 pr-4 py-3 text-sm focus:border-purple-500 outline-none transition-colors"
                   value={newProgram.amount || ""}
@@ -111,7 +124,6 @@ const ProgramsTab = ({
             </div>
           )}
 
-          {/* ДИНАМІЧНІ ПОЛЯ: ISSN та Impact Factor (Тільки для Наукових журналів) */}
           {newProgram.type === "Науковий журнал" && (
             <div className="grid grid-cols-2 gap-3 animate-in slide-in-from-top-2 duration-200">
               <div>
@@ -142,15 +154,17 @@ const ProgramsTab = ({
                   <input
                     type="number"
                     step="0.01"
+                    min="0"
                     placeholder="2.5"
                     className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-dark)] rounded-xl pl-10 pr-4 py-3 text-sm focus:border-purple-500 outline-none transition-colors"
-                    value={newProgram.impactFactor || ""}
-                    onChange={(e) =>
+                    value={newProgram.impactFactor ?? ""}
+                    onChange={(e) => {
+                      const val = e.target.value;
                       setNewProgram({
                         ...newProgram,
-                        impactFactor: parseFloat(e.target.value) || 0,
-                      })
-                    }
+                        impactFactor: val === "" ? "" : parseFloat(val) || 0,
+                      });
+                    }}
                   />
                   <BarChart3
                     size={15}
@@ -161,7 +175,6 @@ const ProgramsTab = ({
             </div>
           )}
 
-          {/* Дедлайн */}
           <div>
             <label className="text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider block mb-1.5 ml-1">
               Кінцевий дедлайн подачі
@@ -175,6 +188,7 @@ const ProgramsTab = ({
                 dateFormat="dd.MM.yyyy"
                 locale="uk"
                 minDate={new Date()}
+                required
                 className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-dark)] rounded-xl px-4 py-3 text-sm focus:border-purple-500 outline-none transition-colors"
               />
               <CalendarIcon
@@ -184,7 +198,6 @@ const ProgramsTab = ({
             </div>
           </div>
 
-          {/* Опис */}
           <div>
             <label className="text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider block mb-1.5 ml-1">
               Опис та критерії відбору
@@ -192,7 +205,7 @@ const ProgramsTab = ({
             <div className="admin-quill rounded-xl overflow-hidden border border-[var(--border-color)]">
               <ReactQuill
                 theme="snow"
-                value={newProgram.description}
+                value={newProgram.description || ""}
                 onChange={(v) =>
                   setNewProgram({ ...newProgram, description: v })
                 }
@@ -214,7 +227,6 @@ const ProgramsTab = ({
         </form>
       </div>
 
-      {/* Список активних програм */}
       <div className="lg:col-span-2 space-y-4">
         <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--text-gray)] mb-2">
           Активні конкурсні програми ({programs.length})
@@ -256,11 +268,16 @@ const ProgramsTab = ({
                 <div className="flex items-center gap-4 mt-1 text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider">
                   <div className="flex items-center gap-1.5 text-red-500 bg-red-500/5 px-2.5 py-1 rounded-lg">
                     <Clock size={13} />
-                    Дедлайн: {new Date(p.deadline).toLocaleDateString("uk-UA")}
+                    Дедлайн:{" "}
+                    {p.deadline
+                      ? new Date(p.deadline).toLocaleDateString("uk-UA")
+                      : "Не вказано"}
                   </div>
                   <div className="text-[var(--text-gray)] hidden sm:block">
                     Створено:{" "}
-                    {new Date(p.createdAt).toLocaleDateString("uk-UA")}
+                    {p.createdAt
+                      ? new Date(p.createdAt).toLocaleDateString("uk-UA")
+                      : "—"}
                   </div>
                 </div>
               </div>

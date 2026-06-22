@@ -15,12 +15,12 @@ import {
   Activity,
   DollarSign,
   Hash,
-  FileText,
+  Globe,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { AuthContext, useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 import "../index.css";
 
 const ProgramDetails = () => {
@@ -30,12 +30,13 @@ const ProgramDetails = () => {
   const [program, setProgram] = useState(null);
   const [loading, setLoading] = useState(true);
   const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-  const token = localStorage.getItem("token");
 
   useEffect(() => {
     const fetchProgramDetails = async () => {
       try {
-        const res = await axios.get(`${apiUrl}/api/programs/${id}`);
+        const res = await axios.get(`${apiUrl}/api/programs/${id}`, {
+          withCredentials: true,
+        });
         setProgram(res.data);
       } catch (err) {
         toast.error("Не вдалося завантажити деталі програми");
@@ -65,37 +66,48 @@ const ProgramDetails = () => {
   if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--bg-main)]">
-        <div className="w-12 h-12 border-2 border-purple-600/20 border-t-purple-600 rounded-full animate-spin"></div>
+        <div className="w-12 h-12 border-2 border-[var(--purple-main)]/20 border-t-[var(--purple-main)] rounded-full animate-spin"></div>
       </div>
     );
 
   if (!program)
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--bg-main)] p-4 text-center">
-        <h2 className="text-2xl font-black text-[var(--text-dark)] mb-4 uppercase italic">
+        <h2 className="text-2xl font-black text-[var(--text-dark)] mb-4 uppercase italic tracking-tighter">
           Програму не знайдено
         </h2>
         <button
           onClick={() => navigate("/")}
-          className="text-purple-600 font-black hover:underline uppercase tracking-widest text-sm"
+          className="text-[var(--purple-main)] font-black hover:underline uppercase tracking-widest text-sm"
         >
           Повернутися на головну
         </button>
       </div>
     );
 
+  const isGrant = program.type === "Грант";
+  const hasMetrics =
+    program.type === "Науковий журнал" || program.type === "Стаття";
+
+  const getButtonText = () => {
+    if (isGrant) return "Подати заявку на грант";
+    if (program.type === "Курс") return "Зареєструватися на курс";
+    if (program.type === "Конференція") return "Подати тези доповідей";
+    return "Надіслати матеріал";
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--bg-main)] font-['Plus_Jakarta_Sans',_sans-serif] transition-colors duration-300 selection:bg-purple-600 selection:text-white">
+    <div className="min-h-screen flex flex-col bg-[var(--bg-main)] font-['Plus_Jakarta_Sans',_sans-serif] transition-colors duration-300 selection:bg-[var(--purple-main)] selection:text-white">
       <Toaster position="top-right" />
       <Navbar />
 
       <style>{`
         .rich-content { color: var(--text-main); line-height: 1.8; font-size: 1.05rem; }
-        .rich-content h2, .rich-content h3 { color: var(--text-dark); font-weight: 800; margin: 2rem 0 1rem; font-size: 1.5rem; text-transform: uppercase; font-style: italic; }
+        .rich-content h2, .rich-content h3 { color: var(--text-dark); font-weight: 800; margin: 2rem 0 1rem; font-size: 1.4rem; text-transform: uppercase; font-style: italic; }
         .rich-content p { margin-bottom: 1.25rem; }
         .rich-content ul { margin: 1.5rem 0; padding-left: 1.5rem; }
         .rich-content li { margin-bottom: 0.75rem; position: relative; list-style: none; }
-        .rich-content li::before { content: "→"; position: absolute; left: -1.5rem; color: #7c3aed; font-weight: bold; }
+        .rich-content li::before { content: "→"; position: absolute; left: -1.5rem; color: var(--purple-main); font-weight: bold; }
         .rich-content strong { color: var(--text-dark); }
         
         .label-mono {
@@ -118,7 +130,7 @@ const ProgramDetails = () => {
       <main className="max-w-5xl mx-auto px-6 py-12 md:py-20 w-full flex-grow mt-24">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-3 mb-10 text-[var(--text-gray)] hover:text-purple-600 transition-all text-xs font-black uppercase tracking-widest group"
+          className="flex items-center gap-3 mb-10 text-[var(--text-gray)] hover:text-[var(--purple-main)] transition-all text-xs font-black uppercase tracking-widest group"
         >
           <ArrowLeft
             size={18}
@@ -129,18 +141,13 @@ const ProgramDetails = () => {
 
         <div className="bg-[var(--bg-card)] rounded-[40px] border border-[var(--border-color)] shadow-2xl overflow-hidden animate-reveal">
           <div className="p-8 md:p-16">
-            {/* Баджі типу програми */}
             <div className="flex flex-wrap items-center gap-3 mb-10">
-              <span className="bg-purple-600/10 text-purple-600 px-4 py-1.5 rounded-xl label-mono font-bold border border-purple-600/20">
+              <span className="bg-[var(--purple-main)]/10 text-[var(--purple-main)] px-4 py-1.5 rounded-xl label-mono font-bold border border-[var(--purple-main)]/20">
                 {program.domain}
               </span>
-              <span className="bg-amber-500/10 text-amber-600 px-4 py-1.5 rounded-xl label-mono font-bold border border-amber-500/20 flex items-center gap-2">
+              <span className="bg-amber-500/10 text-amber-500 dark:text-amber-400 px-4 py-1.5 rounded-xl label-mono font-bold border border-amber-500/20 flex items-center gap-2">
                 <Layers size={12} />
-                {program.type === "Грант"
-                  ? "Науковий Грант"
-                  : program.type === "Журнал"
-                    ? "Науковий Журнал"
-                    : program.type}
+                {program.type}
               </span>
               <span className="flex items-center gap-2 bg-emerald-500/10 text-emerald-500 px-4 py-1.5 rounded-xl label-mono font-bold border border-emerald-500/20">
                 <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
@@ -152,18 +159,34 @@ const ProgramDetails = () => {
               {program.title}
             </h1>
 
-            {/* Динамічна сітка характеристик */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-16">
-              {/* Дата - є завжди */}
-              <div className="flex items-center gap-4 p-6 bg-[var(--bg-main)]/50 rounded-2xl border border-[var(--border-color)] group hover:border-purple-600/30 transition-colors">
-                <div className="p-3 bg-purple-600/10 rounded-xl text-purple-600">
-                  <Calendar size={24} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-16">
+              {isGrant && !!program.amount && (
+                <div className="sm:col-span-2 flex flex-col justify-between p-8 bg-gradient-to-br from-[var(--purple-main)]/10 to-transparent rounded-3xl border border-[var(--purple-main)]/30 group transition-all duration-300 hover:border-[var(--purple-main)] shadow-sm">
+                  <div className="p-3 bg-[var(--purple-main)] rounded-2xl text-white w-fit mb-6 shadow-md shadow-[var(--purple-main)]/20">
+                    <DollarSign size={28} />
+                  </div>
+                  <div>
+                    <div className="label-mono text-[var(--purple-main)] font-black tracking-widest mb-1">
+                      Обсяг фінансування гранту
+                    </div>
+                    <div className="text-2xl md:text-3xl font-black text-[var(--text-dark)] uppercase italic tracking-tight">
+                      {program.amount}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div
+                className={`flex flex-col justify-between p-6 bg-[var(--bg-main)]/50 rounded-3xl border border-[var(--border-color)] group hover:border-[var(--purple-main)]/40 transition-all duration-300 ${!isGrant && !hasMetrics ? "md:col-span-3" : ""}`}
+              >
+                <div className="p-3 bg-[var(--purple-main)]/10 rounded-xl text-[var(--purple-main)] w-fit mb-6">
+                  <Calendar size={22} />
                 </div>
                 <div>
                   <div className="label-mono opacity-50 mb-1">
-                    Дедлайн подачі
+                    Кінцевий термін
                   </div>
-                  <div className="text-sm font-black text-[var(--text-dark)] uppercase">
+                  <div className="text-lg font-black text-[var(--text-dark)] uppercase">
                     {program.deadline
                       ? new Date(program.deadline).toLocaleDateString("uk-UA")
                       : "Не обмежено"}
@@ -171,62 +194,47 @@ const ProgramDetails = () => {
                 </div>
               </div>
 
-              {program.type === "Грант" && !!program.amount && (
-                <div className="flex items-center gap-4 p-6 bg-[var(--bg-main)]/50 rounded-2xl border border-[var(--border-color)] group hover:border-emerald-600/30 transition-colors">
-                  <div className="p-3 bg-emerald-600/10 rounded-xl text-emerald-600">
-                    <DollarSign size={24} />
+              {hasMetrics && !!program.issn && (
+                <div className="flex flex-col justify-between p-6 bg-[var(--bg-main)]/50 rounded-3xl border border-[var(--border-color)] group hover:border-blue-500/40 transition-all duration-300">
+                  <div className="p-3 bg-blue-500/10 rounded-xl text-blue-500 w-fit mb-6">
+                    <Hash size={22} />
                   </div>
                   <div>
                     <div className="label-mono opacity-50 mb-1">
-                      Фінансування
+                      ISSN Індекс
                     </div>
-                    <div className="text-sm font-black text-[var(--text-dark)] uppercase">
-                      {program.amount}
+                    <div className="text-lg font-black text-[var(--text-dark)] uppercase">
+                      {program.issn}
                     </div>
                   </div>
                 </div>
               )}
 
-              {(program.type === "Журнал" || program.type === "Стаття") &&
-                !!program.issn && (
-                  <div className="flex items-center gap-4 p-6 bg-[var(--bg-main)]/50 rounded-2xl border border-[var(--border-color)] group hover:border-blue-600/30 transition-colors">
-                    <div className="p-3 bg-blue-600/10 rounded-xl text-blue-600">
-                      <Hash size={24} />
-                    </div>
-                    <div>
-                      <div className="label-mono opacity-50 mb-1">
-                        ISSN Індекс
-                      </div>
-                      <div className="text-sm font-black text-[var(--text-dark)] uppercase">
-                        {program.issn}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-              {!!program.impactFactor && (
-                <div className="flex items-center gap-4 p-6 bg-[var(--bg-main)]/50 rounded-2xl border border-[var(--border-color)] group hover:border-amber-600/30 transition-colors">
-                  <div className="p-3 bg-amber-600/10 rounded-xl text-amber-600">
-                    <Activity size={24} />
+              {hasMetrics && !!program.impactFactor && (
+                <div className="flex flex-col justify-between p-6 bg-[var(--bg-main)]/50 rounded-3xl border border-[var(--border-color)] group hover:border-amber-500/40 transition-all duration-300">
+                  <div className="p-3 bg-amber-500/10 rounded-xl text-amber-500 w-fit mb-6">
+                    <Activity size={22} />
                   </div>
                   <div>
                     <div className="label-mono opacity-50 mb-1">
                       Impact Factor
                     </div>
-                    <div className="text-sm font-black text-[var(--text-dark)] uppercase">
+                    <div className="text-lg font-black text-[var(--text-dark)] uppercase">
                       {program.impactFactor}
                     </div>
                   </div>
                 </div>
               )}
 
-              <div className="flex items-center gap-4 p-6 bg-[var(--bg-main)]/50 rounded-2xl border border-[var(--border-color)] group hover:border-blue-600/30 transition-colors">
-                <div className="p-3 bg-blue-600/10 rounded-xl text-blue-600">
-                  <Target size={24} />
+              <div className="flex flex-col justify-between p-6 bg-[var(--bg-main)]/50 rounded-3xl border border-[var(--border-color)] group hover:border-[var(--purple-main)]/40 transition-all duration-300">
+                <div className="p-3 bg-[var(--purple-main)]/10 rounded-xl text-[var(--purple-main)] w-fit mb-6">
+                  <Target size={22} />
                 </div>
                 <div>
-                  <div className="label-mono opacity-50 mb-1">Доступність</div>
-                  <div className="text-sm font-black text-[var(--text-dark)] uppercase">
+                  <div className="label-mono opacity-50 mb-1">
+                    Доступність ресурсу
+                  </div>
+                  <div className="text-lg font-black text-[var(--text-dark)] uppercase tracking-tight">
                     Open Access
                   </div>
                 </div>
@@ -237,8 +245,8 @@ const ProgramDetails = () => {
 
             <div className="max-w-3xl">
               <div className="flex items-center gap-3 mb-8">
-                <BookOpen size={20} className="text-purple-600" />
-                <h3 className="label-mono font-black text-purple-600 tracking-[0.3em]">
+                <BookOpen size={20} className="text-[var(--purple-main)]" />
+                <h3 className="label-mono font-black text-[var(--purple-main)] tracking-[0.3em]">
                   Деталі та регламент
                 </h3>
               </div>
@@ -253,20 +261,17 @@ const ProgramDetails = () => {
                   { icon: Award, label: "Сертифікація" },
                   { icon: CheckCircle, label: "Верифікація" },
                   { icon: Info, label: "Підтримка 24/7" },
-                  { icon: Globe2, label: "Global Scope", customIcon: true },
+                  { icon: Globe, label: "Global Scope" },
                 ].map((item, idx) => (
                   <div
                     key={idx}
-                    className="flex flex-col items-center p-6 bg-[var(--bg-main)]/30 rounded-3xl border border-[var(--border-color)] hover:border-purple-600/20 transition-all"
+                    className="flex flex-col items-center p-6 bg-[var(--bg-main)]/30 rounded-3xl border border-[var(--border-color)] hover:border-[var(--purple-main)]/30 transition-all duration-300"
                   >
-                    {item.customIcon ? (
-                      <div className="text-purple-600 mb-3">
-                        <Globe2 size={20} />
-                      </div>
-                    ) : (
-                      <item.icon size={20} className="text-purple-600 mb-3" />
-                    )}
-                    <span className="label-mono !text-[9px] font-black text-center">
+                    <item.icon
+                      size={20}
+                      className="text-[var(--purple-main)] mb-3"
+                    />
+                    <span className="label-mono !text-[9px] font-black text-center text-[var(--text-dark)]">
                       {item.label}
                     </span>
                   </div>
@@ -275,17 +280,15 @@ const ProgramDetails = () => {
             </div>
           </div>
 
-          <div className="p-10 md:p-16 bg-purple-600/5 border-t border-[var(--border-color)] flex flex-col items-center">
+          <div className="p-10 md:p-16 bg-[var(--purple-main)]/5 border-t border-[var(--border-color)] flex flex-col items-center">
             <button
-              className="w-full md:w-auto bg-purple-600 text-white px-16 py-6 rounded-2xl font-black text-xl shadow-2xl shadow-purple-600/30 hover:bg-purple-700 dark:hover:bg-purple-500 transition-all active:scale-95 flex items-center justify-center gap-4 uppercase tracking-tighter italic"
+              className="w-full md:w-auto bg-[var(--purple-main)] text-white px-16 py-6 rounded-2xl font-black text-xl shadow-2xl shadow-[var(--purple-main)]/30 hover:bg-[var(--purple-main)]/90 transition-all active:scale-95 flex items-center justify-center gap-4 uppercase tracking-tighter italic"
               onClick={handleApply}
             >
               <Send size={24} />
-              {program.type === "Грант"
-                ? "Подати заявку на грант"
-                : "Надіслати матеріал"}
+              {getButtonText()}
             </button>
-            <p className="mt-6 label-mono opacity-50 italic">
+            <p className="mt-6 label-mono opacity-50 italic text-[var(--text-gray)]">
               * Системна обробка запиту триває до 72 годин
             </p>
           </div>
@@ -296,24 +299,5 @@ const ProgramDetails = () => {
     </div>
   );
 };
-
-const Globe2 = ({ size, className }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <circle cx="12" cy="12" r="10" />
-    <line x1="2" y1="12" x2="22" y2="12" />
-    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-  </svg>
-);
 
 export default ProgramDetails;

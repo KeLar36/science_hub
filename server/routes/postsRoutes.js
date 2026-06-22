@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Post = require("../models/Post");
-const User = require("../models/UserTemp");
+const User = require("../models/User");
 const { verifyToken, checkRole } = require("../middleware/auth");
 const upload = require("../middleware/upload");
 
