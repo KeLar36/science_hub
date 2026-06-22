@@ -1,8 +1,9 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import parse from "html-react-parser"; // Імпортуємо встановлений парсер
+import parse from "html-react-parser";
 import axios from "../api/axios";
+import { AuthContext, useAuth } from "../context/AuthContext";
 import {
   Calendar,
   Clock,
@@ -34,7 +35,7 @@ const PostDetail = () => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const { user, isAuthenticated } = useAuth();
   const chatEndRef = useRef(null);
   const isAuth = !!localStorage.getItem("token");
   const currentUser = JSON.parse(localStorage.getItem("user"));
@@ -90,10 +91,14 @@ const PostDetail = () => {
   };
 
   const handleBookmark = async () => {
-    if (!isAuth) return toast.error("Будь ласка, увійдіть");
+    if (!isAuthenticated) return toast.error("Будь ласка, увійдіть");
     setSaving(true);
     try {
-      await axios.post(`${apiUrl}/api/users/bookmarks/toggle/${id}`);
+      await axios.post(
+        `${apiUrl}/api/users/bookmarks/toggle/${id}`,
+        {},
+        { withCredentials: true },
+      );
       setIsBookmarked(!isBookmarked);
       toast.success(isBookmarked ? "Видалено" : "Збережено");
     } catch (err) {

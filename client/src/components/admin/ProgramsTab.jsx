@@ -1,8 +1,17 @@
 import React from "react";
 import DatePicker from "react-datepicker";
 import ReactQuill from "react-quill-new";
-import { PlusCircle, Calendar as CalendarIcon, Clock } from "lucide-react";
-import { PROGRAM_CATEGORIES } from "../../constants/adminConstants";
+import {
+  PlusCircle,
+  Calendar as CalendarIcon,
+  Clock,
+  DollarSign,
+  BookOpen,
+  BarChart3,
+} from "lucide-react";
+
+// Імпортуємо твої глобальні константи
+import { SCIENTIFIC_DOMAINS, PROGRAM_TYPES } from "../../constants/domains";
 
 const ProgramsTab = ({
   programs,
@@ -13,11 +22,13 @@ const ProgramsTab = ({
 }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-200">
+      {/* Форма створення */}
       <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-3xl shadow-xs h-fit">
         <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--text-gray)] mb-6">
-          Створити програму
+          Створити програму конкурсу
         </h3>
         <form onSubmit={onCreateProgram} className="space-y-4">
+          {/* Назва */}
           <div>
             <label className="text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider block mb-1.5 ml-1">
               Назва програми
@@ -25,7 +36,7 @@ const ProgramsTab = ({
             <input
               type="text"
               required
-              placeholder="Наприклад: Грант НАНУ 2026"
+              placeholder="Наприклад: Міжнародний грант НАНУ 2026"
               className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-dark)] rounded-xl px-4 py-3 text-sm focus:border-purple-500 outline-none transition-colors"
               value={newProgram.title}
               onChange={(e) =>
@@ -34,25 +45,123 @@ const ProgramsTab = ({
             />
           </div>
 
+          {/* Тип програми */}
           <div>
             <label className="text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider block mb-1.5 ml-1">
-              Напрямок / Категорія
+              Тип програми
             </label>
             <select
               className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-dark)] rounded-xl px-4 py-3 text-sm focus:border-purple-500 outline-none admin-select-custom cursor-pointer"
-              value={newProgram.category}
+              value={newProgram.type || PROGRAM_TYPES[0]}
               onChange={(e) =>
-                setNewProgram({ ...newProgram, category: e.target.value })
+                setNewProgram({ ...newProgram, type: e.target.value })
               }
             >
-              {PROGRAM_CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
+              {PROGRAM_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
                 </option>
               ))}
             </select>
           </div>
 
+          {/* Галузь / Домен */}
+          <div>
+            <label className="text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider block mb-1.5 ml-1">
+              Галузь / Напрямок
+            </label>
+            <select
+              className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-dark)] rounded-xl px-4 py-3 text-sm focus:border-purple-500 outline-none admin-select-custom cursor-pointer"
+              value={newProgram.domain || SCIENTIFIC_DOMAINS[0]}
+              onChange={(e) =>
+                setNewProgram({ ...newProgram, domain: e.target.value })
+              }
+            >
+              {/* Додаємо дефолтний варіант "Всі галузі", якщо на бекенді він потрібен за замовчуванням */}
+              <option value="Всі галузі">Всі галузі</option>
+              {SCIENTIFIC_DOMAINS.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* ДИНАМІЧНЕ ПОЛЕ: Бюджет (Тільки для Грантів) */}
+          {newProgram.type === "Грант" && (
+            <div className="animate-in slide-in-from-top-2 duration-200">
+              <label className="text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider block mb-1.5 ml-1">
+                Бюджет / Сума гранту
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Наприклад: 50 000 USD або до 200 000 ₴"
+                  className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-dark)] rounded-xl pl-10 pr-4 py-3 text-sm focus:border-purple-500 outline-none transition-colors"
+                  value={newProgram.amount || ""}
+                  onChange={(e) =>
+                    setNewProgram({ ...newProgram, amount: e.target.value })
+                  }
+                />
+                <DollarSign
+                  size={16}
+                  className="absolute left-3.5 top-3.5 text-purple-500"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ДИНАМІЧНІ ПОЛЯ: ISSN та Impact Factor (Тільки для Наукових журналів) */}
+          {newProgram.type === "Науковий журнал" && (
+            <div className="grid grid-cols-2 gap-3 animate-in slide-in-from-top-2 duration-200">
+              <div>
+                <label className="text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider block mb-1.5 ml-1">
+                  ISSN
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="1234-567X"
+                    className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-dark)] rounded-xl pl-10 pr-4 py-3 text-sm focus:border-purple-500 outline-none transition-colors"
+                    value={newProgram.issn || ""}
+                    onChange={(e) =>
+                      setNewProgram({ ...newProgram, issn: e.target.value })
+                    }
+                  />
+                  <BookOpen
+                    size={15}
+                    className="absolute left-3.5 top-3.5 text-purple-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider block mb-1.5 ml-1">
+                  Impact Factor
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="2.5"
+                    className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-dark)] rounded-xl pl-10 pr-4 py-3 text-sm focus:border-purple-500 outline-none transition-colors"
+                    value={newProgram.impactFactor || ""}
+                    onChange={(e) =>
+                      setNewProgram({
+                        ...newProgram,
+                        impactFactor: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                  />
+                  <BarChart3
+                    size={15}
+                    className="absolute left-3.5 top-3.5 text-purple-500"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Дедлайн */}
           <div>
             <label className="text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider block mb-1.5 ml-1">
               Кінцевий дедлайн подачі
@@ -75,6 +184,7 @@ const ProgramsTab = ({
             </div>
           </div>
 
+          {/* Опис */}
           <div>
             <label className="text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider block mb-1.5 ml-1">
               Опис та критерії відбору
@@ -86,7 +196,7 @@ const ProgramsTab = ({
                 onChange={(v) =>
                   setNewProgram({ ...newProgram, description: v })
                 }
-                placeholder="Детальні умови конкурсу..."
+                placeholder="Детальні умови конкурсу, фінансування чи вимоги до публікації..."
               />
             </div>
           </div>
@@ -104,6 +214,7 @@ const ProgramsTab = ({
         </form>
       </div>
 
+      {/* Список активних програм */}
       <div className="lg:col-span-2 space-y-4">
         <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--text-gray)] mb-2">
           Активні конкурсні програми ({programs.length})
@@ -118,19 +229,36 @@ const ProgramsTab = ({
               key={p._id}
               className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-3xl shadow-xs hover:border-purple-500/30 transition-all flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
             >
-              <div>
-                <span className="px-2 py-0.5 bg-purple-500/10 text-purple-500 border border-purple-500/10 rounded-md text-[10px] font-bold tracking-wider uppercase">
-                  {p.category}
-                </span>
-                <h4 className="text-base font-black text-[var(--text-dark)] mt-2">
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-2 py-0.5 bg-purple-500/10 text-purple-500 border border-purple-500/10 rounded-md text-[10px] font-bold tracking-wider uppercase">
+                    {p.type || "Програма"}
+                  </span>
+                  <span className="px-2 py-0.5 bg-blue-500/10 text-blue-500 border border-blue-500/10 rounded-md text-[10px] font-bold tracking-wider uppercase">
+                    {p.domain || "Всі галузі"}
+                  </span>
+                  {p.type === "Грант" && p.amount && (
+                    <span className="px-2 py-0.5 bg-amber-500/10 text-amber-500 border border-amber-500/10 rounded-md text-[10px] font-bold tracking-wider uppercase">
+                      💰 {p.amount}
+                    </span>
+                  )}
+                  {p.type === "Науковий журнал" && p.impactFactor > 0 && (
+                    <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/10 rounded-md text-[10px] font-bold tracking-wider uppercase">
+                      IF: {p.impactFactor}
+                    </span>
+                  )}
+                </div>
+
+                <h4 className="text-base font-black text-[var(--text-dark)]">
                   {p.title}
                 </h4>
-                <div className="flex items-center gap-4 mt-3 text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider">
+
+                <div className="flex items-center gap-4 mt-1 text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider">
                   <div className="flex items-center gap-1.5 text-red-500 bg-red-500/5 px-2.5 py-1 rounded-lg">
                     <Clock size={13} />
                     Дедлайн: {new Date(p.deadline).toLocaleDateString("uk-UA")}
                   </div>
-                  <div className="text-[var(--text-gray)]">
+                  <div className="text-[var(--text-gray)] hidden sm:block">
                     Створено:{" "}
                     {new Date(p.createdAt).toLocaleDateString("uk-UA")}
                   </div>

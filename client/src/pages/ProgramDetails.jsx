@@ -20,15 +20,16 @@ import {
 import toast, { Toaster } from "react-hot-toast";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { AuthContext, useAuth } from "../context/AuthContext";
 import "../index.css";
 
 const ProgramDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
   const [program, setProgram] = useState(null);
   const [loading, setLoading] = useState(true);
   const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-  const user = JSON.parse(localStorage.getItem("user"));
   const token = localStorage.getItem("token");
 
   useEffect(() => {
@@ -47,7 +48,7 @@ const ProgramDetails = () => {
   }, [id, apiUrl]);
 
   const handleApply = () => {
-    if (!user || !token) {
+    if (!isAuthenticated || !user) {
       toast.error("Будь ласка, увійдіть у систему");
       setTimeout(() => navigate("/login"), 1500);
       return;

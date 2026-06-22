@@ -1,4 +1,5 @@
 import React from "react";
+import { useAuth } from "../../context/AuthContext";
 import {
   MapPin,
   Settings,
@@ -16,11 +17,12 @@ export default function ProfileHeader({
   navigate,
   onOpenEdit,
 }) {
+  const { user } = useAuth();
+
   return (
     <div className="lg:col-span-3 bento-card p-8 md:p-10 flex flex-col md:flex-row items-center md:items-start gap-8 relative overflow-hidden bg-[var(--bg-card)] border border-[var(--border-color)] rounded-[2rem]">
       <div className="absolute top-0 left-0 w-64 h-64 bg-purple-600/5 rounded-full blur-3xl -z-10" />
 
-      {/* Аватар */}
       <div className="relative shrink-0">
         <div className="w-28 h-28 rounded-3xl bg-gradient-to-br from-purple-600 to-indigo-700 overflow-hidden shadow-xl flex items-center justify-center ring-4 ring-purple-500/10">
           {userData.image ? (
@@ -44,7 +46,6 @@ export default function ProfileHeader({
         </div>
       </div>
 
-      {/* Інформація */}
       <div className="text-center md:text-left flex-1 space-y-4">
         <div>
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-2">
@@ -109,14 +110,16 @@ export default function ProfileHeader({
             </button>
           </div>
 
-          {["admin", "superadmin", "content-manager", "reviewer"].includes(
-            userData.role,
-          ) && (
-            <div className="h-5 w-[1px] bg-[var(--border-color)] hidden sm:block" />
-          )}
+          {/* Розділювач показуємо, лише якщо у глобального юзера є хоч якась менеджерська роль */}
+          {user &&
+            ["admin", "superadmin", "content-manager", "reviewer"].includes(
+              user.role,
+            ) && (
+              <div className="h-5 w-[1px] bg-[var(--border-color)] hidden sm:block" />
+            )}
 
           <div className="flex items-center gap-2">
-            {["admin", "superadmin"].includes(userData.role) && (
+            {user && ["admin", "superadmin"].includes(user.role) && (
               <button
                 onClick={() => navigate("/admin")}
                 className="px-3 py-2 bg-purple-600/5 hover:bg-purple-600 hover:text-white border border-purple-500/10 text-purple-600 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
@@ -124,7 +127,8 @@ export default function ProfileHeader({
                 <UserCheck size={14} /> Адмінка
               </button>
             )}
-            {["content-manager", "superadmin"].includes(userData.role) && (
+
+            {user && ["content-manager", "superadmin"].includes(user.role) && (
               <button
                 onClick={() => navigate("/content-panel")}
                 className="px-3 py-2 bg-blue-500/5 hover:bg-blue-500 hover:text-white border border-blue-500/10 text-blue-500 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
@@ -132,7 +136,8 @@ export default function ProfileHeader({
                 <FileText size={14} /> Контент
               </button>
             )}
-            {["reviewer", "superadmin"].includes(userData.role) && (
+
+            {user && ["reviewer", "superadmin"].includes(user.role) && (
               <button
                 onClick={() => navigate("/reviewer")}
                 className="px-3 py-2 bg-emerald-500/5 hover:bg-emerald-500 hover:text-white border border-emerald-500/10 text-emerald-500 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"

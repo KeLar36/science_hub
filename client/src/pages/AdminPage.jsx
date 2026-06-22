@@ -12,11 +12,12 @@ import DashboardTab from "../components/admin/DashboardTab";
 import UsersTab from "../components/admin/UsersTab";
 import ProgramsTab from "../components/admin/ProgramsTab";
 import ProjectsTab from "../components/admin/ProjectsTab";
+import { AuthContext, useAuth } from "../context/AuthContext";
 
 const AdminPage = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
-
+  const { isAuthentificated } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
   const [loadingAction, setLoadingAction] = useState(null);
@@ -38,10 +39,6 @@ const AdminPage = () => {
   });
 
   useEffect(() => {
-    if (!token) {
-      navigate("/login");
-      return;
-    }
     const controller = new AbortController();
 
     const fetchAdminData = async () => {

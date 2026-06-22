@@ -15,6 +15,7 @@ import EditProfileModal from "../components/profile/EditProfileModal";
 import ArticlesList from "../components/profile/ArticlesList";
 import BookmarksList from "../components/profile/BookmarksList";
 import SubmissionForm from "../components/profile/SubmissionForm";
+import { AuthContext, useAuth } from "../context/AuthContext";
 import { FileText, Bookmark, Award, Target } from "lucide-react";
 
 const SCIENTIFIC_DOMAINS = [
@@ -45,6 +46,8 @@ export default function ProfilePage() {
     socials: { github: "", linkedin: "", instagram: "", website: "" },
   });
 
+  const { setUser } = useAuth();
+
   const [articles, setArticles] = useState([]);
   const [savedPosts, setSavedPosts] = useState([]);
   const [programs, setPrograms] = useState([]);
@@ -65,6 +68,10 @@ export default function ProfilePage() {
       });
       const user = resMe.data.user;
 
+      if (setUser) {
+        setUser(user);
+      }
+
       setUserData(user);
       localStorage.setItem("user", JSON.stringify(user));
 
@@ -82,7 +89,7 @@ export default function ProfilePage() {
 
       if (!user || !user._id) {
         toast.error("Не вдалося отримати дані користувача");
-        return; // Якщо ID немає, далі йти немає сенсу
+        return;
       }
 
       const axiosConfig = { withCredentials: true };
@@ -146,6 +153,10 @@ export default function ProfilePage() {
       );
       setUserData(res.data);
       localStorage.setItem("user", JSON.stringify(res.data));
+
+      if (setUser) {
+        setUser(res.data);
+      }
       setIsEditModalOpen(false);
       toast.success("Профіль оновлено!");
     } catch (err) {
