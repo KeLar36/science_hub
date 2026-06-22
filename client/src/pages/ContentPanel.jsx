@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "../api/axios";
+import axiosInstance from "../api/axios";
 import {
   Plus,
   Edit3,
@@ -22,7 +22,6 @@ const ContentPanel = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
   useEffect(() => {
     fetchPosts();
@@ -30,10 +29,14 @@ const ContentPanel = () => {
 
   const fetchPosts = async () => {
     try {
-      const res = await axios.get(`${apiUrl}/api/posts`);
+      setLoading(true);
+      const res = await axiosInstance.get("/posts");
       setPosts(res.data);
     } catch (err) {
-      toast.error("Не вдалося завантажити контент");
+      console.error("Помилка завантаження контенту:", err);
+      toast.error(
+        err.response?.data?.message || "Не вдалося завантажити контент",
+      );
     } finally {
       setLoading(false);
     }
@@ -42,19 +45,17 @@ const ContentPanel = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("Ви впевнені, що хочете видалити цю статтю?")) return;
     try {
-      const token = localStorage.getItem("token");
-      await axios.delete(`${apiUrl}/api/posts/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axiosInstance.delete(`/posts/${id}`);
       setPosts(posts.filter((p) => p._id !== id));
       toast.success("Статтю видалено успішно");
     } catch (err) {
-      toast.error("Помилка при видаленні");
+      console.error("Помилка при видаленні:", err);
+      toast.error(err.response?.data?.message || "Помилка при видаленні");
     }
   };
 
   const filteredPosts = posts.filter((p) =>
-    p.title.toLowerCase().includes(search.toLowerCase()),
+    (p.title || "").toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -113,7 +114,7 @@ const ContentPanel = () => {
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-[24px] overflow-hidden">
             {loading ? (
               <div className="p-24 text-center">
-                <div className="w-10 h-10 border-2 border-[var(--border-color)] border-t-[var(--purple-main)] rounded-full animate-spin mx-auto"></div>
+                <div className="w-10 h-10 border-2 border-slate-500/10 border-t-[var(--purple-main)] rounded-full animate-spin mx-auto"></div>
               </div>
             ) : filteredPosts.length > 0 ? (
               <div className="overflow-x-auto">
@@ -143,9 +144,9 @@ const ContentPanel = () => {
                         <td className="p-5">
                           <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-xl bg-[var(--bg-main)] border border-[var(--border-color)] overflow-hidden shrink-0 shadow-sm">
-                              {post.coverImage ? (
+                              {post.coverImage || post.image ? (
                                 <img
-                                  src={post.coverImage}
+                                  src={post.coverImage || post.image}
                                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                   alt=""
                                 />
@@ -179,7 +180,11 @@ const ContentPanel = () => {
                         <td className="p-5 hidden md:table-cell text-center">
                           <div className="flex items-center justify-center gap-1.5 text-[var(--text-gray)] text-[11px] font-medium">
                             <Calendar size={12} className="opacity-50" />
-                            {new Date(post.createdAt).toLocaleDateString()}
+                            {post.createdAt
+                              ? new Date(post.createdAt).toLocaleDateString(
+                                  "uk-UA",
+                                )
+                              : "—"}
                           </div>
                         </td>
                         <td className="p-5">

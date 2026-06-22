@@ -1,7 +1,7 @@
-/* eslint-disable no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "../api/axios";
+import axiosInstance from "../api/axios";
 import {
   Calendar,
   ArrowLeft,
@@ -29,14 +29,11 @@ const ProgramDetails = () => {
   const { user, isAuthenticated } = useAuth();
   const [program, setProgram] = useState(null);
   const [loading, setLoading] = useState(true);
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
   useEffect(() => {
     const fetchProgramDetails = async () => {
       try {
-        const res = await axios.get(`${apiUrl}/api/programs/${id}`, {
-          withCredentials: true,
-        });
+        const res = await axiosInstance.get(`/programs/${id}`);
         setProgram(res.data);
       } catch (err) {
         toast.error("Не вдалося завантажити деталі програми");
@@ -46,10 +43,10 @@ const ProgramDetails = () => {
     };
     fetchProgramDetails();
     window.scrollTo(0, 0);
-  }, [id, apiUrl]);
+  }, [id]);
 
   const handleApply = () => {
-    if (!isAuthenticated || !user) {
+    if (!isAuthenticated) {
       toast.error("Будь ласка, увійдіть у систему");
       setTimeout(() => navigate("/login"), 1500);
       return;
@@ -66,7 +63,7 @@ const ProgramDetails = () => {
   if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--bg-main)]">
-        <div className="w-12 h-12 border-2 border-[var(--purple-main)]/20 border-t-[var(--purple-main)] rounded-full animate-spin"></div>
+        <div className="w-12 h-12 border-2 border-purple-500/20 border-t-purple-500 rounded-full animate-spin"></div>
       </div>
     );
 
@@ -78,13 +75,12 @@ const ProgramDetails = () => {
         </h2>
         <button
           onClick={() => navigate("/")}
-          className="text-[var(--purple-main)] font-black hover:underline uppercase tracking-widest text-sm"
+          className="text-purple-600 font-black hover:underline uppercase tracking-widest text-sm"
         >
           Повернутися на головну
         </button>
       </div>
     );
-
   const isGrant = program.type === "Грант";
   const hasMetrics =
     program.type === "Науковий журнал" || program.type === "Стаття";

@@ -1,9 +1,9 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import axios from "../api/axios";
+import axiosInstance from "../api/axios";
 import toast, { Toaster } from "react-hot-toast";
-import Loader2 from "lucide-react/dist/esm/icons/loader-2";
+import { Loader2, FileText, Bookmark, Award, Target } from "lucide-react";
 import AOS from "aos";
 import "aos/dist/aos.css";
 import Navbar from "../components/Navbar";
@@ -15,8 +15,7 @@ import EditProfileModal from "../components/profile/EditProfileModal";
 import ArticlesList from "../components/profile/ArticlesList";
 import BookmarksList from "../components/profile/BookmarksList";
 import SubmissionForm from "../components/profile/SubmissionForm";
-import { AuthContext, useAuth } from "../context/AuthContext";
-import { FileText, Bookmark, Award, Target } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 const SCIENTIFIC_DOMAINS = [
   "Штучний інтелект & IT",
@@ -30,11 +29,11 @@ const SCIENTIFIC_DOMAINS = [
 ];
 
 export default function ProfilePage() {
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
   const navigate = useNavigate();
   const location = useLocation();
+  const { updateUserState, user: contextUser } = useAuth();
 
-  const [userData, setUserData] = useState(null);
+  const [userData, updateUserStateData] = useState(null);
   const [view, setView] = useState(location.state?.programId ? "form" : "list");
   const [loading, setLoading] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -45,8 +44,6 @@ export default function ProfilePage() {
     city: "",
     socials: { github: "", linkedin: "", instagram: "", website: "" },
   });
-
-  const { setUser } = useAuth();
 
   const [articles, setArticles] = useState([]);
   const [savedPosts, setSavedPosts] = useState([]);
@@ -63,17 +60,11 @@ export default function ProfilePage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const resMe = await axios.get(`${apiUrl}/api/users/me`, {
-        withCredentials: true,
-      });
+      const resMe = await axiosInstance.get("/users/me");
       const user = resMe.data.user;
 
-      if (setUser) {
-        setUser(user);
-      }
-
-      setUserData(user);
-      localStorage.setItem("user", JSON.stringify(user));
+      updateUserState(user);
+      updateUserStateData(user);
 
       setEditForm({
         name: user.name || "",
@@ -87,28 +78,10 @@ export default function ProfilePage() {
         },
       });
 
-      if (!user || !user._id) {
-        toast.error("Не вдалося отримати дані користувача");
-        return;
-      }
-
-      const axiosConfig = { withCredentials: true };
-      const axiosConfigNoCache = {
-        withCredentials: true,
-        headers: {
-          "Cache-Control": "no-cache",
-          Pragma: "no-cache",
-          Expires: "0",
-        },
-      };
-
       const [resArticles, resPrograms, resBookmarks] = await Promise.all([
-        axios.get(`${apiUrl}/api/projects/user/${user._id}`, axiosConfig),
-        axios.get(`${apiUrl}/api/programs`, axiosConfig),
-        axios.get(
-          `${apiUrl}/api/users/bookmarks/all?_t=${new Date().getTime()}`,
-          axiosConfigNoCache,
-        ),
+        axiosInstance.get(`/projects/user/${user._id}`),
+        axiosInstance.get("/programs"),
+        axiosInstance.get("/users/bookmarks/all"),
       ]);
 
       setArticles(resArticles.data);
@@ -116,15 +89,15 @@ export default function ProfilePage() {
       setSavedPosts(resBookmarks.data);
     } catch (err) {
       console.error("Fetch data error:", err);
-      if (err.response?.status === 403 || err.response?.status === 401) {
+      if (err.response?.status === 401 || err.response?.status === 403) {
         navigate("/login");
       } else {
-        toast.error("Помилка завантаження даних користувача");
+        toast.error("Помилка завантаження даних");
       }
     } finally {
       setLoading(false);
     }
-  }, [apiUrl, navigate]);
+  }, []);
 
   useEffect(() => {
     AOS.init({ duration: 600, once: true });
@@ -133,30 +106,10 @@ export default function ProfilePage() {
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
-    if (!editForm.name || editForm.name.trim() === "") {
-      toast.error("Ім'я не може бути порожнім!", {
-        duration: 4000,
-        position: "top-center",
-        style: {
-          borderRadius: "8px",
-          background: "#333",
-          color: "#fff",
-        },
-      });
-      return;
-    }
     try {
-      const res = await axios.patch(
-        `${apiUrl}/api/users/update-profile`,
-        editForm,
-        { withCredentials: true },
-      );
-      setUserData(res.data);
-      localStorage.setItem("user", JSON.stringify(res.data));
-
-      if (setUser) {
-        setUser(res.data);
-      }
+      const res = await axiosInstance.patch("/users/update-profile", editForm);
+      updateUserStateData(res.data);
+      updateUserState(res.data);
       setIsEditModalOpen(false);
       toast.success("Профіль оновлено!");
     } catch (err) {
@@ -167,22 +120,13 @@ export default function ProfilePage() {
   const handleToggleBookmark = async (e, postId) => {
     e.stopPropagation();
     try {
-      await axios.post(`${apiUrl}/api/users/bookmarks/toggle/${postId}`);
+      await axiosInstance.post(`/users/bookmarks/toggle/${postId}`);
       setSavedPosts((prev) => prev.filter((p) => p._id !== postId));
       toast.success("Закладку видалено");
     } catch (err) {
-      toast.error("Помилка закладок");
+      toast.error("Помилка при оновленні закладок");
     }
   };
-
-  const activePrograms = useMemo(() => {
-    return programs.filter((p) => {
-      if (!p.deadline) return true;
-      const deadlineDate = new Date(p.deadline);
-      deadlineDate.setHours(23, 59, 59, 999);
-      return deadlineDate >= new Date();
-    });
-  }, [programs]);
 
   const handleSubmitArticle = async (e) => {
     e.preventDefault();
@@ -196,10 +140,8 @@ export default function ProfilePage() {
 
     setLoading(true);
     try {
-      await axios.post(`${apiUrl}/api/projects/create`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+      await axiosInstance.post("/projects/create", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
       toast.success("Роботу подано!");
       setView("list");
@@ -211,8 +153,15 @@ export default function ProfilePage() {
     }
   };
 
+  const activePrograms = useMemo(() => {
+    return programs.filter((p) => {
+      if (!p.deadline) return true;
+      return new Date(p.deadline) >= new Date();
+    });
+  }, [programs]);
+
   const topDomain = useMemo(() => {
-    if (articles.length === 0) return "IT Research";
+    if (articles.length === 0) return "Немає даних";
     const counts = articles.reduce((acc, curr) => {
       acc[curr.domain] = (acc[curr.domain] || 0) + 1;
       return acc;
@@ -231,10 +180,9 @@ export default function ProfilePage() {
   if (!userData) return null;
 
   return (
-    <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-dark)] antialiased selection:bg-purple-500/20">
+    <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-dark)] antialiased">
       <Toaster position="bottom-right" />
       <Navbar />
-
       <main className="max-w-7xl mx-auto px-4 md:px-8 pt-36 pb-24 relative">
         <div
           className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-12"
@@ -242,11 +190,9 @@ export default function ProfilePage() {
         >
           <ProfileHeader
             userData={userData}
-            apiUrl={apiUrl}
             navigate={navigate}
             onOpenEdit={() => setIsEditModalOpen(true)}
           />
-
           <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
             <MiniStatCard
               label="Мої статті"
@@ -265,7 +211,7 @@ export default function ProfilePage() {
               onClick={() => setView("bookmarks")}
             />
             <MiniStatCard
-              label="Прийнято заявок"
+              label="Прийнято"
               val={`${articles.filter((a) => a.status === "Прийнято").length}/${articles.length}`}
               icon={Award}
               color="text-emerald-500"
@@ -284,17 +230,17 @@ export default function ProfilePage() {
         <ProfileTabs activeView={view} onViewChange={setView} />
 
         <div className="min-h-[300px]">
-          {!loading && view === "list" && (
+          {view === "list" && (
             <ArticlesList items={articles} onRefresh={fetchData} />
           )}
-          {!loading && view === "bookmarks" && (
+          {view === "bookmarks" && (
             <BookmarksList
               items={savedPosts}
               onToggle={handleToggleBookmark}
               navigate={navigate}
             />
           )}
-          {!loading && view === "form" && (
+          {view === "form" && (
             <SubmissionForm
               data={articleData}
               setData={setArticleData}
@@ -315,7 +261,6 @@ export default function ProfilePage() {
         setEditForm={setEditForm}
         onSubmit={handleUpdateProfile}
       />
-
       <Footer />
     </div>
   );

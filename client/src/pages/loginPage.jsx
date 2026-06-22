@@ -1,8 +1,8 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext"; // Імпортуємо наш хук
-import axios from "../api/axios";
+import { useAuth } from "../context/AuthContext";
+import axiosInstance from "../api/axios";
 import toast, { Toaster } from "react-hot-toast";
 import {
   Mail,
@@ -28,6 +28,7 @@ const LoginPage = () => {
   const { login } = useAuth();
 
   useEffect(() => {
+    AOS.init({ duration: 800, once: true });
     const savedEmail = localStorage.getItem("registeredEmail");
     if (savedEmail) {
       setData((prev) => ({ ...prev, email: savedEmail }));
@@ -36,8 +37,8 @@ const LoginPage = () => {
   }, []);
 
   const handleChange = (e) => {
-    const { type, value } = e.target;
-    setData((prev) => ({ ...prev, [type]: value }));
+    const { name, value } = e.target;
+    setData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleLogin = async (e) => {
@@ -46,88 +47,73 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      const res = await axios.post("/auth/login", data);
-
-      const userProfile = await axios.get("/users/me");
-
-      login(userProfile.data.user || res.data.user);
-
-      toast.success(`Вітаємо у системі!`, {
-        style: {
-          borderRadius: "8px",
-          background: "#1a1a1a",
-          color: "#fff",
-          border: "1px solid #7c3aed",
-          fontSize: "14px",
-        },
-      });
-
-      setTimeout(() => {
-        navigate("/");
-      }, 600);
+      await axiosInstance.post("/auth/login", data);
+      const res = await axiosInstance.get("/users/me");
+      login(res.data.user);
+      toast.success("Вітаємо у системі!");
+      setTimeout(() => navigate("/"), 600);
     } catch (err) {
-      toast.error(err.response?.data?.error || "Помилка авторизації", {
-        style: {
-          borderRadius: "8px",
-          background: "#1a1a1a",
-          color: "#fff",
-          border: "1px solid #ef4444",
-        },
-      });
+      toast.error(err.response?.data?.error || "Помилка авторизації");
       setData((prev) => ({ ...prev, password: "" }));
     } finally {
       setLoading(false);
     }
   };
 
+  // Єдині стилі для полів форми
+  const inputClass =
+    "w-full bg-[var(--bg-main)] border border-[var(--border-color)] pl-12 pr-4 py-4 text-sm text-[var(--text-dark)] outline-none focus:border-purple-600 rounded-xl transition-all";
+  const labelStyle =
+    "text-[10px] uppercase tracking-[0.2em] text-[var(--text-gray)] font-bold mb-2 block";
+
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--bg-main)] font-['Plus_Jakarta_Sans',_sans-serif] text-[var(--text-dark)]">
+    <div className="min-h-screen flex flex-col bg-[var(--bg-main)] transition-colors duration-300">
       <Toaster position="top-right" />
       <Navbar />
 
-      <main className="flex-grow flex items-center justify-center py-20 px-6 mt-15 relative">
-        <div className="absolute inset-0 opacity-40 z-0 pointer-events-none bg-[radial-gradient(var(--border-color)_1px,transparent_1px)] bg-[size:32px_32px]" />
+      <main className="flex-grow flex items-center justify-center py-24 px-6 relative">
+        {/* Фоновий візерунок */}
+        <div className="absolute inset-0 opacity-20 z-0 pointer-events-none bg-[radial-gradient(var(--border-color)_1px,transparent_1px)] bg-[size:32px_32px]" />
 
         <div className="max-w-md w-full relative z-10" data-aos="fade-up">
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-2 text-[var(--text-gray)] hover:text-purple-600 text-[10px] font-bold uppercase tracking-widest mb-6 transition-all group bg-transparent border-none cursor-pointer"
+            className="flex items-center gap-2 text-[var(--text-gray)] hover:text-purple-600 text-[10px] font-bold uppercase tracking-[0.3em] mb-8 transition-all group"
           >
             <ChevronLeft
               size={14}
               className="group-hover:-translate-x-1 transition-transform"
             />
-            Назад
+            На головну
           </button>
 
-          <div className="relative overflow-hidden bg-[var(--bg-card)] border border-[var(--border-color)] p-8 md:p-12 shadow-2xl shadow-black/20 before:content-[''] before:absolute before:top-0 before:left-0 before:w-1 before:h-full before:bg-purple-600">
+          {/* Картка логіну в стилі Bento */}
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-10 md:p-12 shadow-2xl relative overflow-hidden rounded-xl">
+            <div className="absolute top-0 left-0 w-1 h-full bg-purple-600" />
+
             <div className="mb-10">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-purple-600 flex items-center justify-center text-white">
-                  <ShieldCheck size={20} />
-                </div>
-                <div className="h-[1px] flex-grow bg-[var(--border-color)]"></div>
+              <div className="w-12 h-12 bg-purple-600/20 flex items-center justify-center text-purple-600 rounded-xl mb-6">
+                <ShieldCheck size={24} />
               </div>
-              <h2 className="text-3xl font-black tracking-tighter uppercase italic mb-3">
-                <span className="text-purple-600">Авторизація</span>
+              <h2 className="text-3xl font-black uppercase italic tracking-tighter">
+                Авторизація
               </h2>
-              <p className="text-[var(--text-gray)] text-[11px] font-medium uppercase tracking-wider">
+              <p className="text-[var(--text-gray)] text-[10px] font-bold uppercase tracking-widest mt-2">
                 Вхід до наукової платформи
               </p>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-5">
-              <div className="space-y-2">
-                <label className="font-['Space_Mono',_monospace] text-[10px] uppercase tracking-[0.2em] text-[var(--text-gray)] font-700 block">
-                  Електронна пошта
-                </label>
+            <form onSubmit={handleLogin} className="space-y-6">
+              <div>
+                <label className={labelStyle}>Електронна пошта</label>
                 <div className="relative">
                   <Mail
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-gray)]"
+                    className="absolute left-4 top-4 text-[var(--text-gray)]"
                     size={16}
                   />
                   <input
-                    className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] pl-12 pr-4 py-3 text-sm transition-all text-[var(--text-dark)] outline-none focus:border-purple-600 focus:bg-[var(--bg-card)]"
+                    name="email"
+                    className={inputClass}
                     type="email"
                     placeholder="name@university.edu"
                     value={data.email}
@@ -137,37 +123,34 @@ const LoginPage = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <label className="font-['Space_Mono',_monospace] text-[10px] uppercase tracking-[0.2em] text-[var(--text-gray)] font-700">
-                    Пароль
-                  </label>
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className={labelStyle}>Пароль</label>
                   <Link
                     to="/forgot-password"
-                    className="text-[9px] font-bold text-purple-600 hover:underline uppercase"
+                    className="text-[9px] font-bold text-purple-600 hover:underline uppercase tracking-widest"
                   >
                     Забули?
                   </Link>
                 </div>
                 <div className="relative">
                   <Lock
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-gray)]"
+                    className="absolute left-4 top-4 text-[var(--text-gray)]"
                     size={16}
                   />
                   <input
-                    className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] pl-12 pr-4 py-3 text-sm transition-all text-[var(--text-dark)] outline-none focus:border-purple-600 focus:bg-[var(--bg-card)]"
+                    name="password"
+                    className={inputClass}
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     value={data.password}
-                    onChange={(e) =>
-                      setData((prev) => ({ ...prev, password: e.target.value }))
-                    }
+                    onChange={handleChange}
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-gray)] hover:text-purple-600 transition-colors"
+                    className="absolute right-4 top-4 text-[var(--text-gray)] hover:text-[var(--text-dark)]"
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -177,40 +160,32 @@ const LoginPage = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full mt-4 py-4 bg-purple-600 text-white font-bold text-xs uppercase tracking-[0.2em] hover:bg-purple-700 active:scale-[0.98] disabled:opacity-50 transition-all flex items-center justify-center gap-3 cursor-pointer"
+                className="w-full py-4 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs uppercase tracking-[0.2em] rounded-xl transition-all flex items-center justify-center gap-3 shadow-lg shadow-purple-600/20"
               >
                 {loading ? (
-                  <Loader2 size={18} className="animate-spin" />
+                  <Loader2 className="animate-spin" size={18} />
                 ) : (
                   <>
-                    Увійти до системи
-                    <ArrowRight size={14} />
+                    Увійти <ArrowRight size={14} />
                   </>
                 )}
               </button>
             </form>
 
-            <div className="mt-10 pt-6 border-t border-[var(--border-color)]">
-              <p className="text-[11px] text-center text-[var(--text-gray)] font-medium uppercase tracking-wider">
-                Немає облікового запису?{" "}
+            <div className="mt-10 pt-6 border-t border-[var(--border-color)] text-center">
+              <p className="text-[10px] text-[var(--text-gray)] font-bold uppercase tracking-widest">
+                Немає акаунту?{" "}
                 <Link
                   to="/register"
-                  className="text-purple-600 hover:text-purple-400 font-bold ml-1 transition-colors"
+                  className="text-purple-600 hover:text-purple-400 underline underline-offset-4 transition-colors"
                 >
-                  Створити акаунт
+                  Створити профіль
                 </Link>
               </p>
             </div>
           </div>
-
-          <div className="mt-6 flex justify-center gap-4 opacity-30 grayscale hover:grayscale-0 transition-all duration-500">
-            <div className="text-[10px] font-mono tracking-tighter">
-              SECURE ACCESS GRANTED // 2026
-            </div>
-          </div>
         </div>
       </main>
-
       <Footer />
     </div>
   );

@@ -6,7 +6,6 @@ import "aos/dist/aos.css";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
-// Нові імпортовані підкомпоненти
 import HeroSection from "../components/about/HeroSection";
 import Features from "../components/about/Features";
 import Steps from "../components/about/Steps";

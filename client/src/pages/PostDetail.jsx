@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import parse from "html-react-parser";
-import axios from "../api/axios";
+import axiosInstance from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import "../index.css";
 import {
@@ -35,8 +35,6 @@ const PostDetail = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user, isAuthenticated } = useAuth();
   const chatEndRef = useRef(null);
-  const isAuth = !!localStorage.getItem("token");
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
   const hypher = useMemo(() => new Hypher(ukrainian), []);
 
@@ -59,14 +57,13 @@ const PostDetail = () => {
   useEffect(() => {
     const fetchPostData = async () => {
       try {
-        const res = await axios.get(`${apiUrl}/api/posts/${id}`);
+        const res = await axiosInstance.get(`/posts/${id}`);
         setPost(res.data);
         if (res.data.comments) setComments(res.data.comments);
 
-        const token = localStorage.getItem("token");
-        if (token) {
-          const savedRes = await axios.get(
-            `${apiUrl}/api/users/bookmarks/check/${id}`,
+        if (isAuthenticated) {
+          const savedRes = await axiosInstance.get(
+            `/users/bookmarks/check/${id}`,
           );
           setIsBookmarked(savedRes.data.isBookmarked);
         }
@@ -80,7 +77,7 @@ const PostDetail = () => {
 
     fetchPostData();
     window.scrollTo(0, 0);
-  }, [id, navigate, apiUrl]);
+  }, [id, navigate, isAuthenticated]);
 
   const getHyphenatedHtml = (html) => {
     if (!html) return "";
@@ -91,11 +88,7 @@ const PostDetail = () => {
     if (!isAuthenticated) return toast.error("Будь ласка, увійдіть");
     setSaving(true);
     try {
-      await axios.post(
-        `${apiUrl}/api/users/bookmarks/toggle/${id}`,
-        {},
-        { withCredentials: true },
-      );
+      await axiosInstance.post(`/users/bookmarks/toggle/${id}`);
       setIsBookmarked(!isBookmarked);
       toast.success(
         isBookmarked ? "Видалено з закладок" : "Збережено в закладки",
@@ -112,7 +105,7 @@ const PostDetail = () => {
     if (!newComment.trim() || isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const res = await axios.post(`${apiUrl}/api/posts/${id}/comment`, {
+      const res = await axiosInstance.post(`/posts/${id}/comment`, {
         text: newComment.trim(),
       });
       setComments([...comments, res.data]);
@@ -125,9 +118,9 @@ const PostDetail = () => {
   };
 
   const handleReaction = async (type) => {
-    if (!isAuth) return toast.error("Увійдіть для реакції");
+    if (!isAuthenticated) return toast.error("Увійдіть для реакції");
     try {
-      const res = await axios.post(`${apiUrl}/api/posts/${id}/react`, { type });
+      const res = await axiosInstance.post(`/posts/${id}/react`, { type });
       setPost((prev) => ({ ...prev, reactions: res.data.reactions }));
     } catch (err) {
       toast.error("Помилка при збереженні реакції");

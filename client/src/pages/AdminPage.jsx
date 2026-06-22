@@ -1,8 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../api/axios";
-import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 import { BarChart3, ShieldCheck, Users, FileText, Loader2 } from "lucide-react";
 
@@ -12,12 +11,12 @@ import DashboardTab from "../components/admin/DashboardTab";
 import UsersTab from "../components/admin/UsersTab";
 import ProgramsTab from "../components/admin/ProgramsTab";
 import ProjectsTab from "../components/admin/ProjectsTab";
-import { AuthContext, useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 
-const AdminPage = () => {
+export default function AdminPage() {
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
-  const { isAuthentificated } = useAuth();
+  const { user: authUser, loading: authLoading } = useAuth();
+
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
   const [loadingAction, setLoadingAction] = useState(null);
@@ -35,22 +34,20 @@ const AdminPage = () => {
     title: "",
     description: "",
     category: "Гранти",
-    deadline: new Date(),
+    deadline: new Date().toISOString().split("T")[0],
   });
 
-  useEffect(() => {
-    const controller = new AbortController();
-
-    const fetchAdminData = async () => {
+  const fetchAdminData = useCallback(
+    async (signal) => {
       try {
         setLoading(true);
         const [meRes, statsRes, usersRes, projectsRes, programsRes] =
           await Promise.all([
-            axiosInstance.get("/users/me", { signal: controller.signal }),
-            axiosInstance.get("/users/count", { signal: controller.signal }),
-            axiosInstance.get("/users/all", { signal: controller.signal }),
-            axiosInstance.get("/projects/all", { signal: controller.signal }),
-            axiosInstance.get("/programs", { signal: controller.signal }),
+            axiosInstance.get("/users/me", { signal }),
+            axiosInstance.get("/users/count", { signal }),
+            axiosInstance.get("/users/all", { signal }),
+            axiosInstance.get("/projects/all", { signal }),
+            axiosInstance.get("/programs", { signal }),
           ]);
 
         const userData = meRes.data.user || meRes.data;
@@ -63,7 +60,6 @@ const AdminPage = () => {
 
         setCurrentUser(userData);
 
-        // ВАЖЛИВА ПРАВКА: обробка {count: 6}
         const userCount = statsRes.data?.count ?? statsRes.data?.users ?? 0;
         setStats({
           users: userCount,
@@ -77,15 +73,26 @@ const AdminPage = () => {
         setProjects(projectsRes.data || []);
         setPrograms(programsRes.data || []);
       } catch (err) {
-        if (!axios.isCancel(err)) toast.error("Не вдалося завантажити дані");
+        if (err.name !== "CanceledError") {
+          console.error("Помилка адмін-панелі:", err);
+          toast.error("Не вдалося завантажити дані контенту");
+        }
       } finally {
         setLoading(false);
       }
-    };
+    },
+    [navigate],
+  );
 
-    fetchAdminData();
+  useEffect(() => {
+    const controller = new AbortController();
+
+    if (!authLoading) {
+      fetchAdminData(controller.signal);
+    }
+
     return () => controller.abort();
-  }, [token, navigate]);
+  }, [authLoading, fetchAdminData]);
 
   const dashboardData = useMemo(() => {
     const projArray = Array.isArray(projects) ? projects : [];
@@ -163,7 +170,7 @@ const AdminPage = () => {
   const handleUpdateProjectStatus = async (projectId, newStatus) => {
     try {
       setLoadingAction(projectId);
-      await axiosInstance.patch(`projects/status/${projectId}`, {
+      await axiosInstance.patch(`/projects/status/${projectId}`, {
         status: newStatus,
       });
       setProjects(
@@ -179,8 +186,6 @@ const AdminPage = () => {
     }
   };
 
-  const getTodayString = () => new Date().toISOString().split("T")[0];
-
   const handleCreateProgram = async (e) => {
     e.preventDefault();
     try {
@@ -191,7 +196,7 @@ const AdminPage = () => {
         title: "",
         description: "",
         category: "Гранти",
-        deadline: getTodayString(),
+        deadline: new Date().toISOString().split("T")[0],
       });
       toast.success("Програму створено!");
     } catch {
@@ -227,9 +232,9 @@ const AdminPage = () => {
     { id: "programs", label: "Програми", icon: ShieldCheck },
   ];
 
-  if (loading)
+  if (loading || authLoading)
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--bg-main)]">
         <Loader2 size={32} className="animate-spin text-purple-600" />
       </div>
     );
@@ -248,7 +253,11 @@ const AdminPage = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase ${activeTab === tab.id ? "bg-purple-600 text-white" : "text-[var(--text-gray)]"}`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase transition-all ${
+                  activeTab === tab.id
+                    ? "bg-purple-600 text-white"
+                    : "text-[var(--text-gray)] hover:text-[var(--text-dark)]"
+                }`}
               >
                 <tab.icon size={14} /> {tab.label}
               </button>
@@ -295,6 +304,4 @@ const AdminPage = () => {
       <Footer />
     </div>
   );
-};
-
-export default AdminPage;
+}

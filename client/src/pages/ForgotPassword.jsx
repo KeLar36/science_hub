@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "../api/axios";
+import axiosInstance from "../api/axios";
 import toast, { Toaster } from "react-hot-toast";
 import {
   Mail,
@@ -30,8 +30,7 @@ const ForgotPassword = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      await axios.post(`${apiUrl}/api/auth/forgot-password`, { email });
+      await axiosInstance.post("/auth/forgot-password", { email });
 
       toast.success("Інструкції надіслано на вашу пошту! 📩", {
         style: {
@@ -43,14 +42,20 @@ const ForgotPassword = () => {
         },
       });
     } catch (err) {
-      toast.error(err.response?.data?.error || "Користувача не знайдено", {
-        style: {
-          borderRadius: "8px",
-          background: "#1a1a1a",
-          color: "#fff",
-          border: "1px solid #ef4444",
+      console.error("Помилка відновлення пароля:", err);
+      toast.error(
+        err.response?.data?.error ||
+          err.response?.data?.message ||
+          "Користувача не знайдено",
+        {
+          style: {
+            borderRadius: "8px",
+            background: "#1a1a1a",
+            color: "#fff",
+            border: "1px solid #ef4444",
+          },
         },
-      });
+      );
     } finally {
       setLoading(false);
     }
@@ -162,7 +167,7 @@ const ForgotPassword = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full mt-4 py-4 bg-purple-600 text-white font-bold text-xs uppercase tracking-[0.2em] hover:bg-purple-700 active:scale-[0.98] disabled:opacity-50 transition-all flex items-center justify-center gap-3"
+                className="w-full mt-4 py-4 bg-purple-600 text-white font-bold text-xs uppercase tracking-[0.2em] hover:bg-purple-700 active:scale-[0.98] disabled:opacity-50 transition-all flex items-center justify-center gap-3 cursor-pointer"
               >
                 {loading ? (
                   <Loader2 size={18} className="animate-spin" />

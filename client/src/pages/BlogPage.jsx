@@ -1,15 +1,13 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useMemo } from "react";
-import axios from "../api/axios";
+import { Link } from "react-router-dom";
+import axiosInstance from "../api/axios";
 import {
   Search,
   BookOpen,
   Calendar,
   ArrowUpRight,
-  Sparkles,
-  ChevronRight,
   Terminal,
-  Newspaper,
   Layers,
 } from "lucide-react";
 import Navbar from "../components/Navbar";
@@ -37,19 +35,29 @@ const Blog = () => {
 
     const fetchPosts = async () => {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-        const res = await axios.get(`${apiUrl}/api/posts`);
-        if (Array.isArray(res.data)) setPosts(res.data);
+        setLoading(true);
+        const res = await axiosInstance.get("/posts");
+        if (Array.isArray(res.data)) {
+          setPosts(res.data);
+        } else if (res.data?.posts && Array.isArray(res.data.posts)) {
+          setPosts(res.data.posts);
+        }
       } catch (err) {
-        console.error("Помилка при завантаженні блогу", err);
+        console.error("Помилка при завантаженні блогу:", err);
       } finally {
         setLoading(false);
       }
     };
+
     fetchPosts();
+
+    return () => {
+      AOS.refresh();
+    };
   }, []);
 
   const stripHtml = (html) => {
+    if (!html) return "";
     const doc = new DOMParser().parseFromString(html, "text/html");
     const text = doc.body.textContent || "";
     return text.replace(/\s+/g, " ").trim();
@@ -70,38 +78,34 @@ const Blog = () => {
     <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-main)] transition-colors duration-300 overflow-x-hidden selection:bg-purple-600 selection:text-white">
       <Navbar />
 
-      {/* Вбудовані стилі для сітки та анімацій */}
       <style>{`
-        .rules-grid-bg {
-          background-image: radial-gradient(var(--border-color) 1px, transparent 1px);
-          background-size: 40px 40px;
-          position: absolute;
-          inset: 0; 
-          opacity: 0.4; 
-          z-index: 0;
-        }
-        .label-mono {
-          font-family: 'Space Mono', monospace;
-          font-size: 10px;
-          text-transform: uppercase;
-          letter-spacing: 0.2em;
-        }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-      `}</style>
+          .rules-grid-bg {
+            background-image: radial-gradient(var(--border-color) 1px, transparent 1px);
+            background-size: 40px 40px;
+            position: absolute;
+            inset: 0; 
+            opacity: 0.4; 
+            z-index: 0;
+          }
+          .label-mono {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+          }
+          .no-scrollbar::-webkit-scrollbar { display: none; }
+          .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        `}</style>
 
       <main className="relative">
-        {/* --- IMPROVED HERO SECTION --- */}
         <header className="relative pt-44 pb-32 px-6 border-b border-[var(--border-color)] overflow-hidden">
           <div className="rules-grid-bg" />
 
-          {/* М'яке фіолетове сяйво */}
           <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-purple-600/10 blur-[150px] rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none animate-pulse" />
 
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-end">
               <div className="lg:col-span-8 space-y-8" data-aos="fade-right">
-                {/* Технічний бадж */}
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-purple-500/30 bg-purple-500/5 text-purple-600">
                   <Terminal size={14} />
                   <span className="label-mono font-bold text-purple-600">
@@ -176,14 +180,12 @@ const Blog = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
               {filteredPosts.map((post, index) => (
-                <article
+                <Link
+                  to={`/blog/${post._id || post.id}`}
                   key={post._id || post.id}
                   data-aos="fade-up"
                   data-aos-delay={index * 50}
-                  className="group relative flex flex-col h-[600px] bg-[var(--bg-card)] border border-[var(--border-color)] transition-all duration-500 hover:border-purple-600/40 hover:shadow-[0_30px_60px_rgba(124,58,237,0.06)] cursor-pointer overflow-hidden"
-                  onClick={() =>
-                    (window.location.href = `/blog/${post._id || post.id}`)
-                  }
+                  className="group relative flex flex-col h-[600px] bg-[var(--bg-card)] border border-[var(--border-color)] transition-all duration-500 hover:border-purple-600/40 hover:shadow-[0_30px_60px_rgba(124,58,237,0.06)] overflow-hidden"
                 >
                   <div className="relative h-64 overflow-hidden border-b border-[var(--border-color)]">
                     <img
@@ -204,7 +206,6 @@ const Blog = () => {
                   </div>
 
                   <div className="p-10 flex flex-col flex-grow relative">
-                    {/* Великий номер фоном */}
                     <div className="absolute top-4 right-8 text-7xl font-black text-[var(--text-gray)] opacity-[0.03] pointer-events-none group-hover:opacity-[0.12] transition-all duration-500 italic">
                       {index + 1 < 10 ? `0${index + 1}` : index + 1}
                     </div>
@@ -212,11 +213,16 @@ const Blog = () => {
                     <div className="flex items-center gap-3 mb-6 text-purple-600 relative z-10">
                       <Calendar size={14} />
                       <span className="label-mono font-bold !text-[9px]">
-                        {new Date(post.createdAt).toLocaleDateString("uk-UA", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
+                        {post.createdAt
+                          ? new Date(post.createdAt).toLocaleDateString(
+                              "uk-UA",
+                              {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              },
+                            )
+                          : "Дата відсутня"}
                       </span>
                     </div>
 
@@ -237,7 +243,7 @@ const Blog = () => {
                       </div>
                     </div>
                   </div>
-                </article>
+                </Link>
               ))}
             </div>
           )}

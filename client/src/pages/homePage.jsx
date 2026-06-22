@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "../api/axios";
+import axiosInstance from "../api/axios";
 import {
   ArrowUpRight,
   Calendar,
@@ -45,11 +45,10 @@ const HomePage = () => {
 
     const fetchData = async () => {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-        const res = await axios.get(`${apiUrl}/api/programs`);
+        const res = await axiosInstance.get("/programs");
         if (Array.isArray(res.data)) setPrograms(res.data);
       } catch (err) {
-        console.error("Помилка завантаження:", err);
+        console.error("Помилка завантаження даних:", err);
       } finally {
         setLoading(false);
       }
@@ -67,9 +66,7 @@ const HomePage = () => {
         selectedDomain === "Всі галузі" || p.domain === selectedDomain;
       const matchesType =
         selectedType === "Всі типи" || p.type === selectedType;
-
       const deadlineDate = p.deadline ? new Date(p.deadline) : null;
-
       return (
         matchesSearch &&
         matchesDomain &&
@@ -78,7 +75,6 @@ const HomePage = () => {
       );
     });
   }, [programs, searchTerm, selectedDomain, selectedType]);
-
   return (
     <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-main)] transition-colors duration-300 overflow-x-hidden selection:bg-purple-600 selection:text-white">
       <Navbar />

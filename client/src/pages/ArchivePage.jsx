@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import axiosInstance from "../api/axios";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
-// Імпорт нових атомарних компонентів з папки archive
 import ArchiveHeader from "../components/archive/ArchiveHeader";
 import ArchiveFilter from "../components/archive/ArchiveFilter";
 import ArchiveGrid from "../components/archive/ArchiveGrid";
@@ -15,29 +15,25 @@ export default function ArchivePage() {
   const [error, setError] = useState(null);
   const [selectedDomain, setSelectedDomain] = useState("Всі");
 
-  const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const fetchArchiveData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axiosInstance.get("/projects/archive");
+      setArticles(response.data);
+    } catch (err) {
+      console.error("Error fetching archived projects:", err);
+      setError(
+        err.response?.data?.message || "Не вдалося завантажити архів статей",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchArchiveData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/projects/archive`);
-        if (!response.ok) {
-          throw new Error("Не вдалося завантажити архів статей");
-        }
-        const data = await response.json();
-        setArticles(data);
-      } catch (err) {
-        console.error("Error fetching archived projects:", err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchArchiveData();
-  }, [API_BASE_URL]);
+  }, [fetchArchiveData]);
 
   const domains = useMemo(() => {
     if (!articles.length) return ["Всі"];
@@ -72,7 +68,7 @@ export default function ArchivePage() {
     if (!path) return "#";
     if (path.startsWith("http")) return path;
     const cleanPath = path.startsWith("/") ? path.slice(1) : path;
-    return `${API_BASE_URL}/${cleanPath}`;
+    return `/api/${cleanPath}`;
   };
 
   return (

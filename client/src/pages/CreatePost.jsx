@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import axios from "../api/axios";
+import axiosInstance from "../api/axios";
 import toast, { Toaster } from "react-hot-toast";
 import ReactQuill from "react-quill-new";
 import {
@@ -44,7 +44,6 @@ const CreatePost = () => {
   const fileInputRef = useRef(null);
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const token = localStorage.getItem("token");
 
   const [content, setContent] = useState("");
   const [title, setTitle] = useState("");
@@ -55,20 +54,21 @@ const CreatePost = () => {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
   useEffect(() => {
     if (isEditMode) {
       const fetchPost = async () => {
         setIsLoadingData(true);
         try {
-          const res = await axios.get(`${apiUrl}/api/posts/${id}`);
-          setTitle(res.data.title);
-          setContent(res.data.content);
-          setCategory(res.data.category);
+          const res = await axiosInstance.get(`/posts/${id}`);
+          setTitle(res.data.title || "");
+          setContent(res.data.content || "");
+          setCategory(res.data.category || CATEGORIES[0]);
           if (res.data.coverImage) setImagePreview(res.data.coverImage);
         } catch (err) {
-          toast.error("Помилка завантаження даних");
+          console.error("Помилка завантаження даних публікації:", err);
+          toast.error(
+            err.response?.data?.message || "Помилка завантаження даних",
+          );
           navigate("/content-panel");
         } finally {
           setIsLoadingData(false);
@@ -99,23 +99,25 @@ const CreatePost = () => {
       formData.append("status", status);
       if (imageFile) formData.append("image", imageFile);
 
-      const headers = {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "multipart/form-data",
+      const config = {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       };
 
       if (isEditMode) {
-        await axios.put(`${apiUrl}/api/posts/${id}`, formData, { headers });
+        await axiosInstance.put(`/posts/${id}`, formData, config);
         toast.success("Оновлено успішно");
       } else {
         formData.append("authorId", user.id || user._id);
-        await axios.post(`${apiUrl}/api/posts/create`, formData, { headers });
+        await axiosInstance.post("/posts/create", formData, config);
         toast.success("Створено успішно");
       }
 
       setTimeout(() => navigate("/content-panel"), 1500);
     } catch (err) {
-      toast.error("Помилка збереження");
+      console.error("Помилка при збереженні публікації:", err);
+      toast.error(err.response?.data?.message || "Помилка збереження");
     } finally {
       setIsPublishing(false);
     }
@@ -124,7 +126,7 @@ const CreatePost = () => {
   if (isLoadingData)
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--bg-main)]">
-        <div className="w-12 h-12 border-2 border-[var(--border-color)] border-t-[var(--purple-main)] rounded-full animate-spin"></div>
+        <div className="w-12 h-12 border-2 border-slate-500/10 border-t-[var(--purple-main)] rounded-full animate-spin"></div>
       </div>
     );
 
