@@ -20,6 +20,7 @@ app.use(
           "'self'",
           "http://localhost:5000",
           "https://science-hub-six.vercel.app",
+          "https://science-hub-w7vb.vercel.app",
         ],
         imgSrc: ["'self'", "data:", "*.amazonaws.com"],
         objectSrc: ["'none'"],
@@ -32,40 +33,28 @@ app.use(
 const allowedOrigins = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
+  "https://science-hub-six.vercel.app",
   "https://science-hub-w7vb.vercel.app",
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
+      // Дозволяємо запити без origin (наприклад, Postman або мобільні додатки)
       if (!origin) return callback(null, true);
 
-      if (allowedOrigins.indexOf(origin) !== -1) {
+      if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error("Not allowed by CORS"));
+        callback(new Error(`Not allowed by CORS for origin: ${origin}`));
       }
     },
     credentials: true,
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+    allowedHeaders:
+      "Content-Type, Authorization, X-Requested-With, Accept, Cookie",
   }),
 );
-
-app.options(/.*/, (req, res) => {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-    res.setHeader(
-      "Access-Control-Allow-Methods",
-      "GET,POST,PUT,DELETE,OPTIONS,PATCH",
-    );
-    res.setHeader(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, X-Requested-With, Accept",
-    );
-  }
-  res.sendStatus(200);
-});
 
 app.use(morgan("dev"));
 app.use(cookieParser());
