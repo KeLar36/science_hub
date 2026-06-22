@@ -12,7 +12,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import HomePage from "./pages/homePage";
 import LoginPage from "./pages/loginPage";
 import RegisterPage from "./pages/registerPage";
-import ProfilePage from "./pages/profilePage";
+import ProfilePage from "./pages/ProfilePage";
 import AdminPage from "./pages/AdminPage";
 import AboutPage from "./pages/aboutPage";
 import ProgramDetails from "./pages/ProgramDetails";
