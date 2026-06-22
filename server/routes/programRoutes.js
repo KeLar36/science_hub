@@ -29,6 +29,7 @@ router.post(
         impactFactor,
       } = req.body;
 
+      // Базова валідація
       if (!title || !description || !deadline) {
         return res
           .status(400)
@@ -43,9 +44,10 @@ router.post(
         type,
         amount: amount || undefined,
         issn: issn || undefined,
+        // Якщо з фронту прилітає порожній рядок "", ставимо 0, щоб тип Number не сварився
         impactFactor:
-          impactFactor !== undefined ? Number(impactFactor) : undefined,
-        adminId: req.user.id,
+          impactFactor && impactFactor !== "" ? Number(impactFactor) : 0,
+        createdBy: req.user.id, // ВІДПОВІДНО ДО ТВОЄЇ СХЕМИ (замість adminId)
         active: true,
       });
 

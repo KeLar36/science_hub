@@ -93,7 +93,6 @@ const AdminPage = () => {
     const approved = projArray.filter((p) => p.status === "Прийнято").length;
     const pending = projArray.filter((p) => p.status === "На розгляді").length;
     const rejected = projArray.filter((p) => p.status === "Відхилено").length;
-
     const pieData = [
       { name: "Схвалено", value: approved },
       { name: "На розгляді", value: pending },
@@ -180,6 +179,8 @@ const AdminPage = () => {
     }
   };
 
+  const getTodayString = () => new Date().toISOString().split("T")[0];
+
   const handleCreateProgram = async (e) => {
     e.preventDefault();
     try {
@@ -190,7 +191,7 @@ const AdminPage = () => {
         title: "",
         description: "",
         category: "Гранти",
-        deadline: new Date(),
+        deadline: getTodayString(),
       });
       toast.success("Програму створено!");
     } catch {
