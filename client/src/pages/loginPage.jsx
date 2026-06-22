@@ -50,7 +50,9 @@ const LoginPage = () => {
     try {
       const res = await axios.post("/auth/login", data);
 
-      login(res.data.user);
+      const userProfile = await axios.get("/users/me");
+
+      login(userProfile.data.user || res.data.user);
 
       toast.success(`Вітаємо у системі!`, {
         style: {
@@ -64,7 +66,7 @@ const LoginPage = () => {
 
       setTimeout(() => {
         navigate("/");
-      }, 1000);
+      }, 600);
     } catch (err) {
       toast.error(err.response?.data?.error || "Помилка авторизації", {
         style: {
