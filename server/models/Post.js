@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const CommentSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "UserTemp",
+    ref: "User",
     required: true,
   },
   text: {
@@ -23,7 +23,7 @@ const PostSchema = new mongoose.Schema({
   category: { type: String, required: true },
   authorId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "UserTemp",
+    ref: "User",
     required: true,
     index: true,
   },
@@ -36,10 +36,10 @@ const PostSchema = new mongoose.Schema({
   views: { type: Number, default: 0 },
 
   reactions: {
-    fire: [{ type: mongoose.Schema.Types.ObjectId, ref: "UserTemp" }],
-    heart: [{ type: mongoose.Schema.Types.ObjectId, ref: "UserTemp" }],
-    clap: [{ type: mongoose.Schema.Types.ObjectId, ref: "UserTemp" }],
-    idea: [{ type: mongoose.Schema.Types.ObjectId, ref: "UserTemp" }],
+    fire: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    heart: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    clap: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    idea: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   },
 
   comments: [CommentSchema],
