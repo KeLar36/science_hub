@@ -28,8 +28,6 @@ const LoginPage = () => {
   const { login } = useAuth();
 
   useEffect(() => {
-    AOS.init({ duration: 800, once: true });
-
     const savedEmail = localStorage.getItem("registeredEmail");
     if (savedEmail) {
       setData((prev) => ({ ...prev, email: savedEmail }));

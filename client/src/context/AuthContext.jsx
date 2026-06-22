@@ -1,9 +1,11 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, {
   createContext,
   useContext,
   useState,
   useEffect,
   useRef,
+  useCallback,
 } from "react";
 import axios from "../api/axios";
 
@@ -17,35 +19,50 @@ export const AuthProvider = ({ children }) => {
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const isChecking = useRef(false);
 
-  const checkAuth = async (force = false) => {
-    if (isChecking.current || (isAuthChecked && !force)) return;
-    isChecking.current = true;
+  const checkAuth = useCallback(
+    async (force = false) => {
+      if (isChecking.current || (isAuthChecked && !force)) return;
+      isChecking.current = true;
 
-    try {
-      const res = await axios.get("/auth/me", { withCredentials: true });
+      try {
+        const res = await axios.get("/auth/me");
 
-      if (res.data && res.data.user) {
-        setUser(res.data.user);
-      } else {
+        if (res.data && res.data.user) {
+          setUser(res.data.user);
+        } else {
+          setUser(null);
+        }
+      } catch (err) {
+        console.error("Помилка авторизації в контексті:", err);
         setUser(null);
+      } finally {
+        setLoading(false);
+        setIsAuthChecked(true);
+        isChecking.current = false;
       }
-    } catch (err) {
-      console.error("Помилка авторизації в контексті:", err);
-      setUser(null);
-    } finally {
-      setLoading(false);
-      setIsAuthChecked(true);
-      isChecking.current = false;
-    }
-  };
+    },
+    [isAuthChecked],
+  );
 
   useEffect(() => {
     checkAuth();
-  }, []);
+  }, [checkAuth]);
 
-  const login = (newUser) => {
-    setUser(newUser);
-    setIsAuthChecked(true);
+  const login = async (userData) => {
+    setLoading(true);
+    try {
+      const res = await axios.get("/auth/me");
+      if (res.data && res.data.user) {
+        setUser(res.data.user);
+      } else {
+        setUser(userData);
+      }
+    } catch {
+      setUser(userData);
+    } finally {
+      setIsAuthChecked(true);
+      setLoading(false);
+    }
   };
 
   const updateUserState = (updatedUser) => {
@@ -77,7 +94,7 @@ export const AuthProvider = ({ children }) => {
     >
       {loading ? (
         <div className="min-h-screen bg-[#0d0d0e] flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-[var(--purple-main)] border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
         </div>
       ) : (
         children
