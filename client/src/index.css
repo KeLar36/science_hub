@@ -13,12 +13,12 @@
 }
 
 .dark {
-  --bg-main: #0d0d0e;
-  --bg-card: #0a0a0a;
+  --bg-main: #121214;
+  --bg-card: #1a1a1e;
   --text-dark: #ffffff;
-  --text-gray: #888888;
+  --text-gray: #9ca3af;
   --text-main: #e5e7eb;
-  --border-color: #1a1a1a;
+  --border-color: #26262b;
   --selection-bg: #4c1d95;
 }
 

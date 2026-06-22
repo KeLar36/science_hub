@@ -18,7 +18,16 @@ router.post(
   checkRole(["admin", "superadmin"]),
   async (req, res) => {
     try {
-      const { title, description, deadline, domain, type } = req.body;
+      const {
+        title,
+        description,
+        deadline,
+        domain,
+        type,
+        amount,
+        issn,
+        impactFactor,
+      } = req.body;
 
       if (!title || !description || !deadline) {
         return res
@@ -32,6 +41,10 @@ router.post(
         deadline,
         domain,
         type,
+        amount: amount || undefined,
+        issn: issn || undefined,
+        impactFactor:
+          impactFactor !== undefined ? Number(impactFactor) : undefined,
         adminId: req.user.id,
         active: true,
       });
