@@ -26,6 +26,12 @@ const Navbar = () => {
 
   const closeMenu = () => setIsOpen(false);
 
+  const handleProtectedRedirect = () => {
+    setTimeout(() => {
+      closeMenu();
+    }, 50);
+  };
+
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "unset";
     return () => {
@@ -93,7 +99,6 @@ const Navbar = () => {
             </div>
           </Link>
 
-          {/* Десктопна навігація */}
           <div className="hidden lg:flex items-center gap-8">
             {navLinks.map((link, idx) => {
               const isActive = location.pathname === link.path;
@@ -118,7 +123,6 @@ const Navbar = () => {
             })}
           </div>
 
-          {/* Права частина з діями */}
           <div className="flex justify-center items-center gap-2">
             <button
               onClick={toggleTheme}
@@ -128,7 +132,6 @@ const Navbar = () => {
               {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
             </button>
 
-            {/* Авторизація */}
             {user ? (
               <div className="flex items-center gap-3">
                 <Link
@@ -175,11 +178,12 @@ const Navbar = () => {
         </div>
       </div>
 
+      {/* Мобільне меню: Додано ізольований z-index та 100% непрозорий бекграунд */}
       <div
-        className={`fixed inset-x-0 top-0 bottom-0 h-[100dvh] bg-[var(--bg-main)] z-[9999] transition-all duration-500 ease-in-out lg:hidden flex flex-col justify-between ${
+        className={`fixed inset-x-0 top-0 bottom-0 h-[100dvh] bg-neutral-50 dark:bg-neutral-950 lg:hidden flex flex-col justify-between transition-all duration-500 ease-in-out ${
           isOpen
-            ? "translate-y-0 opacity-100 visible"
-            : "-translate-y-full opacity-0 invisible"
+            ? "translate-y-0 opacity-100 visible z-[99999]"
+            : "-translate-y-full opacity-0 invisible z-[-1]"
         }`}
       >
         <div className="flex-1 overflow-y-auto pt-28 px-8 pb-6 space-y-8">
@@ -211,7 +215,7 @@ const Navbar = () => {
           </div>
         </div>
 
-        <div className="p-8 pb-10 border-t border-[var(--border-color)] bg-[var(--bg-main)] shadow-[0_-10px_30px_rgba(0,0,0,0.05)] relative z-20 layout-safe-bottom">
+        <div className="p-8 pb-12 border-t border-[var(--border-color)] bg-neutral-50 dark:bg-neutral-950 shadow-[0_-10px_30px_rgba(0,0,0,0.03)] relative z-20">
           {user ? (
             <div className="space-y-4">
               <div className="flex items-center gap-4">
@@ -238,6 +242,7 @@ const Navbar = () => {
               <div className="grid grid-cols-2 gap-3 pt-2">
                 <Link
                   to="/profile"
+                  onClick={handleProtectedRedirect}
                   className="py-3.5 bg-[var(--bg-card)] border border-[var(--border-color)] text-center text-[10px] font-black uppercase tracking-widest rounded-xl text-[var(--text-dark)] active:scale-98 transition-transform"
                 >
                   Кабінет
