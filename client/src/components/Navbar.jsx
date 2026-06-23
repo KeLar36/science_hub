@@ -279,12 +279,11 @@ const Navbar = () => {
             </div>
           )}
 
-          {/* Системний футер */}
           <div className="mt-6 pt-4 border-t border-[var(--border-color)]/60 flex justify-between items-center text-[9px] text-[var(--text-gray)] font-medium">
             <span className="flex items-center gap-1.5">
               <Mail size={12} /> support@scienceplatform.edu
             </span>
-            <span>v1.4.0</span>
+            <span>v2.0</span>
           </div>
         </div>
       </div>

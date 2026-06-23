@@ -15,9 +15,7 @@ const ProjectsTab = ({
 
   const reviewers = useMemo(() => {
     return Array.isArray(users)
-      ? users.filter((u) =>
-          ["admin", "superadmin", "reviewer"].includes(u.role),
-        )
+      ? users.filter((u) => u.role === "reviewer")
       : [];
   }, [users]);
 

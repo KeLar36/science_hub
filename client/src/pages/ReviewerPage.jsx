@@ -42,10 +42,10 @@ const ReviewerPage = () => {
   }, []);
 
   const loadMyAssignments = async () => {
-    const { userId, token } = userData;
+    const { userId } = userData;
 
-    if (!userId || !token) {
-      console.warn("Синхронізація сесії: ID або токен не знайдено");
+    if (!userId) {
+      console.warn("Синхронізація сесії: ID користувача не знайдено");
       setLoading(false);
       return;
     }
@@ -53,7 +53,7 @@ const ReviewerPage = () => {
     try {
       setLoading(true);
       const res = await axios.get(`/projects/reviewer/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
 
       const activeProjects = res.data.filter(
@@ -62,7 +62,7 @@ const ReviewerPage = () => {
       );
       setMyProjects(activeProjects);
     } catch (err) {
-      console.error("Деталі помилки:", err);
+      console.error("Деталі помилки при завантаженні:", err);
       if (err.response?.status !== 404) {
         const errorMessage =
           err.response?.data?.message || "Не вдалося завантажити чергу";
