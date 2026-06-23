@@ -125,6 +125,7 @@ const Navbar = () => {
           </div>
 
           {/* Кнопки дій */}
+          {/* Кнопки дій */}
           <div className="flex justify-center items-center gap-2">
             <button
               onClick={toggleTheme}
@@ -136,10 +137,11 @@ const Navbar = () => {
 
             {user ? (
               <div className="flex items-center gap-3">
+                {/* Кнопка профілю: ТЕПЕР ПРИХОВАНА НА МЕНШЕ НІЖ 768px (hidden md:flex) */}
                 <Link
                   to="/profile"
                   onClick={closeMenu}
-                  className="w-9 h-9 rounded-xl border border-[var(--border-color)] overflow-hidden bg-[var(--bg-card)] flex items-center justify-center transition-all hover:border-[#6d28d9]"
+                  className="hidden md:flex w-9 h-9 rounded-xl border border-[var(--border-color)] overflow-hidden bg-[var(--bg-card)] items-center justify-center transition-all hover:border-[#6d28d9]"
                 >
                   {user.image ? (
                     <img
@@ -151,6 +153,7 @@ const Navbar = () => {
                     <User size={16} className="text-[var(--text-dark)]" />
                   )}
                 </Link>
+
                 <button
                   onClick={handleLogout}
                   className="hidden lg:flex p-2.5 rounded-xl text-[var(--text-gray)] hover:text-rose-500 hover:bg-rose-500/5 transition-all duration-300"

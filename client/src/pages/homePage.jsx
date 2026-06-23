@@ -8,8 +8,8 @@ import {
   Search,
   Zap,
   TrendingUp,
-  Users,
   Globe2,
+  Users,
   Mail,
   Terminal,
   BookOpen,
@@ -22,11 +22,10 @@ import "aos/dist/aos.css";
 
 import { SCIENTIFIC_DOMAINS, PROGRAM_TYPES } from "../constants/domains";
 
-const parser = new DOMParser();
-const stripHtml = (html) => {
+// Оптимізована функція очищення HTML (швидша за DOMParser для рендерингу списків)
+const stripHtmlFast = (html) => {
   if (!html) return "";
-  const doc = parser.parseFromString(html, "text/html");
-  return doc.body.textContent || "";
+  return html.replace(/<\/?[^>]+(>|$)/g, "");
 };
 
 const HomePage = () => {
@@ -41,12 +40,19 @@ const HomePage = () => {
   const typesList = useMemo(() => ["Всі типи", ...PROGRAM_TYPES], []);
 
   useEffect(() => {
-    AOS.init({ duration: 1000, once: true });
+    AOS.init({ duration: 800, once: true, disable: "mobile" }); // вимикаємо AOS на мобілках для швидкості
 
     const fetchData = async () => {
       try {
         const res = await axiosInstance.get("/programs");
-        if (Array.isArray(res.data)) setPrograms(res.data);
+        if (Array.isArray(res.data)) {
+          // Очищаємо HTML один раз при запиті, а не під час кожного рендеру картки!
+          const cleanedPrograms = res.data.map((p) => ({
+            ...p,
+            cleanedDescription: stripHtmlFast(p.description),
+          }));
+          setPrograms(cleanedPrograms);
+        }
       } catch (err) {
         console.error("Помилка завантаження даних:", err);
       } finally {
@@ -58,15 +64,18 @@ const HomePage = () => {
 
   const filteredPrograms = useMemo(() => {
     const today = new Date().setHours(0, 0, 0, 0);
+    const normalizedSearch = searchTerm.toLowerCase().trim();
+
     return programs.filter((p) => {
-      const matchesSearch = (p.title || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
+      const matchesSearch =
+        !normalizedSearch ||
+        (p.title || "").toLowerCase().includes(normalizedSearch);
       const matchesDomain =
         selectedDomain === "Всі галузі" || p.domain === selectedDomain;
       const matchesType =
         selectedType === "Всі типи" || p.type === selectedType;
       const deadlineDate = p.deadline ? new Date(p.deadline) : null;
+
       return (
         matchesSearch &&
         matchesDomain &&
@@ -75,98 +84,45 @@ const HomePage = () => {
       );
     });
   }, [programs, searchTerm, selectedDomain, selectedType]);
+
   return (
     <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-main)] transition-colors duration-300 overflow-x-hidden selection:bg-purple-600 selection:text-white">
       <Navbar />
 
-      <style>{`
-        .rules-grid-bg {
-          background-image: radial-gradient(var(--border-color) 1px, transparent 1px);
-          background-size: 40px 40px;
-          position: absolute;
-          inset: 0; 
-          opacity: 0.4; 
-          z-index: 0;
-        }
-        .label-mono {
-          font-family: 'Space Mono', monospace;
-          font-size: 10px;
-          text-transform: uppercase;
-          letter-spacing: 0.2em;
-        }
-        @keyframes marquee {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        .animate-marquee {
-          display: flex;
-          animation: marquee 30s linear infinite;
-        }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        .filter-tab {
-          text-align: left;
-          font-size: 11px;
-          font-weight: 900;
-          white-space: nowrap;
-          transition: all 0.3s ease;
-          text-transform: uppercase;
-          letter-spacing: 0.2em;
-          position: relative;
-          padding: 8px 0;
-          flex-shrink: 0;
-        }
-        .filter-tab::after {
-          content: '';
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          width: 0;
-          height: 2px;
-          background-color: #9333ea;
-          transition: width 0.3s ease;
-        }
-        .filter-tab-active {
-          color: #9333ea !important;
-        }
-        .filter-tab-active::after {
-          width: 100%;
-        }
-      `}</style>
-
-      <header className="relative pt-44 pb-32 px-6 border-b border-[var(--border-color)] overflow-hidden">
-        <div className="rules-grid-bg" />
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-purple-600/10 blur-[150px] rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none animate-pulse" />
+      {/* Hero Section */}
+      <header className="relative pt-40 pb-24 px-6 border-b border-[var(--border-color)] overflow-hidden">
+        {/* Заміна важкого radial-gradient на легкий CSS паттерн через Tailwind */}
+        <div className="absolute inset-0 opacity-25 pointer-events-none z-0 bg-[radial-gradient(var(--border-color)_1px,transparent_1px)] [background-size:32px_32px]" />
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-600/5 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none" />
 
         <div className="max-w-7xl mx-auto relative z-10">
           <div
-            className="flex flex-col items-center text-center mb-16"
+            className="flex flex-col items-center text-center mb-12"
             data-aos="fade-down"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-purple-500/30 bg-purple-500/5 text-purple-600 mb-8">
-              <Terminal size={14} />
-              <span className="label-mono font-bold">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-purple-500/20 bg-purple-500/5 text-purple-600 mb-6">
+              <Terminal size={12} />
+              <span className="font-mono text-[10px] font-bold uppercase tracking-widest">
                 Science Platform v2.0
               </span>
             </div>
 
-            <h1 className="text-6xl lg:text-9xl font-black tracking-tighter text-[var(--text-dark)] leading-[1.15] uppercase italic">
+            <h1 className="text-5xl lg:text-8xl font-black tracking-tight text-[var(--text-dark)] leading-none uppercase italic">
               Досліджуй <br />
               <span className="text-purple-600">Публікуй</span> <br />
               Впливай
             </h1>
 
-            <p className="mt-8 max-w-2xl mx-auto text-[var(--text-gray)] font-medium leading-relaxed italic text-lg md:text-xl">
+            <p className="mt-6 max-w-xl mx-auto text-[var(--text-gray)] font-medium leading-relaxed italic text-base md:text-lg">
               Глобальна екосистема для верифікації та розповсюдження цифрового
               наукового контенту.
             </p>
           </div>
 
+          {/* Статистика */}
           <div
-            className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-15"
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12"
             data-aos="fade-up"
-            data-aos-delay="400"
           >
             {[
               {
@@ -184,33 +140,30 @@ const HomePage = () => {
             ].map((s, i) => (
               <div
                 key={i}
-                className="p-8 border border-[var(--border-color)] bg-[var(--bg-card)]/30 backdrop-blur-sm hover:border-purple-600/50 transition-all group"
+                className="p-6 border border-[var(--border-color)] bg-[var(--bg-card)]/20 backdrop-blur-sm transition-all hover:border-purple-600/40"
               >
-                <div className="text-purple-600 mb-4 group-hover:scale-110 transition-transform">
-                  {s.icon}
-                </div>
-                <div className="text-3xl font-black text-[var(--text-dark)] italic uppercase tracking-tighter">
+                <div className="text-purple-600 mb-2">{s.icon}</div>
+                <div className="text-2xl font-black text-[var(--text-dark)] italic uppercase tracking-tighter">
                   {s.val}
                 </div>
-                <div className="label-mono opacity-60">{s.label}</div>
+                <div className="font-mono text-[9px] uppercase tracking-wider opacity-60 mt-1">
+                  {s.label}
+                </div>
               </div>
             ))}
           </div>
 
-          <div
-            className="max-w-3xl mx-auto mb-20"
-            data-aos="zoom-in"
-            data-aos-delay="200"
-          >
-            <div className="relative group p-2 bg-[var(--bg-card)]/50 backdrop-blur-xl border border-[var(--border-color)] rounded-2xl focus-within:border-purple-600 transition-all shadow-2xl">
+          {/* Пошуковий інпут */}
+          <div className="max-w-2xl mx-auto" data-aos="zoom-in">
+            <div className="relative p-1.5 bg-[var(--bg-card)]/40 backdrop-blur-md border border-[var(--border-color)] rounded-xl focus-within:border-purple-600/80 transition-all">
               <Search
-                size={24}
-                className="absolute left-6 top-1/2 -translate-y-1/2 text-[var(--text-gray)] group-focus-within:text-purple-600 transition-colors"
+                size={20}
+                className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-gray)]"
               />
               <input
                 type="text"
-                placeholder="Пошук за ключовими словами (AI, Quantum, Bio)..."
-                className="w-full pl-16 pr-6 py-5 bg-transparent text-xl outline-none placeholder:text-gray-500 font-bold text-[var(--text-dark)]"
+                placeholder="Пошук за ключовими словами (AI, Quantum)..."
+                className="w-full pl-12 pr-4 py-3.5 bg-transparent text-lg outline-none placeholder:text-gray-500/70 font-bold text-[var(--text-dark)]"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -219,23 +172,28 @@ const HomePage = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-20">
-        {/* Блок фільтрів */}
-        <div className="mb-20 space-y-12" data-aos="fade-up">
+      {/* Головний контент */}
+      <main className="max-w-7xl mx-auto px-6 py-16">
+        {/* Блок фільтрів без тегів <style> */}
+        <div className="mb-16 space-y-10" data-aos="fade-up">
           {/* Галузі */}
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-1 h-4 bg-purple-600" />
-              <span className="label-mono font-bold text-purple-600">
+              <div className="w-1 h-3.5 bg-purple-600" />
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-purple-600">
                 Напрямок дослідження:
               </span>
             </div>
-            <div className="flex items-center gap-x-8 overflow-x-auto no-scrollbar pb-4 border-b border-[var(--border-color)]">
+            <div className="flex items-center gap-x-6 overflow-x-auto pb-3 border-b border-[var(--border-color)] scrollbar-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {domainsList.map((d) => (
                 <button
                   key={d}
                   onClick={() => setSelectedDomain(d)}
-                  className={`filter-tab ${selectedDomain === d ? "filter-tab-active" : "text-[var(--text-gray)] hover:text-[var(--text-dark)]"}`}
+                  className={`text-[11px] font-black uppercase tracking-widest whitespace-nowrap pb-2 transition-all relative ${
+                    selectedDomain === d
+                      ? "text-purple-600 after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-purple-600"
+                      : "text-[var(--text-gray)] hover:text-[var(--text-dark)]"
+                  }`}
                 >
                   {d}
                 </button>
@@ -243,20 +201,24 @@ const HomePage = () => {
             </div>
           </div>
 
-          {/* Типи контенту */}
-          <div className="flex flex-col gap-6">
+          {/* Типи */}
+          <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
-              <Layers size={14} className="text-purple-600" />
-              <span className="label-mono font-bold text-purple-600">
+              <Layers size={12} className="text-purple-600" />
+              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-purple-600">
                 Тип контенту:
               </span>
             </div>
-            <div className="flex items-center gap-x-8 overflow-x-auto no-scrollbar pb-4 border-b border-[var(--border-color)]">
+            <div className="flex items-center gap-x-6 overflow-x-auto pb-3 border-b border-[var(--border-color)] scrollbar-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {typesList.map((t) => (
                 <button
                   key={t}
                   onClick={() => setSelectedType(t)}
-                  className={`filter-tab ${selectedType === t ? "filter-tab-active" : "text-[var(--text-gray)] hover:text-[var(--text-dark)]"}`}
+                  className={`text-[11px] font-black uppercase tracking-widest whitespace-nowrap pb-2 transition-all relative ${
+                    selectedType === t
+                      ? "text-purple-600 after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-purple-600"
+                      : "text-[var(--text-gray)] hover:text-[var(--text-dark)]"
+                  }`}
                 >
                   {t}
                 </button>
@@ -265,15 +227,16 @@ const HomePage = () => {
           </div>
         </div>
 
+        {/* Списочна частина */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-40">
-            <div className="w-12 h-12 border-2 border-purple-600/20 border-t-purple-600 rounded-full animate-spin mb-4" />
-            <span className="label-mono font-bold">
+          <div className="flex flex-col items-center justify-center py-32">
+            <div className="w-10 h-10 border-2 border-purple-600/20 border-t-purple-600 rounded-full animate-spin mb-4" />
+            <span className="font-mono text-[10px] font-bold uppercase tracking-widest opacity-70">
               Синхронізуємо базу даних...
             </span>
           </div>
         ) : filteredPrograms.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredPrograms.map((prog, index) => {
               const diffDays = Math.ceil(
                 (new Date(prog.deadline) - new Date()) / (1000 * 60 * 60 * 24),
@@ -284,63 +247,61 @@ const HomePage = () => {
                 <article
                   key={prog._id}
                   onClick={() => navigate(`/program/${prog._id}`)}
-                  data-aos="fade-up"
-                  data-aos-delay={index * 50}
-                  className="group relative p-10 bg-[var(--bg-card)] border border-[var(--border-color)] cursor-pointer flex flex-col h-[500px] transition-all duration-500 hover:border-purple-600/50 hover:shadow-[0_30px_60px_rgba(124,58,237,0.08)]"
+                  className="group relative p-8 bg-[var(--bg-card)] border border-[var(--border-color)] cursor-pointer flex flex-col h-[460px] transition-all duration-300 hover:border-purple-600/40 will-change-transform hover:-translate-y-1"
                 >
-                  <div className="absolute top-1 right-6 text-5xl font-black text-[var(--text-gray)] opacity-[0.03] group-hover:opacity-[0.15] transition-opacity italic">
+                  <div className="absolute top-2 right-6 text-4xl font-black text-[var(--text-gray)] opacity-[0.03] group-hover:opacity-[0.1] transition-opacity italic">
                     {index + 1 < 10 ? `0${index + 1}` : index + 1}
                   </div>
 
-                  <div className="flex justify-between items-start mb-8 mt-5 relative z-10">
-                    <div className="flex flex-col gap-3">
-                      <div className="flex flex-wrap gap-2 items-center">
-                        <span className="label-mono !text-purple-600 font-bold bg-purple-600/5 px-2 py-1 rounded">
+                  <div className="flex justify-between items-start mb-6 mt-2">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex flex-wrap gap-1.5 items-center">
+                        <span className="font-mono text-[9px] font-bold uppercase tracking-wider text-purple-600 bg-purple-600/5 px-2 py-0.5 rounded">
                           {prog.type || "Програма"}
                         </span>
                         {prog.type === "Науковий журнал" &&
                           prog.impactFactor > 0 && (
-                            <span className="text-[9px] font-black bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-2 py-1 rounded uppercase tracking-tighter">
+                            <span className="text-[9px] font-black bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-1.5 py-0.5 rounded">
                               IF: {prog.impactFactor}
                             </span>
                           )}
                         {prog.type === "Грант" && prog.amount && (
-                          <span className="text-[9px] font-black bg-amber-500/10 text-amber-600 border border-amber-500/20 px-2 py-1 rounded uppercase tracking-tighter">
+                          <span className="text-[9px] font-black bg-amber-500/10 text-amber-600 border border-amber-500/20 px-1.5 py-0.5 rounded">
                             💰 {prog.amount}
                           </span>
                         )}
                       </div>
-                      <span className="text-[12px] font-bold text-[var(--text-gray)] uppercase tracking-widest">
+                      <span className="text-[10px] font-bold text-[var(--text-gray)] uppercase tracking-wider">
                         {prog.domain}
                       </span>
                     </div>
                     <div className="p-2 border border-[var(--border-color)] group-hover:border-purple-600 transition-colors">
                       <ArrowUpRight
-                        size={16}
-                        className="text-[var(--text-gray)] group-hover:text-purple-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all"
+                        size={14}
+                        className="text-[var(--text-gray)] group-hover:text-purple-600 transition-colors"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-4 mb-auto relative z-10">
-                    <h3 className="text-2xl font-bold text-[var(--text-dark)] leading-tight uppercase italic group-hover:text-purple-600 transition-colors">
+                  <div className="space-y-3 mb-auto">
+                    <h3 className="text-xl font-bold text-[var(--text-dark)] leading-tight uppercase italic group-hover:text-purple-600 transition-colors line-clamp-2">
                       {prog.title}
                     </h3>
-                    <p className="text-sm text-[var(--text-gray)] line-clamp-4 leading-relaxed font-medium italic">
-                      {stripHtml(prog.description)}
+                    <p className="text-xs text-[var(--text-gray)] line-clamp-4 leading-relaxed italic font-medium">
+                      {prog.cleanedDescription}
                     </p>
                   </div>
 
-                  <div className="pt-8 border-t border-[var(--border-color)] flex items-center justify-between mt-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[var(--bg-main)] border border-[var(--border-color)] flex items-center justify-center">
-                        <Calendar size={12} className="text-purple-600" />
+                  <div className="pt-6 border-t border-[var(--border-color)] flex items-center justify-between mt-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-full bg-[var(--bg-main)] border border-[var(--border-color)] flex items-center justify-center">
+                        <Calendar size={11} className="text-purple-600" />
                       </div>
                       <div>
-                        <div className="label-mono !text-[8px] opacity-60">
+                        <div className="font-mono text-[8px] opacity-50 uppercase">
                           Дедлайн
                         </div>
-                        <div className="text-xs font-black text-[var(--text-dark)] uppercase">
+                        <div className="text-[11px] font-black text-[var(--text-dark)] uppercase">
                           {prog.deadline
                             ? new Date(prog.deadline).toLocaleDateString(
                                 "uk-UA",
@@ -348,18 +309,19 @@ const HomePage = () => {
                             : "TBA"}
                         </div>
                       </div>
-                    </div>{" "}
+                    </div>
+
                     {isUrgent && (
-                      <div className="flex items-center gap-1.5 px-3 py-1 bg-purple-600/15 rounded-full">
-                        <span className="w-1.5 h-1.5 rounded-full bg-purple-600 animate-ping" />
-                        <span className="text-[9px] font-black uppercase text-purple-600">
-                          Термін спливає
+                      <div className="flex items-center gap-1 px-2.5 py-0.5 bg-purple-600/10 rounded-full">
+                        <span className="w-1 h-1 rounded-full bg-purple-600 animate-ping" />
+                        <span className="text-[8px] font-black uppercase text-purple-600">
+                          Спливає
                         </span>
                       </div>
                     )}
                     <Zap
-                      size={16}
-                      className="text-[var(--border-color)] group-hover:text-amber-500 transition-all"
+                      size={14}
+                      className="text-[var(--border-color)] group-hover:text-amber-500 transition-colors"
                     />
                   </div>
                 </article>
@@ -368,52 +330,48 @@ const HomePage = () => {
           </div>
         ) : (
           <div
-            className="py-40 text-center border border-dashed border-[var(--border-color)] bg-[var(--bg-card)]/50 backdrop-blur-sm rounded-3xl"
+            className="py-24 text-center border border-dashed border-[var(--border-color)] bg-[var(--bg-card)]/20 rounded-2xl"
             data-aos="zoom-in"
           >
-            <BookOpen size={48} className="mx-auto text-purple-600/50 mb-6" />
-            <h4 className="text-2xl font-black text-[var(--text-dark)] uppercase italic tracking-tighter mb-2">
+            <BookOpen size={40} className="mx-auto text-purple-600/40 mb-4" />
+            <h4 className="text-xl font-black text-[var(--text-dark)] uppercase italic mb-1">
               Упс, порожньо
             </h4>
-            <p className="label-mono opacity-80">
+            <p className="font-mono text-[9px] uppercase tracking-wider opacity-60">
               За вашими параметрами нічого не знайдено.
             </p>
           </div>
         )}
 
+        {/* Секція підписки */}
         <section
-          className="mt-40 p-12 md:p-24 border border-[var(--border-color)] relative overflow-hidden group rounded-[2.5rem] bg-[var(--bg-card)]/30 backdrop-blur-sm"
+          className="mt-32 p-8 md:p-16 border border-[var(--border-color)] relative overflow-hidden rounded-[2rem] bg-[var(--bg-card)]/10"
           data-aos="fade-up"
         >
-          <div className="rules-grid-bg opacity-20" />
-          <div className="absolute top-0 right-0 w-1/2 h-full bg-purple-600/5 -skew-x-12 translate-x-1/4 pointer-events-none transition-transform group-hover:scale-110" />
+          <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(var(--border-color)_1px,transparent_1px)] [background-size:32px_32px]" />
+          <div className="absolute top-0 right-0 w-1/3 h-full bg-purple-600/[0.02] -skew-x-12 translate-x-1/4 pointer-events-none" />
 
-          <div className="relative z-10 grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6 text-center lg:text-left">
-              <div className="w-14 h-14 bg-purple-600 flex items-center justify-center text-white mx-auto lg:mx-0 shadow-lg shadow-purple-500/20">
-                <Mail size={28} />
+          <div className="relative z-10 grid lg:grid-cols-2 gap-8 items-center">
+            <div className="space-y-4 text-center lg:text-left">
+              <div className="w-12 h-12 bg-purple-600 flex items-center justify-center text-white mx-auto lg:mx-0 shadow-md shadow-purple-500/15">
+                <Mail size={22} />
               </div>
-              <h2 className="text-4xl md:text-5xl font-black text-[var(--text-dark)] tracking-tighter uppercase italic leading-none">
+              <h2 className="text-3xl md:text-4xl font-black text-[var(--text-dark)] tracking-tight uppercase italic leading-none">
                 Науковий <br />{" "}
                 <span className="text-purple-600">Дайджест</span>
               </h2>
-              <p className="label-mono text-[var(--text-gray)] opacity-80">
+              <p className="font-mono text-[9px] uppercase tracking-wider text-[var(--text-gray)]">
                 Будьте в курсі нових Open Science можливостей.
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 relative">
+            <div className="flex flex-col sm:flex-row gap-3">
               <input
                 type="email"
                 placeholder="ЕЛЕКТРОННА_ПОШТА"
-                className="flex-grow bg-transparent border-b-2 border-[var(--border-color)] px-4 py-5 text-sm font-black outline-none focus:border-purple-600 transition-all text-[var(--text-dark)] placeholder:text-[var(--text-gray)]/50"
+                className="flex-grow bg-transparent border-b border-[var(--border-color)] px-2 py-4 text-xs font-black outline-none focus:border-purple-600 transition-all text-[var(--text-dark)] placeholder:text-[var(--text-gray)]/40"
               />
-              <button
-                className="bg-purple-600 text-white px-10 py-5 text-[11px] font-black uppercase tracking-[0.3em] 
-                   hover:bg-purple-700 dark:hover:bg-purple-500 
-                   hover:shadow-[0_10px_20px_rgba(147,51,234,0.3)]
-                   transition-all duration-300 shadow-xl active:scale-95 shrink-0"
-              >
+              <button className="bg-purple-600 text-white px-8 py-4 text-[10px] font-black uppercase tracking-[0.25em] hover:bg-purple-700 transition-all active:scale-95 shrink-0">
                 ПІДПИСАТИСЯ
               </button>
             </div>
