@@ -68,7 +68,6 @@ export default function ProfileHeader({
             "Дослідник відкритої науки. Інформація про наукові інтереси поки не заповнена."}
         </p>
 
-        {/* Дії та Соцмережі */}
         <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 pt-2">
           <div className="flex gap-3">
             {userData.socials?.github && (
@@ -110,7 +109,6 @@ export default function ProfileHeader({
             </button>
           </div>
 
-          {/* Розділювач показуємо, лише якщо у глобального юзера є хоч якась менеджерська роль */}
           {user &&
             ["admin", "superadmin", "content-manager", "reviewer"].includes(
               user.role,

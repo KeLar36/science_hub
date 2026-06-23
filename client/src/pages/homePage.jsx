@@ -90,7 +90,6 @@ const HomePage = () => {
     <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-main)] transition-colors duration-300 overflow-x-hidden selection:bg-purple-600 selection:text-white">
       <Navbar />
 
-      {/* Головний екран (Hero) */}
       <header className="relative pt-40 pb-24 px-4 md:px-6 border-b border-[var(--border-color)] overflow-hidden">
         <div className="absolute inset-0 opacity-20 pointer-events-none z-0 bg-[radial-gradient(var(--border-color)_1px,transparent_1px)] [background-size:32px_32px]" />
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-600/[0.03] blur-[120px] rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none" />
@@ -119,7 +118,6 @@ const HomePage = () => {
             </p>
           </div>
 
-          {/* Статистична панель */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-16 animate-[fadeIn_0.7s_ease-out_forwards]">
             {[
               {
@@ -152,7 +150,6 @@ const HomePage = () => {
             ))}
           </div>
 
-          {/* Пошуковий рядок */}
           <div className="max-w-2xl mx-auto animate-[fadeIn_0.8s_ease-out_forwards]">
             <div className="relative p-1.5 bg-[var(--bg-card)]/60 backdrop-blur-md border border-[var(--border-color)] rounded-xl focus-within:border-purple-600 dark:focus-within:border-purple-400 focus-within:shadow-lg focus-within:shadow-purple-600/5 transition-all duration-300">
               <Search
@@ -171,11 +168,8 @@ const HomePage = () => {
         </div>
       </header>
 
-      {/* Основна контентна зона */}
       <main className="max-w-7xl mx-auto px-4 md:px-6 py-16">
-        {/* Фільтри */}
         <div className="mb-16 space-y-10">
-          {/* Галузі */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
               <div className="w-1 h-3.5 bg-purple-600 dark:bg-purple-400 rounded-xs" />
@@ -200,7 +194,6 @@ const HomePage = () => {
             </div>
           </div>
 
-          {/* Типи */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
               <Layers
@@ -229,7 +222,6 @@ const HomePage = () => {
           </div>
         </div>
 
-        {/* Секція карток або лоадера */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-32">
             <div className="w-8 h-8 border-2 border-purple-600/10 border-t-purple-600 rounded-full animate-spin mb-4" />
@@ -251,7 +243,7 @@ const HomePage = () => {
                   onClick={() => navigate(`/program/${prog._id}`)}
                   className="group relative p-6 md:p-8 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl cursor-pointer flex flex-col h-[440px] transition-all duration-300 hover:border-purple-500/40 hover:shadow-lg hover:shadow-purple-600/[0.02] will-change-transform hover:-translate-y-1"
                 >
-                  <div className="absolute top-4 right-6 font-mono text-3xl font-extrabold text-[var(--text-gray)] opacity-[0.04] group-hover:opacity-[0.12] transition-opacity select-none">
+                  <div className="absolute top-4 right-6 text-3xl font-extrabold text-[var(--text-gray)] opacity-[0.04] group-hover:opacity-[0.12] transition-opacity select-none">
                     {index + 1 < 10 ? `0${index + 1}` : index + 1}
                   </div>
 
@@ -296,7 +288,6 @@ const HomePage = () => {
                     </p>
                   </div>
 
-                  {/* Нижня панелька (Дедлайн) */}
                   <div className="pt-5 border-t border-[var(--border-color)] flex items-center justify-between mt-4">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-xl bg-[var(--bg-main)] border border-[var(--border-color)] flex items-center justify-center">

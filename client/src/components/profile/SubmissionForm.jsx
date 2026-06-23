@@ -13,10 +13,7 @@ export default function SubmissionForm({
   domains,
 }) {
   return (
-    <div
-      className="max-w-3xl mx-auto bg-[var(--bg-card)] p-8 md:p-12 border border-[var(--border-color)] rounded-3xl shadow-sm"
-      data-aos="zoom-in"
-    >
+    <div className="max-w-3xl mx-auto bg-[var(--bg-card)] p-8 md:p-12 border border-[var(--border-color)] rounded-3xl shadow-sm">
       <form onSubmit={onSubmit} className="space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div className="space-y-1.5">
