@@ -7,7 +7,7 @@ export default function ArchiveFilter({
   onSelectDomain,
 }) {
   return (
-    <div className="max-w-7xl mx-auto mb-12" data-aos="fade-up">
+    <div className="max-w-7xl mx-auto mb-12">
       <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-2xl flex flex-col md:flex-row items-start md:items-center gap-4 shadow-xs">
         <div className="flex items-center gap-2 text-[var(--text-gray)] font-black text-xs uppercase tracking-wider pl-2 flex-shrink-0">
           <Filter size={14} className="text-purple-600" />

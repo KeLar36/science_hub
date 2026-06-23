@@ -30,42 +30,43 @@ const Steps = () => {
   ];
 
   return (
-    <section className="py-24 px-6 bg-[var(--bg-card)]/20 relative">
+    <section className="py-24 px-4 md:px-6 bg-[var(--bg-card)]/10 relative overflow-hidden">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
           <div className="space-y-3">
-            <span className="text-[9px] font-black uppercase tracking-[0.4em] text-[#6d28d9] dark:text-[#a78bfa]">
+            <span className="label-mono text-xs font-bold uppercase tracking-widest text-purple-600 dark:text-purple-400">
               Infrastructure
             </span>
-            <h2 className="text-4xl md:text-5xl font-black text-[var(--text-dark)] tracking-tighter uppercase">
+            <h2 className="text-4xl md:text-5xl font-extrabold text-[var(--text-dark)] tracking-tight uppercase">
               Етапи роботи
             </h2>
           </div>
           <div className="h-px flex-grow bg-[var(--border-color)] mx-8 hidden md:block mb-4" />
-          <p className="max-w-[200px] text-[9px] text-[var(--text-gray)] uppercase tracking-widest leading-relaxed font-bold">
-            Повний цикл: від ідеї до отримання сертифіката.
+          <p className="max-w-[240px] text-xs text-[var(--text-gray)] uppercase tracking-wider leading-relaxed font-medium opacity-90">
+            Повний цикл: від первинної ідеї до отримання фінального сертифіката.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 border border-[var(--border-color)] bg-[var(--bg-main)] rounded-2xl overflow-hidden divide-y sm:divide-y-0 sm:grid-inside-border">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 bg-[var(--border-color)] border border-[var(--border-color)] rounded-2xl overflow-hidden gap-px">
           {steps.map((item, i) => (
             <div
               key={i}
-              className="p-8 md:p-10 border-r last:border-r-0 border-[var(--border-color)] group hover:bg-[#6d28d9] transition-all duration-500 flex flex-col h-64"
-              data-aos="fade-up"
-              data-aos-delay={i * 50}
+              className="p-8 md:p-10 bg-[var(--bg-main)] group hover:bg-purple-600 transition-all duration-300 flex flex-col h-64 relative"
             >
-              <span className="text-2xl font-black text-purple-500/30 group-hover:text-white/20 transition-colors mb-auto">
+              <span className="text-3xl font-extrabold text-purple-600/15 dark:text-purple-400/10 group-hover:text-white/20 transition-colors duration-300 mb-auto select-none">
                 {item.step}
               </span>
-              <div className="space-y-3">
-                <div className="text-[#6d28d9] dark:text-[#a78bfa] group-hover:text-white transition-colors transform group-hover:scale-105 duration-500">
+
+              <div className="space-y-4 relative z-10">
+                <div className="text-purple-600 dark:text-purple-400 group-hover:text-white transition-colors duration-300 inline-block transform group-hover:scale-105">
                   {item.icon}
                 </div>
-                <h4 className="text-sm font-black text-[var(--text-dark)] group-hover:text-white uppercase tracking-wider">
+
+                <h4 className="text-base font-bold text-[var(--text-dark)] group-hover:text-white uppercase tracking-wide transition-colors duration-300">
                   {item.title}
                 </h4>
-                <p className="text-[10px] text-[var(--text-gray)] group-hover:text-white/80 font-bold uppercase tracking-[0.15em]">
+
+                <p className="text-xs text-[var(--text-gray)] group-hover:text-purple-100/90 font-medium uppercase tracking-wider transition-colors duration-300">
                   {item.text}
                 </p>
               </div>

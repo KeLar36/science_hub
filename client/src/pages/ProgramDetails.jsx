@@ -81,6 +81,7 @@ const ProgramDetails = () => {
         </button>
       </div>
     );
+
   const isGrant = program.type === "Грант";
   const hasMetrics =
     program.type === "Науковий журнал" || program.type === "Стаття";
@@ -97,75 +98,49 @@ const ProgramDetails = () => {
       <Toaster position="top-right" />
       <Navbar />
 
-      <style>{`
-        .rich-content { color: var(--text-main); line-height: 1.8; font-size: 1.05rem; }
-        .rich-content h2, .rich-content h3 { color: var(--text-dark); font-weight: 800; margin: 2rem 0 1rem; font-size: 1.4rem; text-transform: uppercase; font-style: italic; }
-        .rich-content p { margin-bottom: 1.25rem; }
-        .rich-content ul { margin: 1.5rem 0; padding-left: 1.5rem; }
-        .rich-content li { margin-bottom: 0.75rem; position: relative; list-style: none; }
-        .rich-content li::before { content: "→"; position: absolute; left: -1.5rem; color: var(--purple-main); font-weight: bold; }
-        .rich-content strong { color: var(--text-dark); }
-        
-        .label-mono {
-          font-family: 'Space Mono', monospace;
-          font-size: 10px;
-          text-transform: uppercase;
-          letter-spacing: 0.2em;
-        }
-
-        .animate-reveal {
-          animation: reveal 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-        }
-
-        @keyframes reveal {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
-
-      <main className="max-w-5xl mx-auto px-6 py-12 md:py-20 w-full flex-grow mt-24">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-12 md:py-20 w-full flex-grow mt-20 md:mt-24">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-3 mb-10 text-[var(--text-gray)] hover:text-[var(--purple-main)] transition-all text-xs font-black uppercase tracking-widest group"
+          className="flex items-center gap-3 mb-6 md:mb-10 text-[var(--text-gray)] hover:text-purple-600 dark:hover:text-purple-400 transition-all text-xs font-black uppercase tracking-widest group"
         >
           <ArrowLeft
-            size={18}
-            className="group-hover:-translate-x-2 transition-transform"
+            size={16}
+            className="group-hover:-translate-x-1.5 transition-transform"
           />
           Назад до списку
         </button>
 
-        <div className="bg-[var(--bg-card)] rounded-[40px] border border-[var(--border-color)] shadow-2xl overflow-hidden animate-reveal">
-          <div className="p-8 md:p-16">
-            <div className="flex flex-wrap items-center gap-3 mb-10">
-              <span className="bg-[var(--purple-main)]/10 text-[var(--purple-main)] px-4 py-1.5 rounded-xl label-mono font-bold border border-[var(--purple-main)]/20">
+        <div className="bg-[var(--bg-card)] rounded-3xl md:rounded-[40px] border border-[var(--border-color)] shadow-xl overflow-hidden animate-[reveal_0.6s_cubic-bezier(0.23,1,0.32,1)_forwards]">
+          <div className="p-5 sm:p-8 md:p-16">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-6 md:mb-10">
+              <span className="bg-purple-600/5 text-purple-600 dark:text-purple-400 px-3 py-1 sm:px-4 sm:py-1.5 rounded-xl text-[9px] sm:text-[10px] font-mono font-bold uppercase tracking-widest border border-purple-600/10">
                 {program.domain}
               </span>
-              <span className="bg-amber-500/10 text-amber-500 dark:text-amber-400 px-4 py-1.5 rounded-xl label-mono font-bold border border-amber-500/20 flex items-center gap-2">
-                <Layers size={12} />
+              <span className="bg-amber-500/5 text-amber-600 dark:text-amber-400 px-3 py-1 sm:px-4 sm:py-1.5 rounded-xl text-[9px] sm:text-[10px] font-mono font-bold uppercase tracking-widest border border-amber-500/10 flex items-center gap-1.5">
+                <Layers size={11} />
                 {program.type}
               </span>
-              <span className="flex items-center gap-2 bg-emerald-500/10 text-emerald-500 px-4 py-1.5 rounded-xl label-mono font-bold border border-emerald-500/20">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+              <span className="flex items-center gap-1.5 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 px-3 py-1 sm:px-4 sm:py-1.5 rounded-xl text-[9px] sm:text-[10px] font-mono font-bold uppercase tracking-widest border border-emerald-500/10">
+                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
                 Активно
               </span>
             </div>
 
-            <h1 className="text-4xl md:text-6xl font-black text-[var(--text-dark)] mb-12 leading-[1.1] tracking-tighter uppercase italic">
+            <h1 className="text-2xl sm:text-4xl md:text-6xl font-black text-[var(--text-dark)] mb-8 md:mb-12 leading-[1.15] tracking-tight md:tracking-tighter uppercase italic break-words">
               {program.title}
             </h1>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-16">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-10 md:mb-16">
               {isGrant && !!program.amount && (
-                <div className="sm:col-span-2 flex flex-col justify-between p-8 bg-gradient-to-br from-[var(--purple-main)]/10 to-transparent rounded-3xl border border-[var(--purple-main)]/30 group transition-all duration-300 hover:border-[var(--purple-main)] shadow-sm">
-                  <div className="p-3 bg-[var(--purple-main)] rounded-2xl text-white w-fit mb-6 shadow-md shadow-[var(--purple-main)]/20">
-                    <DollarSign size={28} />
+                <div className="sm:col-span-2 flex flex-col justify-between p-6 sm:p-8 bg-gradient-to-br from-purple-600/[0.03] to-transparent rounded-2xl sm:rounded-3xl border border-purple-600/20 group transition-all duration-300 hover:border-purple-600/40 shadow-sm">
+                  <div className="p-3 bg-purple-600 rounded-xl text-white w-fit mb-4 sm:mb-6 shadow-md shadow-purple-600/20">
+                    <DollarSign size={24} />
                   </div>
                   <div>
-                    <div className="label-mono text-[var(--purple-main)] font-black tracking-widest mb-1">
+                    <div className="text-[9px] sm:text-[10px] font-mono text-purple-600 dark:text-purple-400 font-bold uppercase tracking-widest mb-1">
                       Обсяг фінансування гранту
                     </div>
-                    <div className="text-2xl md:text-3xl font-black text-[var(--text-dark)] uppercase italic tracking-tight">
+                    <div className="text-xl sm:text-2xl md:text-3xl font-black text-[var(--text-dark)] uppercase italic tracking-tight">
                       {program.amount}
                     </div>
                   </div>
@@ -173,16 +148,16 @@ const ProgramDetails = () => {
               )}
 
               <div
-                className={`flex flex-col justify-between p-6 bg-[var(--bg-main)]/50 rounded-3xl border border-[var(--border-color)] group hover:border-[var(--purple-main)]/40 transition-all duration-300 ${!isGrant && !hasMetrics ? "md:col-span-3" : ""}`}
+                className={`flex flex-col justify-between p-5 sm:p-6 bg-[var(--bg-main)]/40 rounded-2xl sm:rounded-3xl border border-[var(--border-color)] group hover:border-purple-500/30 transition-all duration-300 ${!isGrant && !hasMetrics ? "sm:col-span-2 md:col-span-3" : ""}`}
               >
-                <div className="p-3 bg-[var(--purple-main)]/10 rounded-xl text-[var(--purple-main)] w-fit mb-6">
-                  <Calendar size={22} />
+                <div className="p-2.5 bg-purple-600/10 text-purple-600 dark:text-purple-400 rounded-xl w-fit mb-4 sm:mb-6">
+                  <Calendar size={20} />
                 </div>
                 <div>
-                  <div className="label-mono opacity-50 mb-1">
+                  <div className="text-[9px] sm:text-[10px] font-mono opacity-50 uppercase tracking-widest mb-1">
                     Кінцевий термін
                   </div>
-                  <div className="text-lg font-black text-[var(--text-dark)] uppercase">
+                  <div className="text-base sm:text-lg font-black text-[var(--text-dark)] uppercase">
                     {program.deadline
                       ? new Date(program.deadline).toLocaleDateString("uk-UA")
                       : "Не обмежено"}
@@ -191,15 +166,15 @@ const ProgramDetails = () => {
               </div>
 
               {hasMetrics && !!program.issn && (
-                <div className="flex flex-col justify-between p-6 bg-[var(--bg-main)]/50 rounded-3xl border border-[var(--border-color)] group hover:border-blue-500/40 transition-all duration-300">
-                  <div className="p-3 bg-blue-500/10 rounded-xl text-blue-500 w-fit mb-6">
-                    <Hash size={22} />
+                <div className="flex flex-col justify-between p-5 sm:p-6 bg-[var(--bg-main)]/40 rounded-2xl sm:rounded-3xl border border-[var(--border-color)] group hover:border-blue-500/30 transition-all duration-300">
+                  <div className="p-2.5 bg-blue-500/10 text-blue-500 rounded-xl w-fit mb-4 sm:mb-6">
+                    <Hash size={20} />
                   </div>
                   <div>
-                    <div className="label-mono opacity-50 mb-1">
+                    <div className="text-[9px] sm:text-[10px] font-mono opacity-50 uppercase tracking-widest mb-1">
                       ISSN Індекс
                     </div>
-                    <div className="text-lg font-black text-[var(--text-dark)] uppercase">
+                    <div className="text-base sm:text-lg font-black text-[var(--text-dark)] uppercase">
                       {program.issn}
                     </div>
                   </div>
@@ -207,52 +182,66 @@ const ProgramDetails = () => {
               )}
 
               {hasMetrics && !!program.impactFactor && (
-                <div className="flex flex-col justify-between p-6 bg-[var(--bg-main)]/50 rounded-3xl border border-[var(--border-color)] group hover:border-amber-500/40 transition-all duration-300">
-                  <div className="p-3 bg-amber-500/10 rounded-xl text-amber-500 w-fit mb-6">
-                    <Activity size={22} />
+                <div className="flex flex-col justify-between p-5 sm:p-6 bg-[var(--bg-main)]/40 rounded-2xl sm:rounded-3xl border border-[var(--border-color)] group hover:border-amber-500/30 transition-all duration-300">
+                  <div className="p-2.5 bg-amber-500/10 text-amber-500 rounded-xl w-fit mb-4 sm:mb-6">
+                    <Activity size={20} />
                   </div>
                   <div>
-                    <div className="label-mono opacity-50 mb-1">
+                    <div className="text-[9px] sm:text-[10px] font-mono opacity-50 uppercase tracking-widest mb-1">
                       Impact Factor
                     </div>
-                    <div className="text-lg font-black text-[var(--text-dark)] uppercase">
+                    <div className="text-base sm:text-lg font-black text-[var(--text-dark)] uppercase">
                       {program.impactFactor}
                     </div>
                   </div>
                 </div>
               )}
 
-              <div className="flex flex-col justify-between p-6 bg-[var(--bg-main)]/50 rounded-3xl border border-[var(--border-color)] group hover:border-[var(--purple-main)]/40 transition-all duration-300">
-                <div className="p-3 bg-[var(--purple-main)]/10 rounded-xl text-[var(--purple-main)] w-fit mb-6">
-                  <Target size={22} />
+              <div className="flex flex-col justify-between p-5 sm:p-6 bg-[var(--bg-main)]/40 rounded-2xl sm:rounded-3xl border border-[var(--border-color)] group hover:border-purple-500/30 transition-all duration-300">
+                <div className="p-2.5 bg-purple-600/10 text-purple-600 dark:text-purple-400 rounded-xl w-fit mb-4 sm:mb-6">
+                  <Target size={20} />
                 </div>
                 <div>
-                  <div className="label-mono opacity-50 mb-1">
+                  <div className="text-[9px] sm:text-[10px] font-mono opacity-50 uppercase tracking-widest mb-1">
                     Доступність ресурсу
                   </div>
-                  <div className="text-lg font-black text-[var(--text-dark)] uppercase tracking-tight">
+                  <div className="text-base sm:text-lg font-black text-[var(--text-dark)] uppercase tracking-tight">
                     Open Access
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="h-px bg-gradient-to-r from-transparent via-[var(--border-color)] to-transparent mb-16" />
+            <div className="h-px bg-gradient-to-r from-transparent via-[var(--border-color)] to-transparent mb-10 md:mb-16" />
 
-            <div className="max-w-3xl">
-              <div className="flex items-center gap-3 mb-8">
-                <BookOpen size={20} className="text-[var(--purple-main)]" />
-                <h3 className="label-mono font-black text-[var(--purple-main)] tracking-[0.3em]">
+            <div className="max-w-3xl mx-auto md:mx-0">
+              <div className="flex items-center gap-3 mb-6 md:mb-8">
+                <BookOpen
+                  size={18}
+                  className="text-purple-600 dark:text-purple-400"
+                />
+                <h3 className="text-[10px] font-mono font-black text-purple-600 dark:text-purple-400 tracking-[0.25em] uppercase">
                   Деталі та регламент
                 </h3>
               </div>
 
               <div
-                className="rich-content mb-16"
-                dangerouslySetInnerHTML={{ __html: program.description }}
+                className="prose dark:prose-invert max-w-none text-sm sm:text-base text-[var(--text-main)] leading-relaxed sm:leading-loose mb-12 md:mb-16
+                  prose-headings:text-[var(--text-dark)] prose-headings:font-extrabold prose-headings:uppercase prose-headings:italic prose-headings:tracking-tight
+                  prose-strong:text-[var(--text-dark)]
+                  prose-ul:list-none prose-ul:pl-5
+                  prose-li:relative prose-li:mb-2
+                  before:prose-li:content-['→'] before:prose-li:absolute before:prose-li:-left-5 before:prose-li:text-purple-600 before:prose-li:font-bold"
+                dangerouslySetInnerHTML={{
+                  __html: program.description
+                    ? program.description
+                        .replace(/&nbsp;/g, " ")
+                        .replace(/\u00a0/g, " ")
+                    : "",
+                }}
               />
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                 {[
                   { icon: Award, label: "Сертифікація" },
                   { icon: CheckCircle, label: "Верифікація" },
@@ -261,13 +250,13 @@ const ProgramDetails = () => {
                 ].map((item, idx) => (
                   <div
                     key={idx}
-                    className="flex flex-col items-center p-6 bg-[var(--bg-main)]/30 rounded-3xl border border-[var(--border-color)] hover:border-[var(--purple-main)]/30 transition-all duration-300"
+                    className="flex flex-col items-center p-4 sm:p-6 bg-[var(--bg-main)]/20 rounded-2xl border border-[var(--border-color)] hover:border-purple-500/20 transition-all duration-300"
                   >
                     <item.icon
-                      size={20}
-                      className="text-[var(--purple-main)] mb-3"
+                      size={18}
+                      className="text-purple-600 dark:text-purple-400 mb-2 sm:mb-3"
                     />
-                    <span className="label-mono !text-[9px] font-black text-center text-[var(--text-dark)]">
+                    <span className="text-[8px] sm:text-[9px] font-mono font-black text-center text-[var(--text-dark)] uppercase tracking-wider">
                       {item.label}
                     </span>
                   </div>
@@ -276,15 +265,15 @@ const ProgramDetails = () => {
             </div>
           </div>
 
-          <div className="p-10 md:p-16 bg-[var(--purple-main)]/5 border-t border-[var(--border-color)] flex flex-col items-center">
+          <div className="p-6 sm:p-10 md:p-16 bg-purple-600/[0.02] dark:bg-purple-600/[0.01] border-t border-[var(--border-color)] flex flex-col items-center">
             <button
-              className="w-full md:w-auto bg-[var(--purple-main)] text-white px-16 py-6 rounded-2xl font-black text-xl shadow-2xl shadow-[var(--purple-main)]/30 hover:bg-[var(--purple-main)]/90 transition-all active:scale-95 flex items-center justify-center gap-4 uppercase tracking-tighter italic"
+              className="w-full md:w-auto bg-purple-600 hover:bg-purple-700 text-white px-8 py-4 sm:px-16 sm:py-5 rounded-xl sm:rounded-2xl font-black text-base sm:text-lg shadow-xl shadow-purple-600/10 transition-all active:scale-[0.98] flex items-center justify-center gap-3 sm:gap-4 uppercase tracking-tight italic"
               onClick={handleApply}
             >
-              <Send size={24} />
+              <Send size={20} className="sm:size-[22px]" />
               {getButtonText()}
             </button>
-            <p className="mt-6 label-mono opacity-50 italic text-[var(--text-gray)]">
+            <p className="mt-4 sm:mt-6 text-[8px] sm:text-[9px] font-mono opacity-50 italic text-[var(--text-gray)] uppercase tracking-widest text-center">
               * Системна обробка запиту триває до 72 годин
             </p>
           </div>

@@ -125,7 +125,6 @@ const Navbar = () => {
           </div>
 
           {/* Кнопки дій */}
-          {/* Кнопки дій */}
           <div className="flex justify-center items-center gap-2">
             <button
               onClick={toggleTheme}

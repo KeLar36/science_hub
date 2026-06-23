@@ -43,8 +43,6 @@ export default function ArchiveGrid({
         <div
           key={article._id}
           className="bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] shadow-xs hover:shadow-md hover:border-purple-600/40 transition-all duration-300 p-6 flex flex-col justify-between group"
-          data-aos="fade-up"
-          data-aos-delay={index * 30}
         >
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -116,7 +114,7 @@ export default function ArchiveGrid({
                 size={12}
                 className="transition-transform duration-300 group-hover/btn:translate-y-0.5"
               />
-              Завантажити
+              Переглянути
             </a>
           </div>
         </div>

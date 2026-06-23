@@ -125,7 +125,7 @@ export default function ArticleDetailModal({
               size={12}
               className="transition-transform duration-300 group-hover/modal-btn:translate-y-0.5"
             />
-            Завантажити головний файл
+            Переглянути головний файл
           </a>
           <button
             onClick={onClose}

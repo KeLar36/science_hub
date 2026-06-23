@@ -1,7 +1,6 @@
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import AOS from "aos";
-import "aos/dist/aos.css";
+import axiosInstance from "../api/axios"; // твій налаштований axios
 
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -14,10 +13,22 @@ import FinalCTA from "../components/about/FinalCTA";
 
 const AboutPage = () => {
   const navigate = useNavigate();
-  const isAuth = !!localStorage.getItem("token");
+  const [isAuth, setIsAuth] = useState(false);
 
   useEffect(() => {
-    AOS.init({ duration: 600, once: true, offset: 80 });
+    const checkAuthStatus = async () => {
+      try {
+        const res = await axiosInstance.get("/auth/me");
+
+        if (res.status === 200) {
+          setIsAuth(true);
+        }
+      } catch (err) {
+        setIsAuth(false);
+      }
+    };
+
+    checkAuthStatus();
   }, []);
 
   return (
@@ -25,14 +36,7 @@ const AboutPage = () => {
       <Navbar />
 
       <main className="relative overflow-hidden">
-        <div
-          className="absolute inset-0 z-0 opacity-[0.02] pointer-events-none"
-          style={{
-            backgroundImage:
-              "radial-gradient(var(--text-dark) 1px, transparent 1px)",
-            backgroundSize: "24px 24px",
-          }}
-        />
+        <div className="absolute inset-0 z-0 opacity-[0.02] pointer-events-none bg-[radial-gradient(var(--text-dark)_1px,transparent_1px)] [background-size:24px_24px]" />
 
         <HeroSection isAuth={isAuth} onNavigate={navigate} />
         <Features />

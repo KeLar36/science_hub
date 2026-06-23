@@ -4,8 +4,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import axiosInstance from "../api/axios";
 import toast, { Toaster } from "react-hot-toast";
 import { Loader2, FileText, Bookmark, Award, Target } from "lucide-react";
-import AOS from "aos";
-import "aos/dist/aos.css";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import ProfileHeader from "../components/profile/ProfileHeader";
@@ -100,7 +98,6 @@ export default function ProfilePage() {
   }, []);
 
   useEffect(() => {
-    AOS.init({ duration: 600, once: true });
     fetchData();
   }, [fetchData]);
 
@@ -184,10 +181,7 @@ export default function ProfilePage() {
       <Toaster position="bottom-right" />
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 md:px-8 pt-36 pb-24 relative">
-        <div
-          className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-12"
-          data-aos="fade-down"
-        >
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-12">
           <ProfileHeader
             userData={userData}
             navigate={navigate}

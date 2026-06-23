@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import axiosInstance from "../api/axios";
 import Navbar from "../components/Navbar";
@@ -41,7 +42,6 @@ export default function ArchivePage() {
     return ["Всі", ...Array.from(unique)];
   }, [articles]);
 
-  // Відфільтровані статті
   const filteredArticles = useMemo(() => {
     if (selectedDomain === "Всі") return articles;
     return articles.filter((a) => a.domain === selectedDomain);
@@ -75,7 +75,7 @@ export default function ArchivePage() {
     <>
       <Navbar />
 
-      <div className="min-h-screen bg-[var(--bg-main)] pt-28 pb-16 px-6 transition-colors duration-300">
+      <div className="min-h-screen bg-[var(--bg-main)] pt-32 pb-16 px-4 md:px-6 transition-colors duration-300">
         <ArchiveHeader stats={stats} loading={loading} />
 
         {!loading && !error && (
@@ -86,7 +86,7 @@ export default function ArchivePage() {
           />
         )}
 
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto mt-4">
           <ArchiveGrid
             loading={loading}
             error={error}
