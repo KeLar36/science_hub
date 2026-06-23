@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useMemo } from "react";
-import axios from "../api/axios"; // Використовуємо твій налаштований axios
+import axios from "../api/axios";
 import toast, { Toaster } from "react-hot-toast";
 import {
   FileText,

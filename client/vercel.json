@@ -7,6 +7,10 @@
     {
       "source": "/uploads/:path*",
       "destination": "https://science-hub-six.vercel.app/uploads/:path*"
+    },
+    {
+      "source": "/((?!api|uploads|assets|_next).* )",
+      "destination": "/index.html"
     }
   ]
 }

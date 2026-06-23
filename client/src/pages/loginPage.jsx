@@ -20,21 +20,31 @@ import AOS from "aos";
 import "aos/dist/aos.css";
 
 const LoginPage = () => {
-  const [data, setData] = useState({ email: "", password: "" });
+  const [data, setData] = useState(() => {
+    const savedEmail = localStorage.getItem("registeredEmail");
+    return {
+      email: savedEmail || "",
+      password: "",
+    };
+  });
+
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, user } = useAuth();
 
   useEffect(() => {
     AOS.init({ duration: 800, once: true });
     const savedEmail = localStorage.getItem("registeredEmail");
-    if (savedEmail) {
-      setData((prev) => ({ ...prev, email: savedEmail }));
-      localStorage.removeItem("registeredEmail");
-    }
   }, []);
+
+  // Перевірка на випадок, якщо користувач вже зайшов раніше за прямим лінком
+  useEffect(() => {
+    if (user && !loading) {
+      navigate("/");
+    }
+  }, [user, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -49,18 +59,20 @@ const LoginPage = () => {
     try {
       await axiosInstance.post("/auth/login", data);
       const res = await axiosInstance.get("/users/me");
-      login(res.data.user);
-      toast.success("Вітаємо у системі!");
-      setTimeout(() => navigate("/"), 600);
+
+      toast.success("Вітаємо у системі! 🟣");
+
+      // Робимо паузу 600мс, щоб юзер побачив анімацію тоста, і лише потім редиректимо через контекст
+      setTimeout(() => {
+        login(res.data.user);
+      }, 600);
     } catch (err) {
       toast.error(err.response?.data?.error || "Помилка авторизації");
       setData((prev) => ({ ...prev, password: "" }));
-    } finally {
-      setLoading(false);
+      setLoading(false); // Скидаємо loading тільки при помилці
     }
   };
 
-  // Єдині стилі для полів форми
   const inputClass =
     "w-full bg-[var(--bg-main)] border border-[var(--border-color)] pl-12 pr-4 py-4 text-sm text-[var(--text-dark)] outline-none focus:border-purple-600 rounded-xl transition-all";
   const labelStyle =
@@ -72,7 +84,6 @@ const LoginPage = () => {
       <Navbar />
 
       <main className="flex-grow flex items-center justify-center py-24 px-6 relative">
-        {/* Фоновий візерунок */}
         <div className="absolute inset-0 opacity-20 z-0 pointer-events-none bg-[radial-gradient(var(--border-color)_1px,transparent_1px)] bg-[size:32px_32px]" />
 
         <div className="max-w-md w-full relative z-10" data-aos="fade-up">
@@ -87,7 +98,6 @@ const LoginPage = () => {
             На головну
           </button>
 
-          {/* Картка логіну в стилі Bento */}
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-10 md:p-12 shadow-2xl relative overflow-hidden rounded-xl">
             <div className="absolute top-0 left-0 w-1 h-full bg-purple-600" />
 
@@ -108,8 +118,8 @@ const LoginPage = () => {
                 <label className={labelStyle}>Електронна пошта</label>
                 <div className="relative">
                   <Mail
-                    className="absolute left-4 top-4 text-[var(--text-gray)]"
                     size={16}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-gray)]"
                   />
                   <input
                     name="email"
@@ -135,7 +145,7 @@ const LoginPage = () => {
                 </div>
                 <div className="relative">
                   <Lock
-                    className="absolute left-4 top-4 text-[var(--text-gray)]"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-gray)]"
                     size={16}
                   />
                   <input
@@ -150,7 +160,7 @@ const LoginPage = () => {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-4 text-[var(--text-gray)] hover:text-[var(--text-dark)]"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-gray)] hover:text-purple-600"
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>

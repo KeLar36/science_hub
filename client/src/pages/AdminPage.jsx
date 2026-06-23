@@ -248,12 +248,12 @@ export default function AdminPage() {
           <h1 className="text-3xl font-black">
             SciencePlatform <span className="text-purple-600">Admin</span>
           </h1>
-          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-1.5 rounded-2xl flex gap-1">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-1.5 rounded-2xl flex gap-1 overflow-x-auto max-w-full scrollbar-none snap-x whitespace-nowrap">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase transition-all ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase transition-all snap-caster shrink-0 ${
                   activeTab === tab.id
                     ? "bg-purple-600 text-white"
                     : "text-[var(--text-gray)] hover:text-[var(--text-dark)]"
