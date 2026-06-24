@@ -288,11 +288,12 @@ const PostDetail = () => {
               <div className="w-7 h-7 rounded-lg bg-purple-500/10 flex items-center justify-center text-[#6d28d9] text-[10px] font-black shrink-0">
                 {(c.user?.name || "U").charAt(0).toUpperCase()}
               </div>
-              <div className="flex flex-col max-w-[85%]">
+              <div className="flex flex-col max-w-[85%] w-full">
+                {" "}
                 <span className="text-[10px] font-black text-[var(--text-gray)] mb-0.5">
                   {c.user?.name || "Користувач"}
                 </span>
-                <div className="p-3 rounded-2xl text-xs font-medium bg-[var(--bg-main)] text-[var(--text-dark)] border border-[var(--border-color)] rounded-tl-none leading-relaxed">
+                <div className="p-3 rounded-2xl text-xs font-medium bg-[var(--bg-main)] text-[var(--text-dark)] border border-[var(--border-color)] rounded-tl-none leading-relaxed break-words break-all whitespace-pre-wrap">
                   {c.text}
                 </div>
               </div>
