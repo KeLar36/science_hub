@@ -16,6 +16,8 @@ import {
   DollarSign,
   Hash,
   Globe,
+  MapPin,
+  ExternalLink,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import Navbar from "../components/Navbar";
@@ -82,14 +84,11 @@ const ProgramDetails = () => {
       </div>
     );
 
-  const isGrant = program.type === "Грант";
-  const hasMetrics =
-    program.type === "Науковий журнал" || program.type === "Стаття";
-
   const getButtonText = () => {
-    if (isGrant) return "Подати заявку на грант";
+    if (program.type === "Грант") return "Подати проєкт на грант";
     if (program.type === "Курс") return "Зареєструватися на курс";
-    if (program.type === "Конференція") return "Подати тези доповідей";
+    if (program.type === "Конференція") return "Зареєструватись на конференцію";
+    if (program.type === "Науковий журнал") return "Подати наукову статтю";
     return "Надіслати матеріал";
   };
 
@@ -131,7 +130,7 @@ const ProgramDetails = () => {
             </h1>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-10 md:mb-16">
-              {isGrant && !!program.amount && (
+              {program.type === "Грант" && !!program.amount && (
                 <div className="sm:col-span-2 flex flex-col justify-between p-6 sm:p-8 bg-gradient-to-br from-purple-600/[0.03] to-transparent rounded-2xl sm:rounded-3xl border border-purple-600/20 group transition-all duration-300 hover:border-purple-600/40 shadow-sm">
                   <div className="p-3 bg-purple-600 rounded-xl text-white w-fit mb-4 sm:mb-6 shadow-md shadow-purple-600/20">
                     <DollarSign size={24} />
@@ -147,9 +146,7 @@ const ProgramDetails = () => {
                 </div>
               )}
 
-              <div
-                className={`flex flex-col justify-between p-5 sm:p-6 bg-[var(--bg-main)]/40 rounded-2xl sm:rounded-3xl border border-[var(--border-color)] group hover:border-purple-500/30 transition-all duration-300 ${!isGrant && !hasMetrics ? "sm:col-span-2 md:col-span-3" : ""}`}
-              >
+              <div className="flex flex-col justify-between p-5 sm:p-6 bg-[var(--bg-main)]/40 rounded-2xl sm:rounded-3xl border border-[var(--border-color)] group hover:border-purple-500/30 transition-all duration-300">
                 <div className="p-2.5 bg-purple-600/10 text-purple-600 dark:text-purple-400 rounded-xl w-fit mb-4 sm:mb-6">
                   <Calendar size={20} />
                 </div>
@@ -165,7 +162,7 @@ const ProgramDetails = () => {
                 </div>
               </div>
 
-              {hasMetrics && !!program.issn && (
+              {program.type === "Науковий журнал" && !!program.issn && (
                 <div className="flex flex-col justify-between p-5 sm:p-6 bg-[var(--bg-main)]/40 rounded-2xl sm:rounded-3xl border border-[var(--border-color)] group hover:border-blue-500/30 transition-all duration-300">
                   <div className="p-2.5 bg-blue-500/10 text-blue-500 rounded-xl w-fit mb-4 sm:mb-6">
                     <Hash size={20} />
@@ -181,23 +178,57 @@ const ProgramDetails = () => {
                 </div>
               )}
 
-              {hasMetrics && !!program.impactFactor && (
-                <div className="flex flex-col justify-between p-5 sm:p-6 bg-[var(--bg-main)]/40 rounded-2xl sm:rounded-3xl border border-[var(--border-color)] group hover:border-amber-500/30 transition-all duration-300">
-                  <div className="p-2.5 bg-amber-500/10 text-amber-500 rounded-xl w-fit mb-4 sm:mb-6">
-                    <Activity size={20} />
+              {program.type === "Науковий журнал" &&
+                program.impactFactor !== undefined && (
+                  <div className="flex flex-col justify-between p-5 sm:p-6 bg-[var(--bg-main)]/40 rounded-2xl sm:rounded-3xl border border-[var(--border-color)] group hover:border-amber-500/30 transition-all duration-300">
+                    <div className="p-2.5 bg-amber-500/10 text-amber-500 rounded-xl w-fit mb-4 sm:mb-6">
+                      <Activity size={20} />
+                    </div>
+                    <div>
+                      <div className="text-[9px] sm:text-[10px] font-mono opacity-50 uppercase tracking-widest mb-1">
+                        Impact Factor
+                      </div>
+                      <div className="text-base sm:text-lg font-black text-[var(--text-dark)] uppercase">
+                        {program.impactFactor || "0.0"}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+              {program.type === "Конференція" && !!program.location && (
+                <div className="flex flex-col justify-between p-5 sm:p-6 bg-[var(--bg-main)]/40 rounded-2xl sm:rounded-3xl border border-[var(--border-color)] group hover:border-blue-500/30 transition-all duration-300">
+                  <div className="p-2.5 bg-blue-500/10 text-blue-500 rounded-xl w-fit mb-4 sm:mb-6">
+                    <MapPin size={20} />
                   </div>
                   <div>
                     <div className="text-[9px] sm:text-[10px] font-mono opacity-50 uppercase tracking-widest mb-1">
-                      Impact Factor
+                      Локація проведення
                     </div>
                     <div className="text-base sm:text-lg font-black text-[var(--text-dark)] uppercase">
-                      {program.impactFactor}
+                      {program.location}
                     </div>
                   </div>
                 </div>
               )}
 
-              <div className="flex flex-col justify-between p-5 sm:p-6 bg-[var(--bg-main)]/40 rounded-2xl sm:rounded-3xl border border-[var(--border-color)] group hover:border-purple-500/30 transition-all duration-300">
+              {["Грант", "Конференція"].includes(program.type) &&
+                !!program.organizer && (
+                  <div className="flex flex-col justify-between p-5 sm:p-6 bg-[var(--bg-main)]/40 rounded-2xl sm:rounded-3xl border border-[var(--border-color)] group hover:border-purple-500/30 transition-all duration-300">
+                    <div className="p-2.5 bg-purple-600/10 text-purple-600 dark:text-purple-400 rounded-xl w-fit mb-4 sm:mb-6">
+                      <Award size={20} />
+                    </div>
+                    <div>
+                      <div className="text-[9px] sm:text-[10px] font-mono opacity-50 uppercase tracking-widest mb-1">
+                        Організація / Платформа
+                      </div>
+                      <div className="text-base sm:text-lg font-black text-[var(--text-dark)] uppercase line-clamp-1">
+                        {program.organizer}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+              <div className="flex flex-col justify-between p-5 sm:p-6 bg-[var(--bg-main)]/40 rounded-2xl sm:rounded-3xl border border border-[var(--border-color)] group hover:border-purple-500/30 transition-all duration-300">
                 <div className="p-2.5 bg-purple-600/10 text-purple-600 dark:text-purple-400 rounded-xl w-fit mb-4 sm:mb-6">
                   <Target size={20} />
                 </div>
@@ -206,7 +237,7 @@ const ProgramDetails = () => {
                     Доступність ресурсу
                   </div>
                   <div className="text-base sm:text-lg font-black text-[var(--text-dark)] uppercase tracking-tight">
-                    Open Access
+                    Open Science
                   </div>
                 </div>
               </div>
@@ -240,6 +271,34 @@ const ProgramDetails = () => {
                     : "",
                 }}
               />
+
+              {program.externalLink && (
+                <div className="mb-12 p-5 bg-purple-600/[0.02] border border-purple-500/15 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in duration-300">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-xl">
+                      <Globe size={18} />
+                    </div>
+                    <div>
+                      <h5 className="text-xs font-black text-[var(--text-dark)] uppercase tracking-wider">
+                        Першоджерело / Офіційний сайт
+                      </h5>
+                      <p className="text-[11px] text-[var(--text-gray)] mt-0.5">
+                        Клацніть для переходу на зовнішню веб-сторінку події чи
+                        матеріалу.
+                      </p>
+                    </div>
+                  </div>
+                  <a
+                    href={program.externalLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full sm:w-auto text-center bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all active:scale-98 shadow-md shadow-purple-600/10 flex items-center justify-center gap-2"
+                  >
+                    Відкрити ресурс
+                    <ExternalLink size={12} />
+                  </a>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                 {[

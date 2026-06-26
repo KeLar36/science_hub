@@ -6,24 +6,77 @@ import "react-quill-new/dist/quill.snow.css";
 export default function SubmissionForm({
   data,
   setData,
-  activePrograms,
+  activePrograms = [],
   onSubmit,
   file,
   setFile,
-  domains,
+  domains = [],
 }) {
+  const currentProgram = activePrograms.find((p) => p._id === data.programId);
+  const programType = currentProgram?.type || "Науковий журнал"; // дефолтне значення
+
+  const getLabelsAndPlaceholders = () => {
+    switch (programType) {
+      case "Грант":
+        return {
+          titleLabel: "Назва грантового проєкту",
+          titlePlaceholder: "Введіть повну назву вашого проєкту на грант...",
+          descLabel: "Опис та обґрунтування проєкту",
+          descPlaceholder:
+            "Опишіть актуальність, цілі, структуру витрат бюджету та очікувані результати проєкту...",
+        };
+      case "Конференція":
+        return {
+          titleLabel: "Назва доповіді / Тез",
+          titlePlaceholder: "Введіть тему вашого виступу або тез...",
+          descLabel: "Анотація доповіді (Abstract)",
+          descPlaceholder:
+            "Напишіть короткий зміст вашої майбутньої доповіді, ключові питання та методологію...",
+        };
+      case "Курс":
+        return {
+          titleLabel: "Мотиваційна тема / Напрям",
+          titlePlaceholder: "Введіть назву курсу або вашу спеціалізацію...",
+          descLabel: "Мотиваційний лист / Очікування",
+          descPlaceholder:
+            "Опишіть, чому ви бажаєте пройти цей курс та як плануєте застосувати отримані знання...",
+        };
+      case "Датасет":
+        return {
+          titleLabel: "Назва набору даних (Dataset)",
+          titlePlaceholder:
+            "Введіть назву вашого датасету (наприклад, 'Медичні знімки легень 2026')...",
+          descLabel: "Специфікація та опис даних",
+          descPlaceholder:
+            "Опишіть структуру даних, метод збору, обсяг, формат файлів та правила цитування...",
+        };
+      case "Науковий журнал":
+      case "Стаття":
+      default:
+        return {
+          titleLabel: "Назва наукової праці",
+          titlePlaceholder: "Введіть повну назву роботи...",
+          descLabel: "Анотація дослідження",
+          descPlaceholder:
+            "Напишіть лаконічний опис, методологію та висновки вашої наукової роботи...",
+        };
+    }
+  };
+
+  const contentText = getLabelsAndPlaceholders();
+
   return (
     <div className="max-w-3xl mx-auto bg-[var(--bg-card)] p-8 md:p-12 border border-[var(--border-color)] rounded-3xl shadow-sm">
       <form onSubmit={onSubmit} className="space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-[var(--text-gray)] ml-1">
-              Назва наукової праці
+              {contentText.titleLabel}
             </label>
             <input
               type="text"
               className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 outline-none text-sm text-[var(--text-dark)] focus:border-purple-500/50 transition-colors"
-              placeholder="Введіть повну назву роботи..."
+              placeholder={contentText.titlePlaceholder}
               value={data.title}
               onChange={(e) => setData({ ...data, title: e.target.value })}
               required
@@ -32,89 +85,97 @@ export default function SubmissionForm({
 
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-[var(--text-gray)] ml-1">
-              Активна програма
+              Оберіть активну програму
             </label>
             <div className="relative">
               <select
+                className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 outline-none text-sm text-[var(--text-dark)] focus:border-purple-500/50 transition-colors appearance-none pr-10 cursor-pointer"
                 value={data.programId}
                 onChange={(e) =>
                   setData({ ...data, programId: e.target.value })
                 }
                 required
-                className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 outline-none text-sm appearance-none cursor-pointer text-[var(--text-dark)] focus:border-purple-500/50 pr-10"
               >
-                <option value="">Оберіть наукову програму...</option>
+                <option value="" disabled>
+                  Оберіть програму зі списку...
+                </option>
                 {activePrograms.map((p) => (
                   <option key={p._id} value={p._id}>
-                    {p.title}{" "}
-                    {p.deadline
-                      ? `(до ${new Date(p.deadline).toLocaleDateString("uk-UA")})`
-                      : ""}
+                    [{p.type}] {p.title}
                   </option>
                 ))}
               </select>
               <ChevronDown
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-purple-600 pointer-events-none"
                 size={16}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-gray)] pointer-events-none"
               />
             </div>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 sm:col-span-2">
             <label className="text-xs font-semibold text-[var(--text-gray)] ml-1">
-              Наукова галузь
+              Галузь науки / Напрям
             </label>
             <div className="relative">
               <select
-                className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 outline-none text-sm appearance-none cursor-pointer text-[var(--text-dark)] focus:border-purple-500/50 pr-10"
+                className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 outline-none text-sm text-[var(--text-dark)] focus:border-purple-500/50 transition-colors appearance-none pr-10 cursor-pointer"
                 value={data.domain}
                 onChange={(e) => setData({ ...data, domain: e.target.value })}
                 required
               >
-                <option value="">Оберіть напрямок...</option>
-                {domains.map((d) => (
-                  <option key={d} value={d}>
+                <option value="" disabled>
+                  Оберіть відповідну галузь...
+                </option>
+                {domains.map((d, idx) => (
+                  <option key={idx} value={d}>
                     {d}
                   </option>
                 ))}
               </select>
               <ChevronDown
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-purple-600 pointer-events-none"
                 size={16}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-gray)] pointer-events-none"
               />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-[var(--text-gray)] ml-1">
-              Документ дослідження (PDF)
-            </label>
-            <div className="relative h-[46px] group">
-              <input
-                type="file"
-                accept=".pdf"
-                className="absolute inset-0 opacity-0 cursor-pointer z-20"
-                onChange={(e) => setFile(e.target.files[0])}
-                required={!file}
-              />
-              <div
-                className={`absolute inset-0 border border-dashed rounded-xl flex items-center px-4 gap-2.5 transition-all ${file ? "border-emerald-500/50 bg-emerald-500/[0.02]" : "border-[var(--border-color)] bg-[var(--bg-main)]"}`}
-              >
-                <UploadCloud
-                  size={16}
-                  className={file ? "text-emerald-500" : "text-purple-600"}
-                />
-                <span className="text-xs font-medium truncate text-[var(--text-dark)]">
-                  {file ? file.name : "Завантажити файл праці..."}
-                </span>
-              </div>
             </div>
           </div>
         </div>
 
         <div className="space-y-2">
           <label className="text-xs font-semibold text-[var(--text-gray)] ml-1">
-            Анотація дослідження
+            Супровідний файл (Документ / Архів / Датасет)
+          </label>
+          <div className="relative border-2 border-dashed border-[var(--border-color)] hover:border-purple-500/40 rounded-2xl p-6 transition-colors bg-[var(--bg-main)]/30 group">
+            <input
+              type="file"
+              id="file-upload"
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+              onChange={(e) => {
+                if (e.target.files?.[0]) setFile(e.target.files[0]);
+              }}
+            />
+            <div className="flex flex-col items-center justify-center text-center space-y-2">
+              <div className="p-3 bg-purple-500/5 text-purple-600 dark:text-purple-400 rounded-xl group-hover:scale-105 transition-transform duration-300">
+                <UploadCloud size={24} />
+              </div>
+              <div className="text-xs font-medium text-[var(--text-dark)]">
+                {file ? (
+                  <span className="text-purple-600 dark:text-purple-400 font-bold bg-purple-500/5 px-3 py-1 rounded-lg border border-purple-500/10">
+                    📂 {file.name}
+                  </span>
+                ) : (
+                  "Перетягніть файл сюди або клікніть для вибору"
+                )}
+              </div>
+              <p className="text-[10px] text-[var(--text-gray)]">
+                Підтримуються формати PDF, DOCX, ZIP, RAR, CSV (до 50MB)
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-[var(--text-gray)] ml-1">
+            {contentText.descLabel}
           </label>
           <div className="quill-wrapper rounded-xl overflow-hidden border border-[var(--border-color)] bg-[var(--bg-main)]">
             <style>{`
@@ -127,16 +188,17 @@ export default function SubmissionForm({
               theme="snow"
               value={data.description}
               onChange={(v) => setData({ ...data, description: v })}
-              placeholder="Напишіть лаконічний опис, методологію та висновки вашої наукової роботи..."
+              placeholder={contentText.descPlaceholder}
             />
           </div>
         </div>
 
         <button
           type="submit"
-          className="w-full py-4 bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2 shadow-md shadow-purple-600/10"
+          className="w-full py-4 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all active:scale-[0.99] shadow-lg shadow-purple-600/10 flex items-center justify-center gap-2 italic"
         >
-          <Send size={15} /> Відправити роботу на рецензування
+          <Send size={14} />
+          Надіслати на розгляд ресурсу
         </button>
       </form>
     </div>

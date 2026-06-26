@@ -32,9 +32,17 @@ export default function AdminPage() {
 
   const [newProgram, setNewProgram] = useState({
     title: "",
+    shortDescription: "",
     description: "",
-    category: "Гранти",
-    deadline: new Date().toISOString().split("T")[0],
+    deadline: null,
+    domain: "Всі галузі",
+    type: "Науковий журнал",
+    amount: "",
+    issn: "",
+    impactFactor: 0,
+    organizer: "",
+    externalLink: "",
+    location: "Онлайн",
   });
 
   const fetchAdminData = useCallback(
@@ -192,11 +200,20 @@ export default function AdminPage() {
       setLoadingAction("create-program");
       const res = await axiosInstance.post("/programs", newProgram);
       setPrograms([res.data, ...programs]);
+      // Всередині handleCreateProgram після успішного тоста:
       setNewProgram({
         title: "",
+        shortDescription: "",
         description: "",
-        category: "Гранти",
-        deadline: new Date().toISOString().split("T")[0],
+        deadline: null,
+        domain: "Всі галузі",
+        type: "Науковий журнал",
+        amount: "",
+        issn: "",
+        impactFactor: 0,
+        organizer: "",
+        externalLink: "",
+        location: "Онлайн",
       });
       toast.success("Програму створено!");
     } catch {

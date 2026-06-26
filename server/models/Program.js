@@ -1,77 +1,120 @@
 const mongoose = require("mongoose");
 
-const ProgramSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true,
-    trim: true,
+const BaseProgramSchema = new mongoose.Schema(
+  {
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    shortDescription: {
+      type: String,
+      trim: true,
+      maxlength: 300,
+    },
+    description: {
+      type: String,
+      required: true,
+    },
+    deadline: {
+      type: Date,
+      required: true,
+    },
+    domain: {
+      type: String,
+      required: true,
+      default: "Всі галузі",
+    },
+    active: {
+      type: Boolean,
+      default: true,
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
   },
-  shortDescription: {
-    type: String,
-    trim: true,
-    maxlength: 300,
+  {
+    discriminatorKey: "type",
+    timestamps: true,
   },
-  description: {
-    type: String,
-    required: true,
-  },
-  deadline: {
-    type: Date,
-    required: true,
-  },
-  type: {
-    type: String,
-    required: true,
-    enum: [
-      "Науковий журнал",
-      "Стаття",
-      "Грант",
-      "Конференція",
-      "Датасет",
-      "Курс",
-    ],
-  },
-  domain: {
-    type: String,
-    required: true,
-    default: "Всі галузі",
-  },
+);
 
-  issn: {
-    type: String,
-    trim: true,
-  },
-  impactFactor: {
-    type: Number,
-    default: 0,
-  },
+const Program = mongoose.model("Program", BaseProgramSchema);
 
-  amount: {
-    type: String,
-  },
-  organizer: {
-    type: String,
-    trim: true,
-  },
-  externalLink: {
-    type: String,
-    trim: true,
-  },
+const JournalProgram = Program.discriminator(
+  "Науковий журнал",
+  new mongoose.Schema({
+    issn: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    impactFactor: {
+      type: Number,
+      default: 0,
+    },
+  }),
+);
 
-  // Системні поля
-  active: {
-    type: Boolean,
-    default: true,
-  },
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "UserTemp",
-    required: true,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
+const GrantProgram = Program.discriminator(
+  "Грант",
+  new mongoose.Schema({
+    amount: {
+      type: String,
+      required: true,
+    },
+    organizer: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+  }),
+);
 
-module.exports = mongoose.model("Program", ProgramSchema);
+const ConferenceProgram = Program.discriminator(
+  "Конференція",
+  new mongoose.Schema({
+    organizer: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    externalLink: {
+      type: String,
+      trim: true,
+    },
+    location: {
+      type: String,
+      default: "Онлайн",
+    },
+  }),
+);
+
+const DatasetProgram = Program.discriminator(
+  "Датасет",
+  new mongoose.Schema({
+    externalLink: { type: String, trim: true },
+  }),
+);
+
+const CourseProgram = Program.discriminator(
+  "Курс",
+  new mongoose.Schema({
+    externalLink: { type: String, trim: true },
+  }),
+);
+
+module.exports = {
+  Program,
+  JournalProgram,
+  GrantProgram,
+  ConferenceProgram,
+  DatasetProgram,
+  CourseProgram,
+};

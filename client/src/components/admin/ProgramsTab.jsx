@@ -8,6 +8,9 @@ import {
   DollarSign,
   BookOpen,
   BarChart3,
+  Globe,
+  Link2,
+  Award,
 } from "lucide-react";
 
 import { SCIENTIFIC_DOMAINS, PROGRAM_TYPES } from "../../constants/domains";
@@ -28,6 +31,13 @@ const ProgramsTab = ({
       issn: selectedType === "Науковий журнал" ? newProgram.issn : "",
       impactFactor:
         selectedType === "Науковий журнал" ? newProgram.impactFactor : 0,
+      organizer: ["Грант", "Конференція"].includes(selectedType)
+        ? newProgram.organizer
+        : "",
+      externalLink: ["Конференція", "Датасет", "Курс"].includes(selectedType)
+        ? newProgram.externalLink
+        : "",
+      location: selectedType === "Конференція" ? newProgram.location : "Онлайн",
     };
 
     setNewProgram({
@@ -39,145 +49,228 @@ const ProgramsTab = ({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-200">
       <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-3xl shadow-xs h-fit">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--text-gray)] mb-6">
-          Створити програму конкурсу
+        <h3 className="text-lg font-black text-[var(--text-dark)] mb-5 uppercase tracking-tight italic flex items-center gap-2">
+          <PlusCircle size={18} className="text-purple-600" />
+          Створити програму
         </h3>
-        <form onSubmit={onCreateProgram} className="space-y-4">
-          <div>
-            <label className="text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider block mb-1.5 ml-1">
+
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-gray)]">
               Назва програми
             </label>
             <input
               type="text"
-              required
-              placeholder="Наприклад: Міжнародний грант НАНУ 2026"
-              className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-dark)] rounded-xl px-4 py-3 text-sm focus:border-purple-500 outline-none transition-colors"
+              placeholder="Введіть назву..."
               value={newProgram.title || ""}
               onChange={(e) =>
                 setNewProgram({ ...newProgram, title: e.target.value })
               }
+              className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 outline-none text-sm text-[var(--text-dark)] focus:border-purple-500/50 transition-colors"
             />
           </div>
 
-          <div>
-            <label className="text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider block mb-1.5 ml-1">
-              Тип програми
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-gray)]">
+              Короткий опис (до 300 симв.)
             </label>
-            <select
-              className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-dark)] rounded-xl px-4 py-3 text-sm focus:border-purple-500 outline-none admin-select-custom cursor-pointer"
-              value={newProgram.type || ""}
-              required
-              onChange={handleTypeChange}
-            >
-              <option value="" disabled>
-                Оберіть тип...
-              </option>
-              {PROGRAM_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider block mb-1.5 ml-1">
-              Галузь / Напрямок
-            </label>
-            <select
-              className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-dark)] rounded-xl px-4 py-3 text-sm focus:border-purple-500 outline-none admin-select-custom cursor-pointer"
-              value={newProgram.domain || "Всі галузі"}
+            <textarea
+              placeholder="Короткий анонс для картки..."
+              maxLength={300}
+              value={newProgram.shortDescription || ""}
               onChange={(e) =>
-                setNewProgram({ ...newProgram, domain: e.target.value })
+                setNewProgram({
+                  ...newProgram,
+                  shortDescription: e.target.value,
+                })
               }
-            >
-              <option value="Всі галузі">Всі галузі</option>
-              {SCIENTIFIC_DOMAINS.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
+              className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 outline-none text-sm text-[var(--text-dark)] focus:border-purple-500/50 transition-colors h-20 resize-none"
+            />
           </div>
 
-          {newProgram.type === "Грант" && (
-            <div className="animate-in slide-in-from-top-2 duration-200">
-              <label className="text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider block mb-1.5 ml-1">
-                Бюджет / Сума гранту
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-gray)]">
+                Тип
               </label>
-              <div className="relative">
+              <select
+                value={newProgram.type || "Науковий журнал"}
+                onChange={handleTypeChange}
+                className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-3 py-3 outline-none text-sm text-[var(--text-dark)] focus:border-purple-500/50 transition-colors"
+              >
+                {PROGRAM_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-gray)]">
+                Галузь
+              </label>
+              <select
+                value={newProgram.domain || "Всі галузі"}
+                onChange={(e) =>
+                  setNewProgram({ ...newProgram, domain: e.target.value })
+                }
+                className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-3 py-3 outline-none text-sm text-[var(--text-dark)] focus:border-purple-500/50 transition-colors"
+              >
+                <option value="Всі галузі">Всі галузі</option>
+                {SCIENTIFIC_DOMAINS.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {newProgram.type === "Науковий журнал" && (
+            <div className="grid grid-cols-2 gap-4 animate-in fade-in duration-200">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-gray)]">
+                  ISSN
+                </label>
                 <input
                   type="text"
-                  required
-                  placeholder="Наприклад: 50 000 USD або до 200 000 ₴"
-                  className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-dark)] rounded-xl pl-10 pr-4 py-3 text-sm focus:border-purple-500 outline-none transition-colors"
+                  placeholder="1234-567X"
+                  value={newProgram.issn || ""}
+                  onChange={(e) =>
+                    setNewProgram({ ...newProgram, issn: e.target.value })
+                  }
+                  className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 outline-none text-sm text-[var(--text-dark)] focus:border-purple-500/50 transition-colors"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-gray)]">
+                  Impact Factor
+                </label>
+                <input
+                  type="text"
+                  placeholder="0.0"
+                  value={newProgram.impactFactor || ""}
+                  onChange={(e) =>
+                    setNewProgram({
+                      ...newProgram,
+                      impactFactor: e.target.value,
+                    })
+                  }
+                  className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 outline-none text-sm text-[var(--text-dark)] focus:border-purple-500/50 transition-colors"
+                />
+              </div>
+            </div>
+          )}
+
+          {newProgram.type === "Грант" && (
+            <div className="grid grid-cols-2 gap-4 animate-in fade-in duration-200">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-gray)]">
+                  Сума гранту
+                </label>
+                <input
+                  type="text"
+                  placeholder="напр., 50 000 UAH"
                   value={newProgram.amount || ""}
                   onChange={(e) =>
                     setNewProgram({ ...newProgram, amount: e.target.value })
                   }
+                  className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 outline-none text-sm text-[var(--text-dark)] focus:border-purple-500/50 transition-colors"
                 />
-                <DollarSign
-                  size={16}
-                  className="absolute left-3.5 top-3.5 text-purple-500"
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-gray)]">
+                  Організатор
+                </label>
+                <input
+                  type="text"
+                  placeholder="Хто фінансує..."
+                  value={newProgram.organizer || ""}
+                  onChange={(e) =>
+                    setNewProgram({ ...newProgram, organizer: e.target.value })
+                  }
+                  className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 outline-none text-sm text-[var(--text-dark)] focus:border-purple-500/50 transition-colors"
                 />
               </div>
             </div>
           )}
 
-          {newProgram.type === "Науковий журнал" && (
-            <div className="grid grid-cols-2 gap-3 animate-in slide-in-from-top-2 duration-200">
-              <div>
-                <label className="text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider block mb-1.5 ml-1">
-                  ISSN
-                </label>
-                <div className="relative">
+          {newProgram.type === "Конференція" && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-gray)]">
+                    Організатор
+                  </label>
                   <input
                     type="text"
-                    placeholder="1234-567X"
-                    className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-dark)] rounded-xl pl-10 pr-4 py-3 text-sm focus:border-purple-500 outline-none transition-colors"
-                    value={newProgram.issn || ""}
+                    placeholder="Назва установи..."
+                    value={newProgram.organizer || ""}
                     onChange={(e) =>
-                      setNewProgram({ ...newProgram, issn: e.target.value })
+                      setNewProgram({
+                        ...newProgram,
+                        organizer: e.target.value,
+                      })
                     }
+                    className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 outline-none text-sm text-[var(--text-dark)] focus:border-purple-500/50 transition-colors"
                   />
-                  <BookOpen
-                    size={15}
-                    className="absolute left-3.5 top-3.5 text-purple-500"
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-gray)]">
+                    Локація / Платформа
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Онлайн, Zoom або Місто"
+                    value={newProgram.location || ""}
+                    onChange={(e) =>
+                      setNewProgram({ ...newProgram, location: e.target.value })
+                    }
+                    className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 outline-none text-sm text-[var(--text-dark)] focus:border-purple-500/50 transition-colors"
                   />
                 </div>
               </div>
-              <div>
-                <label className="text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider block mb-1.5 ml-1">
-                  Impact Factor
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-gray)]">
+                  Зовнішнє посилання
                 </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="2.5"
-                    className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-dark)] rounded-xl pl-10 pr-4 py-3 text-sm focus:border-purple-500 outline-none transition-colors"
-                    value={newProgram.impactFactor ?? ""}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setNewProgram({
-                        ...newProgram,
-                        impactFactor: val === "" ? "" : parseFloat(val) || 0,
-                      });
-                    }}
-                  />
-                  <BarChart3
-                    size={15}
-                    className="absolute left-3.5 top-3.5 text-purple-500"
-                  />
-                </div>
+                <input
+                  type="text"
+                  placeholder="https://site.com/conference"
+                  value={newProgram.externalLink || ""}
+                  onChange={(e) =>
+                    setNewProgram({
+                      ...newProgram,
+                      externalLink: e.target.value,
+                    })
+                  }
+                  className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 outline-none text-sm text-[var(--text-dark)] focus:border-purple-500/50 transition-colors"
+                />
               </div>
             </div>
           )}
 
-          <div>
-            <label className="text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider block mb-1.5 ml-1">
-              Кінцевий дедлайн подачі
+          {["Курс", "Датасет"].includes(newProgram.type) && (
+            <div className="space-y-1 animate-in fade-in duration-200">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-gray)]">
+                Посилання на матеріал
+              </label>
+              <input
+                type="text"
+                placeholder="https://link-to-resource.com"
+                value={newProgram.externalLink || ""}
+                onChange={(e) =>
+                  setNewProgram({ ...newProgram, externalLink: e.target.value })
+                }
+                className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 outline-none text-sm text-[var(--text-dark)] focus:border-purple-500/50 transition-colors"
+              />
+            </div>
+          )}
+
+          <div className="space-y-1 relative">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-gray)] block">
+              Кінцевий термін (Дедлайн)
             </label>
             <div className="relative">
               <DatePicker
@@ -186,104 +279,106 @@ const ProgramsTab = ({
                   setNewProgram({ ...newProgram, deadline: date })
                 }
                 dateFormat="dd.MM.yyyy"
-                locale="uk"
                 minDate={new Date()}
-                required
-                className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-dark)] rounded-xl px-4 py-3 text-sm focus:border-purple-500 outline-none transition-colors"
+                placeholderText="Оберіть дату"
+                className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 pl-10 outline-none text-sm text-[var(--text-dark)] focus:border-purple-500/50 transition-colors"
               />
               <CalendarIcon
-                size={16}
-                className="absolute right-4 top-3.5 text-purple-500 pointer-events-none"
+                size={14}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-gray)]"
               />
             </div>
           </div>
 
-          <div>
-            <label className="text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider block mb-1.5 ml-1">
-              Опис та критерії відбору
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-gray)]">
+              Повний опис / Умови
             </label>
-            <div className="admin-quill rounded-xl overflow-hidden border border-[var(--border-color)]">
+            <div className="quill-wrapper rounded-xl overflow-hidden border border-[var(--border-color)] bg-[var(--bg-main)]">
               <ReactQuill
                 theme="snow"
                 value={newProgram.description || ""}
-                onChange={(v) =>
-                  setNewProgram({ ...newProgram, description: v })
+                onChange={(content) =>
+                  setNewProgram({ ...newProgram, description: content })
                 }
-                placeholder="Детальні умови конкурсу, фінансування чи вимоги до публікації..."
+                placeholder="Детальні вимоги, критерії оцінювання..."
               />
             </div>
           </div>
 
           <button
-            type="submit"
+            onClick={onCreateProgram}
             disabled={loadingAction === "create-program"}
-            className="w-full py-4 bg-purple-600 hover:bg-purple-700 active:scale-[0.99] text-white text-xs font-black uppercase tracking-widest rounded-xl shadow-lg shadow-purple-600/10 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full py-3.5 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md shadow-purple-600/10 active:scale-98 flex items-center justify-center gap-2"
           >
-            <PlusCircle size={16} />
-            {loadingAction === "create-program"
-              ? "Створення..."
-              : "Опублікувати програму"}
+            Зберегти програму
           </button>
-        </form>
+        </div>
       </div>
 
       <div className="lg:col-span-2 space-y-4">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--text-gray)] mb-2">
-          Активні конкурсні програми ({programs.length})
+        <h3 className="text-lg font-black text-[var(--text-dark)] mb-5 uppercase tracking-tight italic">
+          Активні програми ({programs.length})
         </h3>
-        {programs.length === 0 ? (
-          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-8 text-center rounded-3xl text-[var(--text-gray)] text-sm font-medium">
-            Жодної програми ще не створено
-          </div>
-        ) : (
-          programs.map((p) => (
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {programs.map((p) => (
             <div
               key={p._id}
-              className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-3xl shadow-xs hover:border-purple-500/30 transition-all flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+              className="bg-[var(--bg-card)] border border-[var(--border-color)] p-5 rounded-2xl flex flex-col justify-between hover:shadow-xs transition-shadow"
             >
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="px-2 py-0.5 bg-purple-500/10 text-purple-500 border border-purple-500/10 rounded-md text-[10px] font-bold tracking-wider uppercase">
-                    {p.type || "Програма"}
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="px-2 py-0.5 bg-purple-500/10 text-purple-600 border border-purple-500/10 rounded-md text-[9px] font-black uppercase tracking-wider">
+                    {p.type}
                   </span>
-                  <span className="px-2 py-0.5 bg-blue-500/10 text-blue-500 border border-blue-500/10 rounded-md text-[10px] font-bold tracking-wider uppercase">
-                    {p.domain || "Всі галузі"}
-                  </span>
+
                   {p.type === "Грант" && p.amount && (
-                    <span className="px-2 py-0.5 bg-amber-500/10 text-amber-500 border border-amber-500/10 rounded-md text-[10px] font-bold tracking-wider uppercase">
+                    <span className="px-2 py-0.5 bg-amber-500/10 text-amber-600 border border-amber-500/10 rounded-md text-[10px] font-bold">
                       💰 {p.amount}
                     </span>
                   )}
                   {p.type === "Науковий журнал" && p.impactFactor > 0 && (
-                    <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/10 rounded-md text-[10px] font-bold tracking-wider uppercase">
+                    <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/10 rounded-md text-[10px] font-bold">
                       IF: {p.impactFactor}
+                    </span>
+                  )}
+                  {p.type === "Конференція" && p.location && (
+                    <span className="px-2 py-0.5 bg-blue-500/10 text-blue-500 border border-blue-500/10 rounded-md text-[10px] font-bold flex items-center gap-1">
+                      📍 {p.location}
                     </span>
                   )}
                 </div>
 
-                <h4 className="text-base font-black text-[var(--text-dark)]">
+                <h4 className="text-base font-black text-[var(--text-dark)] line-clamp-1">
                   {p.title}
                 </h4>
+                <p className="text-xs text-[var(--text-gray)] mt-1 line-clamp-2">
+                  {p.shortDescription || "Без короткого опису."}
+                </p>
 
-                <div className="flex items-center gap-4 mt-1 text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider">
-                  <div className="flex items-center gap-1.5 text-red-500 bg-red-500/5 px-2.5 py-1 rounded-lg">
-                    <Clock size={13} />
-                    Дедлайн:{" "}
-                    {p.deadline
-                      ? new Date(p.deadline).toLocaleDateString("uk-UA")
-                      : "Не вказано"}
+                {p.organizer && (
+                  <div className="text-[10px] text-[var(--text-gray)] font-medium mt-2 flex items-center gap-1">
+                    <Award size={11} /> Організатор:{" "}
+                    <span className="font-bold text-[var(--text-dark)]">
+                      {p.organizer}
+                    </span>
                   </div>
-                  <div className="text-[var(--text-gray)] hidden sm:block">
-                    Створено:{" "}
-                    {p.createdAt
-                      ? new Date(p.createdAt).toLocaleDateString("uk-UA")
-                      : "—"}
-                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-4 mt-4 pt-3 border-t border-[var(--border-color)] text-xs font-bold uppercase tracking-wider">
+                <div className="flex items-center gap-1.5 text-red-500 bg-red-500/5 px-2.5 py-1 rounded-lg text-[11px]">
+                  <Clock size={13} />
+                  Дедлайн:{" "}
+                  {p.deadline
+                    ? new Date(p.deadline).toLocaleDateString("uk-UA")
+                    : "—"}
                 </div>
               </div>
             </div>
-          ))
-        )}
+          ))}
+        </div>
       </div>
     </div>
   );

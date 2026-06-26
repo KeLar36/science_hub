@@ -1,6 +1,13 @@
 const express = require("express");
 const router = express.Router();
-const Program = require("../models/Program");
+const {
+  Program,
+  JournalProgram,
+  GrantProgram,
+  ConferenceProgram,
+  DatasetProgram,
+  CourseProgram,
+} = require("../models/Program");
 const { verifyToken, checkRole } = require("../middleware/auth");
 
 router.get("/", async (req, res) => {
@@ -25,29 +32,81 @@ router.post(
         domain,
         type,
         amount,
+        organizer,
         issn,
         impactFactor,
+        externalLink,
+        location,
       } = req.body;
 
-      if (!title || !description || !deadline) {
-        return res
-          .status(400)
-          .json({ error: "Будь ласка, заповніть усі обов'язкові поля" });
+      if (!title || !description || !deadline || !type) {
+        return res.status(400).json({
+          error: "Будь ласка, заповніть усі обов'язкові поля, включаючи тип",
+        });
       }
 
-      const newProgram = new Program({
+      const baseData = {
         title,
         description,
         deadline,
         domain,
-        type,
-        amount: amount || undefined,
-        issn: issn || undefined,
-        impactFactor:
-          impactFactor && impactFactor !== "" ? Number(impactFactor) : 0,
         createdBy: req.user.id,
         active: true,
-      });
+      };
+
+      let newProgram;
+
+      switch (type) {
+        case "Науковий журнал":
+          if (!issn)
+            return res
+              .status(400)
+              .json({ error: "Для журналу обов'язково вказати ISSN" });
+          newProgram = new JournalProgram({
+            ...baseData,
+            issn,
+            impactFactor:
+              impactFactor && impactFactor !== "" ? Number(impactFactor) : 0,
+          });
+          break;
+
+        case "Грант":
+          if (!amount || !organizer) {
+            return res.status(400).json({
+              error: "Для гранту обов'язково вказати суму та організатора",
+            });
+          }
+          newProgram = new GrantProgram({
+            ...baseData,
+            amount,
+            organizer,
+          });
+          break;
+
+        case "Конференція":
+          if (!organizer)
+            return res.status(400).json({
+              error: "Для конференції обов'язково вказати організатора",
+            });
+          newProgram = new ConferenceProgram({
+            ...baseData,
+            organizer,
+            externalLink,
+            location: location || "Онлайн",
+          });
+          break;
+
+        case "Датасет":
+          newProgram = new DatasetProgram({ ...baseData, externalLink });
+          break;
+
+        case "Курс":
+          newProgram = new CourseProgram({ ...baseData, externalLink });
+          break;
+
+        default:
+          newProgram = new Program({ ...baseData, type });
+      }
 
       const savedProgram = await newProgram.save();
       res.status(201).json(savedProgram);
