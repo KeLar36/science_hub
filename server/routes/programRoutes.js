@@ -10,6 +10,7 @@ const {
 } = require("../models/Program");
 const { verifyToken, checkRole } = require("../middleware/auth");
 
+// 🟢 1. Отримання всіх активних програм (Публічний рут)
 router.get("/", async (req, res) => {
   try {
     const programs = await Program.find({ active: true }).sort({ deadline: 1 });
@@ -19,6 +20,24 @@ router.get("/", async (req, res) => {
   }
 });
 
+// 🟢 2. Отримання архівних програм (Тільки для адмінів)
+router.get(
+  "/archive",
+  verifyToken,
+  checkRole(["admin", "superadmin"]),
+  async (req, res) => {
+    try {
+      const archived = await Program.find({ active: false }).sort({
+        updatedAt: -1,
+      });
+      res.json(archived);
+    } catch (err) {
+      res.status(500).json({ error: "Помилка при отриманні архіву" });
+    }
+  },
+);
+
+// 🟢 3. Створення нової програми за типом (Тільки для адмінів)
 router.post(
   "/",
   verifyToken,
@@ -76,11 +95,7 @@ router.post(
               error: "Для гранту обов'язково вказати суму та організатора",
             });
           }
-          newProgram = new GrantProgram({
-            ...baseData,
-            amount,
-            organizer,
-          });
+          newProgram = new GrantProgram({ ...baseData, amount, organizer });
           break;
 
         case "Конференція":
@@ -117,22 +132,68 @@ router.post(
   },
 );
 
-router.get(
-  "/archive",
+// 🟢 4. Редагування програми (PUT) — ВАЖЛИВО для фронтенду!
+router.put(
+  "/:id",
   verifyToken,
   checkRole(["admin", "superadmin"]),
   async (req, res) => {
     try {
-      const archived = await Program.find({ active: false }).sort({
-        updatedAt: -1,
-      });
-      res.json(archived);
+      const {
+        title,
+        description,
+        deadline,
+        domain,
+        type,
+        amount,
+        organizer,
+        issn,
+        impactFactor,
+        externalLink,
+        location,
+      } = req.body;
+
+      let program = await Program.findById(req.params.id);
+      if (!program) {
+        return res.status(404).json({ error: "Програму не знайдено" });
+      }
+
+      program.title = title || program.title;
+      program.description = description || program.description;
+      program.deadline = deadline || program.deadline;
+      program.domain = domain || program.domain;
+
+      if (type === "Науковий журнал") {
+        program.issn = issn;
+        program.impactFactor =
+          impactFactor && impactFactor !== "" ? Number(impactFactor) : 0;
+        program.amount = undefined;
+        program.organizer = undefined;
+      } else if (type === "Грант") {
+        program.amount = amount;
+        program.organizer = organizer;
+        program.issn = undefined;
+        program.impactFactor = undefined;
+      } else if (type === "Конференція") {
+        program.organizer = organizer;
+        program.externalLink = externalLink;
+        program.location = location || "Онлайн";
+        program.issn = undefined;
+        program.amount = undefined;
+      } else {
+        program.externalLink = externalLink;
+      }
+
+      const updatedProgram = await program.save();
+      res.json({ program: updatedProgram });
     } catch (err) {
-      res.status(500).json({ error: "Помилка при отриманні архіву" });
+      console.error("Помилка при оновленні програми:", err);
+      res.status(500).json({ error: "Помилка сервера при оновленні програми" });
     }
   },
 );
 
+// 🟢 5. Перемикання статусу (Активна / В архіві)
 router.patch(
   "/:id/toggle-status",
   verifyToken,
@@ -155,6 +216,7 @@ router.patch(
   },
 );
 
+// 🟢 6. Видалення програми НАЗАВЖДИ
 router.delete(
   "/:id/permanent",
   verifyToken,
@@ -171,6 +233,7 @@ router.delete(
   },
 );
 
+// 🟢 7. Отримання однієї програми за ID (Публічний рут)
 router.get("/:id", async (req, res) => {
   try {
     const program = await Program.findById(req.params.id);

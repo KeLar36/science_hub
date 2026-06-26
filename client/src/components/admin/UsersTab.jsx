@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Search, ShieldCheck, Ban, Crown, Loader2 } from "lucide-react";
-import Pagination from "./Pagination";
+import Pagination from "../Pagination";
 
 const UsersTab = ({
   users,

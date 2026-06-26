@@ -200,7 +200,6 @@ export default function AdminPage() {
       setLoadingAction("create-program");
       const res = await axiosInstance.post("/programs", newProgram);
       setPrograms([res.data, ...programs]);
-      // Всередині handleCreateProgram після успішного тоста:
       setNewProgram({
         title: "",
         shortDescription: "",
@@ -237,6 +236,24 @@ export default function AdminPage() {
       toast.success("Рецензента призначено");
     } catch {
       toast.error("Помилка призначення");
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleToggleStatus = async (programId) => {
+    setLoadingAction(programId);
+    try {
+      const res = await axiosInstance.patch(
+        `/programs/${programId}/toggle-status`,
+      );
+      toast.success(res.data.message);
+
+      setPrograms((prev) =>
+        prev.map((p) => (p._id === programId ? res.data.program : p)),
+      );
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Помилка при зміні статусу");
     } finally {
       setLoadingAction(null);
     }
@@ -311,9 +328,11 @@ export default function AdminPage() {
         {activeTab === "programs" && (
           <ProgramsTab
             programs={programs}
+            setPrograms={setPrograms}
             newProgram={newProgram}
             setNewProgram={setNewProgram}
             onCreateProgram={handleCreateProgram}
+            onToggleStatus={handleToggleStatus}
             loadingAction={loadingAction}
           />
         )}

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Search, CheckCircle, XCircle, UserPlus } from "lucide-react";
-import Pagination from "./Pagination";
+import Pagination from "../Pagination";
 
 const ProjectsTab = ({
   projects = [],
