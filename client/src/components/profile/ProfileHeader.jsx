@@ -52,9 +52,11 @@ export default function ProfileHeader({
             <h1 className="text-2xl md:text-3xl font-black tracking-tight text-[var(--text-dark)]">
               {userData.name}
             </h1>
-            <span className="px-2.5 py-1 bg-purple-600/10 text-purple-600 dark:text-purple-400 rounded-md text-[10px] font-bold tracking-wider uppercase border border-purple-500/10">
-              {userData.role}
-            </span>
+            {userData.role !== "user" && (
+              <span className="px-2.5 py-1 bg-purple-600/10 text-purple-600 dark:text-purple-400 rounded-md text-[10px] font-bold tracking-wider uppercase border border-purple-500/10">
+                {userData.role}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center justify-center md:justify-start gap-1.5 text-[var(--text-gray)] text-xs font-semibold">

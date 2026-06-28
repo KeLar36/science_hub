@@ -3,14 +3,13 @@ const router = express.Router();
 const User = require("../models/User");
 const Post = require("../models/Post");
 
-const { verifyToken, checkRole } = require("../middleware/auth");
+const { verifyToken, checkRole, canManageUser } = require("../middleware/auth");
 const adminAccess = checkRole(["admin", "superadmin"]);
 
 // ==========================================
 // 1. БЛОК ПОТОЧНОГО КОРИСТУВАЧА (МЕНЕ)
 // ==========================================
 
-// Отримання профілю поточного користувача
 router.get("/me", verifyToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
@@ -23,7 +22,6 @@ router.get("/me", verifyToken, async (req, res) => {
   }
 });
 
-// Оновлення профілю поточного користувача
 router.patch("/update-profile", verifyToken, async (req, res) => {
   try {
     const { name, bio, topics, city, socials, image } = req.body;
@@ -53,7 +51,6 @@ router.patch("/update-profile", verifyToken, async (req, res) => {
 // 2. БЛОК ЗАКЛАДОК (Усі статичні під-шляхи)
 // ==========================================
 
-// Отримання всіх закладок користувача (ТЕПЕР ВІН ТУТ, ВИЩЕ ЗА /:id!)
 router.get("/bookmarks/all", verifyToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
@@ -70,7 +67,6 @@ router.get("/bookmarks/all", verifyToken, async (req, res) => {
   }
 });
 
-// Перевірка конкретної закладки
 router.get("/bookmarks/check/:id", verifyToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
@@ -86,7 +82,6 @@ router.get("/bookmarks/check/:id", verifyToken, async (req, res) => {
   }
 });
 
-// Додати/видалити з закладок
 router.post("/bookmarks/toggle/:id", verifyToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
@@ -117,12 +112,11 @@ router.post("/bookmarks/toggle/:id", verifyToken, async (req, res) => {
 // 3. БЛОК ЗАГАЛЬНОДОСТУПНИХ СТАТИЧНИХ РОУТІВ
 // ==========================================
 
-// Отримання списку учасників спільноти
 router.get("/community", async (req, res) => {
   try {
     const users = await User.find(
       { isBanned: false },
-      "name role image bio topics city socials status createdAt",
+      "name role image bio topics city socials status organizationId createdAt",
     ).sort({ status: 1, createdAt: -1 });
 
     res.json(users);
@@ -131,10 +125,25 @@ router.get("/community", async (req, res) => {
   }
 });
 
-// Кількість користувачів
 router.get("/count", verifyToken, async (req, res) => {
   try {
-    const count = await User.countDocuments();
+    if (req.user.role === "superadmin") {
+      const count = await User.countDocuments();
+      return res.json({ count });
+    }
+
+    if (req.user.role === "admin") {
+      const currentUser = await User.findById(req.user.id);
+      if (!currentUser || !currentUser.organizationId)
+        return res.json({ count: 0 });
+
+      const count = await User.countDocuments({
+        organizationId: currentUser.organizationId,
+      });
+      return res.json({ count });
+    }
+
+    const count = await User.countDocuments({ isBanned: false });
     res.json({ count });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -142,121 +151,137 @@ router.get("/count", verifyToken, async (req, res) => {
 });
 
 // ==========================================
-// 4. АДМІНІСТРАТИВНІ РОУТИ (Тільки для адмінів)
+// 4. АДМІНІСТРАТИВНІ РОУТИ (Збирають користувачів для кабінету організації)
 // ==========================================
 
-// Отримання списку всіх користувачів (для адмін-панелі)
 router.get("/all", verifyToken, adminAccess, async (req, res) => {
   try {
-    const users = await User.find().select("-password").sort({ createdAt: -1 });
-    res.json(users);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// Корневий GET для /api/users (дублював /all, лишаємо під адмінкою внизу)
-router.get("/", verifyToken, adminAccess, async (req, res) => {
-  try {
-    const users = await User.find().select("-password").sort({ createdAt: -1 });
-    res.json(users);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// Зміна ролі користувача
-router.patch("/role/:id", verifyToken, adminAccess, async (req, res) => {
-  try {
-    const { role } = req.body;
-
-    if (req.params.id === req.user.id)
-      return res.status(400).json({ message: "Не можна змінити власну роль" });
-
-    const targetUser = await User.findById(req.params.id);
-    if (!targetUser)
-      return res.status(404).json({ message: "Користувача не знайдено" });
-
-    if (role === "superadmin" && req.user.role !== "superadmin")
-      return res
-        .status(403)
-        .json({ message: "Тільки суперадмін може призначати цю роль" });
-
-    if (targetUser.role === "superadmin" && req.user.role !== "superadmin")
-      return res
-        .status(403)
-        .json({ message: "Ви не можете змінити роль суперадміна" });
-
-    if (targetUser.role === "admin" && req.user.role !== "superadmin")
-      return res.status(403).json({
-        message: "Тільки суперадмін може змінювати роль адміністратора",
-      });
-
-    targetUser.role = role;
-    await targetUser.save();
-    res.json(targetUser);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-});
-
-// Блокування користувача
-router.patch("/ban/:id", verifyToken, adminAccess, async (req, res) => {
-  try {
-    const { isBanned } = req.body;
-
-    if (req.params.id === req.user.id)
-      return res
-        .status(400)
-        .json({ message: "Не можна заблокувати самого себе" });
-
-    const targetUser = await User.findById(req.params.id);
-    if (!targetUser)
-      return res.status(404).json({ message: "Користувача не знайдено" });
-
-    const isSuper = req.user.role === "superadmin";
-    const targetIsStaff =
-      targetUser.role === "admin" || targetUser.role === "superadmin";
-
-    if (!isSuper && targetIsStaff)
-      return res
-        .status(403)
-        .json({ message: "Ви не можете забанити адміністратора" });
-
-    targetUser.isBanned = isBanned;
-    await targetUser.save();
-    res.json(targetUser);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-});
-
-// Видалення користувача (СУВОРІ ДИНАМІЧНІ РОУТИ — НАЙНИЖЧЕ СЕРЕД УСІХ)
-router.delete("/:id", verifyToken, adminAccess, async (req, res) => {
-  try {
-    if (req.params.id === req.user.id)
-      return res
-        .status(400)
-        .json({ message: "Не можна видалити власний акаунт" });
-
-    const targetUser = await User.findById(req.params.id);
-    if (!targetUser)
-      return res.status(404).json({ message: "Користувача не знайдено" });
-
-    if (
-      (targetUser.role === "admin" || targetUser.role === "superadmin") &&
-      req.user.role !== "superadmin"
-    ) {
-      return res
-        .status(403)
-        .json({ message: "Тільки суперадмін може видаляти персонал" });
+    if (req.user.role === "superadmin") {
+      const users = await User.find()
+        .select("-password")
+        .sort({ createdAt: -1 });
+      return res.json(users);
     }
 
-    await User.findByIdAndDelete(req.params.id);
-    res.json({ message: "Користувача видалено" });
+    if (req.user.role === "admin") {
+      const currentUser = await User.findById(req.user.id);
+      if (!currentUser || !currentUser.organizationId) return res.json([]);
+
+      const users = await User.find({
+        organizationId: currentUser.organizationId,
+      })
+        .select("-password")
+        .sort({ createdAt: -1 });
+      return res.json(users);
+    }
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
+
+router.get("/", verifyToken, adminAccess, async (req, res) => {
+  try {
+    if (req.user.role === "superadmin") {
+      const users = await User.find()
+        .select("-password")
+        .sort({ createdAt: -1 });
+      return res.json(users);
+    }
+
+    if (req.user.role === "admin") {
+      const currentUser = await User.findById(req.user.id);
+      if (!currentUser || !currentUser.organizationId) return res.json([]);
+
+      const users = await User.find({
+        organizationId: currentUser.organizationId,
+      })
+        .select("-password")
+        .sort({ createdAt: -1 });
+      return res.json(users);
+    }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.patch(
+  "/role/:id",
+  verifyToken,
+  adminAccess,
+  canManageUser,
+  async (req, res) => {
+    try {
+      const { role } = req.body;
+
+      if (req.params.id === req.user.id)
+        return res
+          .status(400)
+          .json({ message: "Не можна змінити власну роль" });
+
+      if (role === "superadmin" && req.user.role !== "superadmin") {
+        return res.status(403).json({
+          message: "Тільки суперадмін може призначати роль superadmin",
+        });
+      }
+
+      const targetUser = await User.findById(req.params.id);
+      if (!targetUser)
+        return res.status(404).json({ message: "Користувача не знайдено" });
+
+      targetUser.role = role;
+      await targetUser.save();
+      res.json(targetUser);
+    } catch (err) {
+      res.status(400).json({ message: err.message });
+    }
+  },
+);
+
+router.patch(
+  "/ban/:id",
+  verifyToken,
+  adminAccess,
+  canManageUser,
+  async (req, res) => {
+    try {
+      const { isBanned } = req.body;
+
+      if (req.params.id === req.user.id)
+        return res
+          .status(400)
+          .json({ message: "Не можна заблокувати самого себе" });
+
+      const targetUser = await User.findByIdAndUpdate(
+        req.params.id,
+        { isBanned },
+        { new: true },
+      ).select("-password");
+
+      res.json(targetUser);
+    } catch (err) {
+      res.status(400).json({ message: err.message });
+    }
+  },
+);
+
+router.delete(
+  "/:id",
+  verifyToken,
+  adminAccess,
+  canManageUser,
+  async (req, res) => {
+    try {
+      if (req.params.id === req.user.id)
+        return res
+          .status(400)
+          .json({ message: "Не можна видалити власний акаунт" });
+
+      await User.findByIdAndDelete(req.params.id);
+      res.json({ message: "Користувача успішно видалено" });
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
+  },
+);
 
 module.exports = router;

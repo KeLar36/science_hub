@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axiosInstance from "../api/axios";
 import toast, { Toaster } from "react-hot-toast";
@@ -18,17 +18,7 @@ import {
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { UKRAINIAN_CITIES } from "../constants/cities";
-
-const SCIENTIFIC_DOMAINS = [
-  "Штучний інтелект & IT",
-  "Медицина та фармація",
-  "Економіка та фінанси",
-  "Право та юриспруденція",
-  "Природничі науки",
-  "Гуманітарні науки",
-  "Технічні науки & Інженерія",
-  "Інше",
-];
+import { SCIENTIFIC_DOMAINS } from "../constants/domains";
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -41,6 +31,11 @@ const RegisterPage = () => {
   });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // 🟣 Сортуємо міста за українським алфавітом
+  const sortedCities = useMemo(() => {
+    return [...UKRAINIAN_CITIES].sort((a, b) => a.localeCompare(b, "uk"));
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -141,7 +136,8 @@ const RegisterPage = () => {
                     required
                   >
                     <option value="">Оберіть місто</option>
-                    {UKRAINIAN_CITIES.map((c) => (
+                    {/* 🟣 Використовуємо відсортований масив */}
+                    {sortedCities.map((c) => (
                       <option key={c} value={c}>
                         {c}
                       </option>

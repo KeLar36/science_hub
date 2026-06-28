@@ -5,10 +5,29 @@ const User = require("../models/User");
 const { verifyToken, checkRole } = require("../middleware/auth");
 const upload = require("../middleware/upload");
 
+const checkBanStatus = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id).select("isBanned");
+    if (!user || user.isBanned) {
+      return res
+        .status(403)
+        .json({ message: "Доступ заборонено: ваш акаунт заблоковано." });
+    }
+    next();
+  } catch (err) {
+    res.status(500).json({ message: "Помилка верифікації користувача" });
+  }
+};
+
+// ==========================================
+// 1. ПУБЛІЧНІ РОУТИ (Доступні абсолютно всім)
+// ==========================================
+
 router.get("/", async (req, res) => {
   try {
     const { category } = req.query;
-    let query = {};
+    let query = { status: "published" };
+
     if (category && category !== "Всі") {
       query.category = category;
     }
@@ -22,8 +41,8 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const post = await Post.findById(req.params.id)
-      .populate("authorId", "name role")
-      .populate("comments.user", "name role");
+      .populate("authorId", "name role image")
+      .populate("comments.user", "name role image");
 
     if (!post) return res.status(404).json({ message: "Пост не знайдено" });
 
@@ -47,9 +66,14 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+// ==========================================
+// 2. АДМІНІСТРАТИВНІ РОУТИ (Керування контентом)
+// ==========================================
+
 router.post(
   "/create",
   verifyToken,
+  checkBanStatus,
   checkRole(["admin", "content-manager", "superadmin"]),
   upload.single("image"),
   async (req, res) => {
@@ -76,6 +100,7 @@ router.post(
 router.put(
   "/:id",
   verifyToken,
+  checkBanStatus,
   checkRole(["admin", "content-manager", "superadmin"]),
   upload.single("image"),
   async (req, res) => {
@@ -107,6 +132,7 @@ router.put(
 router.delete(
   "/:id",
   verifyToken,
+  checkBanStatus,
   checkRole(["admin", "superadmin"]),
   async (req, res) => {
     try {
@@ -120,7 +146,11 @@ router.delete(
   },
 );
 
-router.post("/:id/comment", verifyToken, async (req, res) => {
+// ==========================================
+// 3. ІНТЕРАКТИВНИЙ БЛОК (Авторизовані користувачі)
+// ==========================================
+
+router.post("/:id/comment", verifyToken, checkBanStatus, async (req, res) => {
   try {
     const { text } = req.body;
     if (!text || text.trim() === "") {
@@ -138,7 +168,7 @@ router.post("/:id/comment", verifyToken, async (req, res) => {
         },
       },
       { new: true },
-    ).populate("comments.user", "name role");
+    ).populate("comments.user", "name role image");
 
     if (!post) return res.status(404).json({ message: "Пост не знайдено" });
 
@@ -150,44 +180,58 @@ router.post("/:id/comment", verifyToken, async (req, res) => {
   }
 });
 
-router.delete("/:postId/comment/:commentId", verifyToken, async (req, res) => {
-  try {
-    const { postId, commentId } = req.params;
-    const post = await Post.findById(postId).populate("comments.user", "role");
+router.delete(
+  "/:postId/comment/:commentId",
+  verifyToken,
+  checkBanStatus,
+  async (req, res) => {
+    try {
+      const { postId, commentId } = req.params;
+      const post = await Post.findById(postId).populate(
+        "comments.user",
+        "role",
+      );
 
-    if (!post) return res.status(404).json({ message: "Пост не знайдено" });
+      if (!post) return res.status(404).json({ message: "Пост не знайдено" });
 
-    const comment = post.comments.id(commentId);
-    if (!comment)
-      return res.status(404).json({ message: "Коментар не знайдено" });
+      const comment = post.comments.id(commentId);
+      if (!comment)
+        return res.status(404).json({ message: "Коментар не знайдено" });
 
-    const currentUserRole = req.user.role;
-    const currentUserId = req.user.id;
-    const commentAuthorId = comment.user._id.toString();
-    const commentAuthorRole = comment.user.role;
+      const currentUserRole = req.user.role;
+      const currentUserId = req.user.id;
 
-    const isOwner = commentAuthorId === currentUserId;
-    const isSuper = currentUserRole === "superadmin";
-    const isAdmin = currentUserRole === "admin";
-    const isTargetHigherRole =
-      commentAuthorRole === "admin" || commentAuthorRole === "superadmin";
+      const commentAuthorId = comment.user?._id?.toString() || null;
+      const commentAuthorRole = comment.user?.role || "user";
 
-    if (isOwner || isSuper || (isAdmin && !isTargetHigherRole)) {
-      post.comments.pull(commentId);
-      await post.save();
-      return res.json({ message: "Коментар видалено" });
+      const isOwner = commentAuthorId === currentUserId;
+      const isSuper = currentUserRole === "superadmin";
+      const isAdmin = currentUserRole === "admin";
+      const isTargetHigherRole =
+        commentAuthorRole === "admin" || commentAuthorRole === "superadmin";
+
+      if (
+        isOwner ||
+        isSuper ||
+        (isAdmin && !isTargetHigherRole) ||
+        !commentAuthorId
+      ) {
+        post.comments.pull(commentId);
+        await post.save();
+        return res.json({ message: "Коментар видалено" });
+      }
+
+      return res
+        .status(403)
+        .json({ message: "Недостатньо прав для видалення цього коментаря" });
+    } catch (err) {
+      console.error("Delete Comment Error:", err);
+      res.status(500).json({ message: "Помилка сервера" });
     }
+  },
+);
 
-    return res
-      .status(403)
-      .json({ message: "Недостатньо прав для видалення цього коментаря" });
-  } catch (err) {
-    console.error("Delete Comment Error:", err);
-    res.status(500).json({ message: "Помилка сервера" });
-  }
-});
-
-router.post("/:id/react", verifyToken, async (req, res) => {
+router.post("/:id/react", verifyToken, checkBanStatus, async (req, res) => {
   try {
     const { type } = req.body;
     const userId = req.user.id;

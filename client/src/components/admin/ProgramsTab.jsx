@@ -6,24 +6,8 @@ import ProgramCard from "./ProgramCard";
 import ProgramForm from "./ProgramForm";
 import EditProgramModal from "./EditProgramModal";
 import Pagination from "../Pagination";
-import { useProgramForm } from "../../hooks/useProgramForm";
 import axiosInstance from "../../api/axios";
 import toast from "react-hot-toast";
-
-const initialFormState = {
-  title: "",
-  shortDescription: "",
-  description: "",
-  deadline: null,
-  domain: "Всі галузі",
-  type: "Науковий журнал",
-  amount: "",
-  issn: "",
-  impactFactor: 0,
-  organizer: "",
-  externalLink: "",
-  location: "Онлайн",
-};
 
 const ProgramsTab = ({
   programs = [],
@@ -46,72 +30,59 @@ const ProgramsTab = ({
   const [selectedProgramForEdit, setSelectedProgramForEdit] = useState(null);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 4;
-
-  const { handleTypeChange, handleSubmit, handleSaveModal, handleDelete } =
-    useProgramForm(
-      newProgram,
-      setNewProgram,
-      setPrograms,
-      onCreateProgram,
-      initialFormState,
-    );
+  const itemsPerPage = 6;
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        if (subTab === "archive") {
+    if (subTab === "archived") {
+      const fetchArchive = async () => {
+        try {
           setLoadingArchive(true);
           const res = await axiosInstance.get("/programs/archive");
           setArchivedPrograms(res.data);
-        } else if (subTab === "active" && setPrograms) {
-          const res = await axiosInstance.get("/programs");
-          setPrograms(res.data);
+        } catch (err) {
+          console.error("Помилка архіву:", err);
+          toast.error("Не вдалося завантажити архів");
+        } finally {
+          setLoadingArchive(false);
         }
-      } catch (err) {
-        toast.error(
-          `Не вдалося оновити список можливостей (${subTab === "archive" ? "архів" : "активні"})`,
-        );
-      } finally {
-        if (subTab === "archive") setLoadingArchive(false);
-      }
-    };
-
-    fetchData();
+      };
+      fetchArchive();
+    }
   }, [subTab]);
+
+  const filteredPrograms = useMemo(() => {
+    return programs.filter((p) => {
+      if (!p) return false;
+
+      const matchesTab =
+        subTab === "active" ? p.active !== false : p.active === false;
+
+      const programTitle = p.title ? p.title.toLowerCase() : "";
+      const searchStr = searchTerm.toLowerCase();
+      const matchesSearch =
+        programTitle.includes(searchStr) ||
+        (p.organizer && p.organizer.toLowerCase().includes(searchStr));
+
+      const matchesType = filterType === "Всі типи" || p.type === filterType;
+
+      const matchesDomain =
+        filterDomain === "Всі галузі" || p.domain === filterDomain;
+
+      return matchesTab && matchesSearch && matchesType && matchesDomain;
+    });
+  }, [programs, subTab, searchTerm, filterType, filterDomain]);
+
+  const totalPages = Math.ceil(filteredPrograms.length / itemsPerPage);
+  const paginatedPrograms = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredPrograms.slice(start, start + itemsPerPage);
+  }, [filteredPrograms, currentPage]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [subTab, searchTerm, filterType, filterDomain]);
+  }, [searchTerm, filterType, filterDomain, subTab]);
 
-  const currentSource = subTab === "active" ? programs : archivedPrograms;
-
-  const filteredPrograms = useMemo(() => {
-    return currentSource.filter((p) => {
-      const matchesSearch =
-        p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.organizer &&
-          p.organizer.toLowerCase().includes(searchTerm.toLowerCase()));
-      const matchesType = filterType === "Всі типи" || p.type === filterType;
-      const matchesDomain =
-        filterDomain === "Всі галузі" || p.domain === filterDomain;
-      return matchesSearch && matchesType && matchesDomain;
-    });
-  }, [currentSource, searchTerm, filterType, filterDomain]);
-
-  const totalPages = Math.ceil(filteredPrograms.length / ITEMS_PER_PAGE);
-  const paginatedPrograms = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredPrograms.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredPrograms, currentPage]);
-
-  const handleResetFilters = () => {
-    setSearchTerm("");
-    setFilterType("Всі типи");
-    setFilterDomain("Всі галузі");
-  };
-
-  const filterDropdowns = [
+  const dropdowns = [
     {
       value: filterType,
       onChange: setFilterType,
@@ -124,76 +95,123 @@ const ProgramsTab = ({
     },
   ];
 
-  const handleToggleActiveStatus = async (id) => {
-    await onToggleStatus(id);
-    if (subTab === "archive") {
-      setArchivedPrograms((prev) => prev.filter((p) => p._id !== id));
-    }
+  const handleReset = () => {
+    setSearchTerm("");
+    setFilterType("Всі типи");
+    setFilterDomain("Всі галузі");
   };
 
-  const handleOpenEditModal = (program) => {
-    setSelectedProgramForEdit(program);
+  const handleOpenEditModal = (prog) => {
+    setSelectedProgramForEdit(prog);
     setIsEditModalOpen(true);
   };
 
   const handleSaveFromModal = async (updatedData) => {
-    await handleSaveModal(updatedData, (savedProgram) => {
-      if (subTab === "archive") {
-        setArchivedPrograms((prev) =>
-          prev.map((p) => (p._id === savedProgram._id ? savedProgram : p)),
+    try {
+      const res = await axiosInstance.put(
+        `/programs/${updatedData._id}`,
+        updatedData,
+      );
+      if (res.data) {
+        const updatedTarget = res.data.program ? res.data.program : res.data;
+
+        setPrograms((prev) =>
+          prev.map((item) =>
+            item._id === updatedData._id ? updatedTarget : item,
+          ),
         );
+        if (subTab === "archived") {
+          setArchivedPrograms((prev) =>
+            prev.map((item) =>
+              item._id === updatedData._id ? updatedTarget : item,
+            ),
+          );
+        }
+        toast.success("Зміни успішно збережено!");
+        setIsEditModalOpen(false);
+        setSelectedProgramForEdit(null);
       }
-      setIsEditModalOpen(false);
-      setSelectedProgramForEdit(null);
-    });
+    } catch (err) {
+      console.error(err);
+      toast.error("Помилка при оновленні програми");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Ви впевнені, що хочете видалити цю програму?")) return;
+    try {
+      await axiosInstance.delete(`/programs/${id}`);
+      setPrograms((prev) => prev.filter((item) => item._id !== id));
+      setArchivedPrograms((prev) => prev.filter((item) => item._id !== id));
+      toast.success("Програму видалено");
+    } catch (err) {
+      console.error(err);
+      toast.error("Не вдалося видалити");
+    }
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-200">
-      <ProgramForm
-        newProgram={newProgram}
-        setNewProgram={setNewProgram}
-        loadingAction={loadingAction}
-        onSubmit={handleSubmit}
-        onTypeChange={handleTypeChange}
-      />
+    <div className="w-full">
+      <div className="flex gap-2 mb-6 bg-[var(--bg-main)] p-1 rounded-xl border border-[var(--border-color)] w-fit">
+        <button
+          onClick={() => setSubTab("active")}
+          className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${
+            subTab === "active"
+              ? "bg-purple-600 text-white shadow-sm"
+              : "text-[var(--text-gray)] hover:text-[var(--text-dark)]"
+          }`}
+        >
+          🟢 Активні ({programs.length})
+        </button>
+        <button
+          onClick={() => setSubTab("archived")}
+          className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${
+            subTab === "archived"
+              ? "bg-purple-600 text-white shadow-sm"
+              : "text-[var(--text-gray)] hover:text-[var(--text-dark)]"
+          }`}
+        >
+          <span>
+            📁 Архівні ({programs.filter((p) => p && p.active === false).length}
+            )
+          </span>
+        </button>
+      </div>
 
-      <div className="lg:col-span-2 flex flex-col justify-between min-h-[500px]">
-        <div>
-          <div className="flex gap-2 mb-4 bg-[var(--bg-main)] p-1 rounded-xl border border-[var(--border-color)] self-start">
-            <button
-              onClick={() => setSubTab("active")}
-              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all ${
-                subTab === "active"
-                  ? "bg-purple-600 text-white shadow-xs"
-                  : "text-[var(--text-gray)] hover:text-[var(--text-dark)]"
-              }`}
-            >
-              Активні ({programs.length})
-            </button>
-            <button
-              onClick={() => setSubTab("archive")}
-              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all ${
-                subTab === "archive"
-                  ? "bg-purple-600 text-white shadow-xs"
-                  : "text-[var(--text-gray)] hover:text-[var(--text-dark)]"
-              }`}
-            >
-              Арнів ({archivedPrograms.length})
-            </button>
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start relative">
+        <div className="lg:col-span-1 lg:sticky lg:top-6 z-20 bg-[var(--bg-main)]">
+          <ProgramForm
+            newProgram={newProgram}
+            setNewProgram={setNewProgram}
+            loadingAction={loadingAction}
+            onSubmit={onCreateProgram}
+            onTypeChange={(selectedType) => {
+              setNewProgram((prev) => ({
+                ...prev,
+                type: selectedType,
+                issn: "",
+                impactFactor: 0,
+                amount: "",
+                organizer: "",
+                externalLink: "",
+                location: "Онлайн",
+              }));
+            }}
+          />
+        </div>
 
+        <div className="lg:col-span-2 space-y-4 z-10 relative">
           <UniversalFilters
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
-            searchPlaceholder="Швидкий пошук за назвою або організатором..."
-            dropdowns={filterDropdowns}
-            onReset={handleResetFilters}
+            searchPlaceholder="Пошук за назвою або організатором..."
+            dropdowns={dropdowns}
+            onReset={handleReset}
           />
 
-          {subTab === "archive" && loadingArchive ? (
-            <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-12 text-center text-sm text-[var(--text-gray)] font-medium">
-              ⏳ Завантаження архівних програм...
+          {subTab === "archived" && loadingArchive ? (
+            <div className="text-center py-12 text-xs font-mono uppercase tracking-widest text-[var(--text-gray)] animate-pulse">
+              Завантаження архіву...
             </div>
           ) : filteredPrograms.length === 0 ? (
             <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl p-12 text-center text-sm text-[var(--text-gray)] font-medium">
@@ -205,25 +223,26 @@ const ProgramsTab = ({
                 <ProgramCard
                   key={p._id}
                   p={p}
-                  onEdit={handleOpenEditModal} // 🟣 Передаємо відкриття модалки
+                  onEdit={handleOpenEditModal}
                   onDelete={handleDelete}
-                  onToggleStatus={handleToggleActiveStatus}
+                  // 🟢 ОНОВЛЕНО: Передаємо безпосередньо функцію з AdminPage
+                  onToggleStatus={onToggleStatus}
                 />
               ))}
             </div>
           )}
         </div>
-
-        {totalPages > 1 && (
-          <div className="mt-6 pt-4 border-t border-[var(--border-color)]">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-            />
-          </div>
-        )}
       </div>
+
+      {totalPages > 1 && (
+        <div className="mt-6 pt-4 border-t border-[var(--border-color)]">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </div>
+      )}
 
       <EditProgramModal
         isOpen={isEditModalOpen}

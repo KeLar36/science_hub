@@ -10,21 +10,10 @@ import ProfileHeader from "../components/profile/ProfileHeader";
 import MiniStatCard from "../components/profile/MiniStatCard";
 import ProfileTabs from "../components/profile/ProfileTabs";
 import EditProfileModal from "../components/profile/EditProfileModal";
-import ArticlesList from "../components/profile/ArticlesList";
-import BookmarksList from "../components/profile/BookmarksList";
 import SubmissionForm from "../components/profile/SubmissionForm";
+import UniversalCard from "../components/UniversalCard";
+import { SCIENTIFIC_DOMAINS } from "../constants/domains";
 import { useAuth } from "../context/AuthContext";
-
-const SCIENTIFIC_DOMAINS = [
-  "Штучний інтелект & IT",
-  "Медицина та фармація",
-  "Економіка та фінанси",
-  "Право та юриспруденція",
-  "Природничі науки",
-  "Гуманітарні науки",
-  "Технічні науки & Інженерія",
-  "Інше",
-];
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -47,13 +36,33 @@ export default function ProfilePage() {
   const [savedPosts, setSavedPosts] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [file, setFile] = useState(null);
+
+  const targetProgram = location.state?.targetProgram || null;
+
   const [articleData, setArticleData] = useState({
     title: "",
     description: "",
-    abstract: "",
     programId: location.state?.programId || "",
-    domain: location.state?.domain || "Інше",
+    domain:
+      targetProgram?.domain ||
+      (SCIENTIFIC_DOMAINS && SCIENTIFIC_DOMAINS[0]) ||
+      "Інше",
   });
+
+  useEffect(() => {
+    if (location.state?.programId) {
+      setArticleData((prev) => ({
+        ...prev,
+        programId: location.state.programId,
+        domain:
+          targetProgram?.domain ||
+          location.state.domain ||
+          (SCIENTIFIC_DOMAINS && SCIENTIFIC_DOMAINS[0]) ||
+          "Інше",
+      }));
+      setView("form");
+    }
+  }, [location.state, targetProgram]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -141,6 +150,15 @@ export default function ProfilePage() {
         headers: { "Content-Type": "multipart/form-data" },
       });
       toast.success("Роботу подано!");
+
+      setFile(null);
+      setArticleData({
+        title: "",
+        description: "",
+        programId: "",
+        domain: (SCIENTIFIC_DOMAINS && SCIENTIFIC_DOMAINS[0]) || "Інше",
+      });
+
       setView("list");
       fetchData();
     } catch (err) {
@@ -158,12 +176,16 @@ export default function ProfilePage() {
   }, [programs]);
 
   const topDomain = useMemo(() => {
-    if (articles.length === 0) return "Немає даних";
+    if (!articles || articles.length === 0) return "Немає даних";
     const counts = articles.reduce((acc, curr) => {
-      acc[curr.domain] = (acc[curr.domain] || 0) + 1;
+      if (curr.domain) {
+        acc[curr.domain] = (acc[curr.domain] || 0) + 1;
+      }
       return acc;
     }, {});
-    return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+
+    const sortedEntries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    return sortedEntries[0]?.[0] || "Немає даних";
   }, [articles]);
 
   if (loading && !userData) {
@@ -225,20 +247,51 @@ export default function ProfilePage() {
 
         <div className="min-h-[300px]">
           {view === "list" && (
-            <ArticlesList items={articles} onRefresh={fetchData} />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-[fadeIn_0.3s_ease-out]">
+              {articles.length === 0 ? (
+                <div className="col-span-full text-center py-12 border border-dashed border-[var(--border-color)] rounded-2xl text-[var(--text-gray)] text-sm">
+                  У вас немає поданих статей.
+                </div>
+              ) : (
+                articles.map((art) => (
+                  <UniversalCard
+                    key={art._id}
+                    item={art}
+                    variant="profileArticle"
+                    onActionClick={(e, item) => {
+                      toast(`Ревізія для програми: ${item.title}`);
+                    }}
+                  />
+                ))
+              )}
+            </div>
           )}
+
           {view === "bookmarks" && (
-            <BookmarksList
-              items={savedPosts}
-              onToggle={handleToggleBookmark}
-              navigate={navigate}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-[fadeIn_0.3s_ease-out]">
+              {savedPosts.length === 0 ? (
+                <div className="col-span-full text-center py-12 border border-dashed border-[var(--border-color)] rounded-2xl text-[var(--text-gray)] text-sm">
+                  У вас немає збережених закладок.
+                </div>
+              ) : (
+                savedPosts.map((post) => (
+                  <UniversalCard
+                    key={post._id}
+                    item={post}
+                    variant="profileBookmark"
+                    onRemoveBookmark={handleToggleBookmark}
+                  />
+                ))
+              )}
+            </div>
           )}
+
           {view === "form" && (
             <SubmissionForm
               data={articleData}
               setData={setArticleData}
               activePrograms={activePrograms}
+              targetProgram={targetProgram}
               onSubmit={handleSubmitArticle}
               file={file}
               setFile={setFile}

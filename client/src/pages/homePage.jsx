@@ -8,12 +8,12 @@ import StatsSection from "../components/home/StatsSection";
 import FeaturesSection from "../components/home/FeaturesSection";
 import ProgramsExplorer from "../components/home/ProgramsExplorer";
 import DigestSection from "../components/home/DigestSection";
-
 import { SCIENTIFIC_DOMAINS, PROGRAM_TYPES } from "../constants/domains";
 
 const HomePage = () => {
   const [programs, setPrograms] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isAuth, setIsAuth] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDomain, setSelectedDomain] = useState("Всі галузі");
@@ -32,12 +32,26 @@ const HomePage = () => {
       }
     };
     fetchData();
+
+    const checkAuth = async () => {
+      try {
+        const res = await axiosInstance.get("/auth/me");
+        if (res.status === 200) setIsAuth(true);
+      } catch (err) {
+        setIsAuth(false);
+      }
+    };
+    checkAuth();
   }, []);
 
   const filteredPrograms = useMemo(() => {
     return programs.filter((p) => {
       const matchesSearch =
-        p.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.shortDescription &&
+          p.shortDescription
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase())) ||
         (p.organizer &&
           p.organizer.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesType =
@@ -71,7 +85,8 @@ const HomePage = () => {
     <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-dark)] transition-colors duration-300">
       <Navbar />
 
-      <HeroSection />
+      {/* Викликаємо підключений HeroSection та передаємо авторизацію */}
+      <HeroSection isAuth={isAuth} />
 
       <StatsSection totalCount={programs.length} />
 
@@ -81,12 +96,11 @@ const HomePage = () => {
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         filterDropdowns={filterDropdowns}
-        handleResetFilters={handleResetFilters}
+        onReset={handleResetFilters}
+        items={filteredPrograms}
         loading={loading}
-        filteredPrograms={filteredPrograms}
       />
 
-      {/* 5. Науковий Дайджест */}
       <DigestSection />
 
       <Footer />

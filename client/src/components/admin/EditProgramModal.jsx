@@ -9,6 +9,7 @@ import {
   DollarSign,
   BookOpen,
   BarChart3,
+  MapPin,
 } from "lucide-react";
 import "react-datepicker/dist/react-datepicker.css";
 import "react-quill-new/dist/quill.snow.css";
@@ -44,69 +45,68 @@ const EditProgramModal = ({
 
   if (!isOpen || !formData) return null;
 
-  const handleTypeChange = (e) => {
-    const selectedType = e.target.value;
-    setFormData({
-      ...formData,
-      type: selectedType,
-      amount: selectedType === "Грант" ? formData.amount : "",
-      issn: selectedType === "Науковий журнал" ? formData.issn : "",
-      impactFactor:
-        selectedType === "Науковий журнал" ? formData.impactFactor : 0,
-    });
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
     onSave(formData);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="absolute inset-0" onClick={onClose} />
+  const isJournal = formData.type === "Науковий журнал";
+  const isGrantOrBudget =
+    formData.type === "Грант" || formData.type === "Кошторис";
+  const hasLocation = ["Конференція", "Грант", "Курс", "Воркшоп"].includes(
+    formData.type,
+  );
 
-      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] w-full max-w-2xl rounded-3xl shadow-xl relative z-10 flex flex-col max-h-[90vh] animate-in scale-in duration-200">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)]">
-          <h3 className="text-base font-black text-[var(--text-dark)] uppercase tracking-tight flex items-center gap-2">
-            📝 Редагування програми
-          </h3>
+  return (
+    <div className="fixed inset-0 z-150 flex justify-center items-start md:items-start overflow-y-auto bg-black/60 backdrop-blur-xs p-0 md:p-4">
+      <div className="w-full h-full min-h-screen md:min-h-0 md:h-auto md:max-h-[85vh] md:max-w-2xl bg-[var(--bg-card)] border-0 md:border border-[var(--border-color)] md:rounded-3xl flex flex-col relative md:mt-12 md:mb-12 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+        <div className="p-6 border-b border-[var(--border-color)] flex items-center justify-between sticky top-0 bg-[var(--bg-card)] z-10">
+          <div>
+            <h3 className="text-base font-black text-[var(--text-dark)] uppercase tracking-tight">
+              Редагувати програму
+            </h3>
+            <p className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-gray)] mt-0.5">
+              ID: {formData._id}
+            </p>
+          </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-[var(--text-gray)] hover:text-[var(--text-dark)] hover:bg-[var(--bg-main)] rounded-xl transition-colors"
+            className="w-8 h-8 rounded-xl border border-[var(--border-color)] bg-[var(--bg-main)] flex items-center justify-center text-[var(--text-gray)] hover:text-[var(--text-dark)] hover:border-purple-500/30 transition-all"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="flex-1 overflow-y-auto p-6 space-y-4"
+          className="flex-grow overflow-y-auto p-6 space-y-5"
         >
-          <div className="space-y-1">
-            <label className="text-[11px] font-bold text-[var(--text-gray)] uppercase tracking-wider pl-1">
-              Назва програми / Журналу
-            </label>
-            <input
-              type="text"
-              required
-              placeholder="Введіть повну назву..."
-              className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-dark)] outline-none focus:border-purple-500/50 transition-colors"
-              value={formData.title}
-              onChange={(e) =>
-                setFormData({ ...formData, title: e.target.value })
-              }
-            />
-          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-gray)]">
+                Назва можливості
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.title}
+                onChange={(e) =>
+                  setFormData({ ...formData, title: e.target.value })
+                }
+                className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-xs font-semibold text-[var(--text-dark)] outline-none focus:border-purple-500/50 transition-all uppercase tracking-wide"
+              />
+            </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-[var(--text-gray)] uppercase tracking-wider pl-1">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-gray)]">
                 Тип програми
               </label>
               <select
-                className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-3 py-3 text-sm text-[var(--text-dark)] outline-none focus:border-purple-500/50 cursor-pointer"
                 value={formData.type}
-                onChange={handleTypeChange}
+                onChange={(e) =>
+                  setFormData({ ...formData, type: e.target.value })
+                }
+                className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-xs font-semibold text-[var(--text-dark)] outline-none focus:border-purple-500/50 transition-all cursor-pointer"
               >
                 {PROGRAM_TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -116,16 +116,16 @@ const EditProgramModal = ({
               </select>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-[var(--text-gray)] uppercase tracking-wider pl-1">
-                Галузь науки
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-gray)]">
+                Наукова галузь
               </label>
               <select
-                className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-3 py-3 text-sm text-[var(--text-dark)] outline-none focus:border-purple-500/50 cursor-pointer"
                 value={formData.domain}
                 onChange={(e) =>
                   setFormData({ ...formData, domain: e.target.value })
                 }
+                className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-xs font-semibold text-[var(--text-dark)] outline-none focus:border-purple-500/50 transition-all cursor-pointer"
               >
                 {SCIENTIFIC_DOMAINS.map((d) => (
                   <option key={d} value={d}>
@@ -134,117 +134,157 @@ const EditProgramModal = ({
                 ))}
               </select>
             </div>
-          </div>
 
-          <div className="space-y-1">
-            <label className="text-[11px] font-bold text-[var(--text-gray)] uppercase tracking-wider pl-1">
-              Організатор / Засновник
-            </label>
-            <input
-              type="text"
-              placeholder="Наприклад, МОН України, НаУКМА, ЗНУ..."
-              className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-dark)] outline-none focus:border-purple-500/50 transition-colors"
-              value={formData.organizer}
-              onChange={(e) =>
-                setFormData({ ...formData, organizer: e.target.value })
-              }
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[11px] font-bold text-[var(--text-gray)] uppercase tracking-wider pl-1">
-              Офіційний сайт (URL)
-            </label>
-            <input
-              type="url"
-              placeholder="https://example.com/program"
-              className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-dark)] outline-none focus:border-purple-500/50 transition-colors"
-              value={formData.externalLink}
-              onChange={(e) =>
-                setFormData({ ...formData, externalLink: e.target.value })
-              }
-            />
-          </div>
-
-          {formData.type === "Грант" && (
-            <div className="space-y-1 animate-in slide-in-from-top-2 duration-200">
-              <label className="text-[11px] font-bold text-[purple-600] dark:text-purple-400 uppercase tracking-wider pl-1 flex items-center gap-1.5">
-                <DollarSign size={12} /> Розмір бюджету / Фінансування
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-gray)]">
+                Організатор / Видавництво
               </label>
               <input
                 type="text"
-                placeholder="Наприклад, до 500 000 грн або $10,000"
-                className="w-full bg-[var(--bg-main)] border border-purple-500/20 focus:border-purple-500 rounded-xl px-4 py-3 text-sm text-[var(--text-dark)] outline-none transition-colors"
-                value={formData.amount}
+                value={formData.organizer}
                 onChange={(e) =>
-                  setFormData({ ...formData, amount: e.target.value })
+                  setFormData({ ...formData, organizer: e.target.value })
                 }
+                className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-xs font-semibold text-[var(--text-dark)] outline-none focus:border-purple-500/50 transition-all"
               />
             </div>
-          )}
 
-          {formData.type === "Науковий журнал" && (
-            <div className="grid grid-cols-2 gap-3 animate-in slide-in-from-top-2 duration-200">
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-emerald-500 uppercase tracking-wider pl-1 flex items-center gap-1">
-                  <BookOpen size={12} /> ISSN
+            <div className="space-y-1.5 flex flex-col">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-gray)] mb-0.5">
+                Дедлайн подачі
+              </label>
+              <div className="relative w-full">
+                <DatePicker
+                  selected={formData.deadline}
+                  onChange={(date) =>
+                    setFormData({ ...formData, deadline: date })
+                  }
+                  dateFormat="dd.MM.yyyy"
+                  className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl pl-11 pr-4 py-3 text-xs font-semibold text-[var(--text-dark)] outline-none focus:border-purple-500/50 transition-all"
+                />
+                <CalendarIcon
+                  size={14}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-gray)]"
+                />
+              </div>
+            </div>
+
+            {isGrantOrBudget && (
+              <div className="space-y-1.5 sm:col-span-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 flex items-center gap-1">
+                  <DollarSign size={12} /> Фінансування / Сума гранту
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Наприклад: 5,000 EUR, Повне фінансування, або Кошторис витрат"
+                    value={formData.amount}
+                    onChange={(e) =>
+                      setFormData({ ...formData, amount: e.target.value })
+                    }
+                    className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl pl-10 pr-4 py-3 text-xs font-semibold text-[var(--text-dark)] outline-none focus:border-purple-500/50 transition-all"
+                  />
+                  <DollarSign
+                    size={14}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-gray)]"
+                  />
+                </div>
+              </div>
+            )}
+
+            {hasLocation && (
+              <div className="space-y-1.5 sm:col-span-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-gray)] flex items-center gap-1">
+                  <MapPin size={12} /> Локація / Формат проведення
                 </label>
                 <input
                   type="text"
-                  placeholder="2414-9055"
-                  className="w-full bg-[var(--bg-main)] border border-emerald-500/20 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-[var(--text-dark)] outline-none transition-colors"
-                  value={formData.issn}
+                  placeholder="Наприклад: Онлайн, Львів (Україна), Гібридний формат"
+                  value={formData.location}
                   onChange={(e) =>
-                    setFormData({ ...formData, issn: e.target.value })
+                    setFormData({ ...formData, location: e.target.value })
                   }
+                  className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-xs font-semibold text-[var(--text-dark)] outline-none focus:border-purple-500/50 transition-all"
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-emerald-500 uppercase tracking-wider pl-1 flex items-center gap-1">
-                  <BarChart3 size={12} /> Impact Factor
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  placeholder="1.45"
-                  className="w-full bg-[var(--bg-main)] border border-emerald-500/20 focus:border-emerald-500 rounded-xl px-4 py-3 text-sm text-[var(--text-dark)] outline-none transition-colors"
-                  value={formData.impactFactor}
-                  onChange={(e) =>
-                    setFormData({ ...formData, impactFactor: e.target.value })
-                  }
-                />
-              </div>
-            </div>
-          )}
+            )}
 
-          <div className="space-y-1">
-            <label className="text-[11px] font-bold text-[var(--text-gray)] uppercase tracking-wider pl-1 flex items-center gap-1">
-              <CalendarIcon size={12} /> Кінцевий термін (Дедлайн)
-            </label>
-            <div className="relative rounded-xl border border-[var(--border-color)] bg-[var(--bg-main)] focus-within:border-purple-500/50 transition-colors px-3 py-1">
-              <DatePicker
-                selected={formData.deadline}
-                onChange={(date) =>
-                  setFormData({ ...formData, deadline: date })
+            {isJournal && (
+              <div className="p-4 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-2xl sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 flex items-center gap-1">
+                    <BookOpen size={12} /> ISSN / E-ISSN
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.issn}
+                    onChange={(e) =>
+                      setFormData({ ...formData, issn: e.target.value })
+                    }
+                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-xs font-mono font-semibold text-[var(--text-dark)] outline-none focus:border-purple-500/50 transition-all"
+                    placeholder="1234-567X"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 flex items-center gap-1">
+                    <BarChart3 size={12} /> Impact Factor (SJR / WoS)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    value={formData.impactFactor}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        impactFactor: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-xs font-semibold text-[var(--text-dark)] outline-none focus:border-purple-500/50 transition-all"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-gray)]">
+                Посилання на офіційну сторінку
+              </label>
+              <input
+                type="url"
+                value={formData.externalLink}
+                onChange={(e) =>
+                  setFormData({ ...formData, externalLink: e.target.value })
                 }
-                dateFormat="dd.MM.yyyy"
-                className="w-full bg-transparent border-none text-sm text-[var(--text-dark)] outline-none py-2 cursor-pointer"
-                required
-                minDate={new Date()}
+                className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-xs font-semibold text-[var(--text-dark)] outline-none focus:border-purple-500/50 transition-all font-mono text-[11px]"
+                placeholder="https://example.com/details"
               />
             </div>
-          </div>
 
-          <div className="space-y-1">
-            <label className="text-[11px] font-bold text-[var(--text-gray)] uppercase tracking-wider pl-1">
-              Повний опис та критерії відбору
-            </label>
-            <div className="quill-wrapper rounded-xl overflow-hidden border border-[var(--border-color)] bg-[var(--bg-main)]">
-              <style>{`
-                .ql-toolbar.ql-snow { border: none !important; border-bottom: 1px solid var(--border-color) !important; background: var(--bg-card); }
-                .ql-container.ql-snow { border: none !important; min-height: 140px; font-family: inherit; }
-                .ql-editor { font-size: 0.8rem; color: var(--text-dark); }
-              `}</style>
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-gray)]">
+                Короткий опис (для картки)
+              </label>
+              <textarea
+                rows={3}
+                required
+                maxLength={250}
+                value={formData.shortDescription}
+                onChange={(e) =>
+                  setFormData({ ...formData, shortDescription: e.target.value })
+                }
+                placeholder="Короткий опис можливості до 250 символів..."
+                className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-xs font-medium text-[var(--text-dark)] outline-none focus:border-purple-500/50 transition-all resize-none leading-relaxed"
+              />
+              <div className="text-right text-[9px] font-mono text-[var(--text-gray)] opacity-60">
+                {formData.shortDescription.length} / 250 символів
+              </div>
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2 pb-6">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-gray)]">
+                Детальний опис та вимоги
+              </label>
               <ReactQuill
                 theme="snow"
                 value={formData.description}
@@ -255,27 +295,28 @@ const EditProgramModal = ({
               />
             </div>
           </div>
-
-          <div className="flex gap-3 pt-4 border-t border-[var(--border-color)] sticky bottom-0 bg-[var(--bg-card)]">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-3 border border-[var(--border-color)] text-[var(--text-dark)] font-bold text-xs uppercase tracking-wider rounded-xl transition-colors hover:bg-[var(--bg-main)]"
-            >
-              Скасувати
-            </button>
-            <button
-              type="submit"
-              disabled={loadingAction === "editProgram"}
-              className="flex-[2] py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/10"
-            >
-              <Save size={14} />
-              {loadingAction === "editProgram"
-                ? "Збереження..."
-                : "Зберегти зміни"}
-            </button>
-          </div>
         </form>
+
+        <div className="p-4 border-t border-[var(--border-color)] sticky bottom-0 bg-[var(--bg-card)] z-10 flex gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-3 border border-[var(--border-color)] text-[var(--text-dark)] font-bold text-xs uppercase tracking-wider rounded-xl transition-colors hover:bg-[var(--bg-main)]"
+          >
+            Скасувати
+          </button>
+          <button
+            type="submit"
+            onClick={handleSubmit}
+            disabled={loadingAction === "editProgram"}
+            className="flex-[2] py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/10"
+          >
+            <Save size={14} />
+            {loadingAction === "editProgram"
+              ? "Збереження..."
+              : "Зберегти зміни"}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -197,7 +197,7 @@ export default function AdminPage() {
   const handleCreateProgram = async (e) => {
     e.preventDefault();
     try {
-      setLoadingAction("create-program");
+      setLoadingAction("createProgram");
       const res = await axiosInstance.post("/programs", newProgram);
       setPrograms([res.data, ...programs]);
       setNewProgram({
@@ -334,6 +334,9 @@ export default function AdminPage() {
             onCreateProgram={handleCreateProgram}
             onToggleStatus={handleToggleStatus}
             loadingAction={loadingAction}
+            onTypeChange={(e) =>
+              setNewProgram({ ...newProgram, type: e.target.value })
+            }
           />
         )}
       </main>

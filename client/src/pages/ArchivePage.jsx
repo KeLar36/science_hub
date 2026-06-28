@@ -19,6 +19,8 @@ export default function ArchivePage() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDomain, setSelectedDomain] = useState("Всі галузі");
+  // 🟣 1. Новий стейт для фільтрації за типом матеріалу
+  const [selectedType, setSelectedType] = useState("Всі типи");
 
   const fetchArchiveData = useCallback(async () => {
     setLoading(true);
@@ -40,44 +42,46 @@ export default function ArchivePage() {
     fetchArchiveData();
   }, [fetchArchiveData]);
 
-  const filteredArticles = useMemo(() => {
-    return articles.filter((article) => {
-      const matchesSearch =
-        article.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        article.authorId?.name
-          ?.toLowerCase()
-          .includes(searchTerm.toLowerCase());
-
-      const matchesDomain =
-        selectedDomain === "Всі галузі" || article.domain === selectedDomain;
-
-      return matchesSearch && matchesDomain;
-    });
-  }, [articles, searchTerm, selectedDomain]);
-
   const stats = useMemo(() => {
-    const uniqueDomains = new Set(
-      articles.map((a) => a.domain).filter(Boolean),
-    );
-    const uniqueAuthors = new Set(
-      articles.map((a) => a.authorId?._id || a.authorId?.name).filter(Boolean),
-    );
-
     return {
       total: articles.length,
-      domains: uniqueDomains.size,
-      authors: uniqueAuthors.size || 1,
+      domainsCount: new Set(articles.map((a) => a.domain)).size,
     };
   }, [articles]);
+
+  const filteredArticles = useMemo(() => {
+    return articles.filter((art) => {
+      const matchesSearch =
+        art.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        art.authorId?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesDomain =
+        selectedDomain === "Всі галузі" || art.domain === selectedDomain;
+
+      const matchesType =
+        selectedType === "Всі типи" ||
+        (selectedType === "Статті" &&
+          art.programId?.type === "Науковий журнал") ||
+        (selectedType === "Конференції" &&
+          art.programId?.type === "Конференція");
+
+      return matchesSearch && matchesDomain && matchesType;
+    });
+  }, [articles, searchTerm, selectedDomain, selectedType]);
 
   const getDownloadUrl = (path) => {
     if (!path) return "#";
     if (path.startsWith("http")) return path;
-    const cleanPath = path.startsWith("/") ? path.slice(1) : path;
+    const cleanPath = path.replace(/\\/g, "/");
     return `/api/${cleanPath}`;
   };
 
   const filterDropdowns = [
+    {
+      value: selectedType,
+      onChange: setSelectedType,
+      options: ["Всі типи", "Статті", "Конференції"],
+    },
     {
       value: selectedDomain,
       onChange: setSelectedDomain,
@@ -88,6 +92,7 @@ export default function ArchivePage() {
   const handleResetFilters = () => {
     setSearchTerm("");
     setSelectedDomain("Всі галузі");
+    setSelectedType("Всі типи"); // Скидаємо також і тип
   };
 
   return (
@@ -102,7 +107,7 @@ export default function ArchivePage() {
             <UniversalFilters
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
-              searchPlaceholder="Швидкий пошук за назвою статті або автором..."
+              searchPlaceholder="Швидкий пошук за назвою або автором..."
               dropdowns={filterDropdowns}
               onReset={handleResetFilters}
             />
@@ -123,9 +128,8 @@ export default function ArchivePage() {
       <Footer />
 
       <ArticleDetailModal
-        isOpen={!!selectedArticle}
-        onClose={() => setSelectedArticle(null)}
         article={selectedArticle}
+        onClose={() => setSelectedArticle(null)}
         getDownloadUrl={getDownloadUrl}
       />
     </>

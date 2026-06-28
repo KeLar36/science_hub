@@ -10,7 +10,6 @@ const {
 } = require("../models/Program");
 const { verifyToken, checkRole } = require("../middleware/auth");
 
-// 🟢 1. Отримання всіх активних програм (Публічний рут)
 router.get("/", async (req, res) => {
   try {
     const programs = await Program.find({ active: true }).sort({ deadline: 1 });
@@ -20,7 +19,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-// 🟢 2. Отримання архівних програм (Тільки для адмінів)
 router.get(
   "/archive",
   verifyToken,
@@ -37,7 +35,6 @@ router.get(
   },
 );
 
-// 🟢 3. Створення нової програми за типом (Тільки для адмінів)
 router.post(
   "/",
   verifyToken,
@@ -132,7 +129,6 @@ router.post(
   },
 );
 
-// 🟢 4. Редагування програми (PUT) — ВАЖЛИВО для фронтенду!
 router.put(
   "/:id",
   verifyToken,
@@ -141,6 +137,7 @@ router.put(
     try {
       const {
         title,
+        shortDescription,
         description,
         deadline,
         domain,
@@ -158,7 +155,20 @@ router.put(
         return res.status(404).json({ error: "Програму не знайдено" });
       }
 
+      if (
+        req.user.role === "admin" &&
+        program.createdBy.toString() !== req.user.id
+      ) {
+        return res.status(403).json({
+          error: "Ви можете редагувати тільки власноруч створені програми",
+        });
+      }
+
       program.title = title || program.title;
+      program.shortDescription =
+        shortDescription !== undefined
+          ? shortDescription
+          : program.shortDescription;
       program.description = description || program.description;
       program.deadline = deadline || program.deadline;
       program.domain = domain || program.domain;
@@ -185,7 +195,7 @@ router.put(
       }
 
       const updatedProgram = await program.save();
-      res.json({ program: updatedProgram });
+      res.json(updatedProgram);
     } catch (err) {
       console.error("Помилка при оновленні програми:", err);
       res.status(500).json({ error: "Помилка сервера при оновленні програми" });
@@ -193,7 +203,6 @@ router.put(
   },
 );
 
-// 🟢 5. Перемикання статусу (Активна / В архіві)
 router.patch(
   "/:id/toggle-status",
   verifyToken,
@@ -203,6 +212,15 @@ router.patch(
       const program = await Program.findById(req.params.id);
       if (!program)
         return res.status(404).json({ error: "Програму не знайдено" });
+
+      if (
+        req.user.role === "admin" &&
+        program.createdBy.toString() !== req.user.id
+      ) {
+        return res
+          .status(403)
+          .json({ error: "У вас немає прав на зміну статусу цієї програми" });
+      }
 
       program.active = !program.active;
       await program.save();
@@ -216,16 +234,26 @@ router.patch(
   },
 );
 
-// 🟢 6. Видалення програми НАЗАВЖДИ
 router.delete(
   "/:id/permanent",
   verifyToken,
   checkRole(["admin", "superadmin"]),
   async (req, res) => {
     try {
-      const deletedProgram = await Program.findByIdAndDelete(req.params.id);
-      if (!deletedProgram)
+      const program = await Program.findById(req.params.id);
+      if (!program)
         return res.status(404).json({ error: "Програму не знайдено" });
+
+      if (
+        req.user.role === "admin" &&
+        program.createdBy.toString() !== req.user.id
+      ) {
+        return res
+          .status(403)
+          .json({ error: "Ви не можете видалити цю програму" });
+      }
+
+      await Program.findByIdAndDelete(req.params.id);
       res.json({ message: "Програму видалено назавжди" });
     } catch (err) {
       res.status(500).json({ error: "Помилка при повному видаленні" });
@@ -233,7 +261,6 @@ router.delete(
   },
 );
 
-// 🟢 7. Отримання однієї програми за ID (Публічний рут)
 router.get("/:id", async (req, res) => {
   try {
     const program = await Program.findById(req.params.id);

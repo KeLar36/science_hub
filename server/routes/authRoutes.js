@@ -2,16 +2,16 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 
-const { verifyToken, checkRole } = require("../middleware/auth");
-const isProd =
-  process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
+const { verifyToken } = require("../middleware/auth");
 const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
 const JWT_SECRET = process.env.JWT_SECRET || "secret_key";
 
+// ==========================================
+// 1. РЕЄСТРАЦІЯ (REGISTER)
+// ==========================================
 router.post("/register", async (req, res) => {
   try {
     const { name, email, password, city, topics, bio } = req.body;
@@ -22,13 +22,15 @@ router.post("/register", async (req, res) => {
         .json({ error: "Будь ласка, заповніть усі обов'язкові поля" });
     }
 
-    const userExists = await User.findOne({ email: email.toLowerCase() });
+    const sanitizedEmail = email.trim().toLowerCase();
+
+    const userExists = await User.findOne({ email: sanitizedEmail });
     if (userExists)
       return res.status(400).json({ error: "Цей Email вже зареєстровано" });
 
     const user = new User({
       name: name.trim(),
-      email: email.toLowerCase().trim(),
+      email: sanitizedEmail,
       password,
       city: city || "",
       topics: Array.isArray(topics) ? topics : [],
@@ -54,10 +56,17 @@ router.post("/register", async (req, res) => {
   }
 });
 
+// ==========================================
+// 2. ВХІД (LOGIN)
+// ==========================================
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email: email.toLowerCase() }); // приведення до нижнього регістру про всяк випадок
+    if (!email || !password) {
+      return res.status(400).json({ error: "Введіть email та пароль" });
+    }
+
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
 
     if (!user || user.isBanned) {
       return res
@@ -78,7 +87,7 @@ router.post("/login", async (req, res) => {
       httpOnly: true,
       secure: true,
       sameSite: "lax",
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 днів
+      maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
     res.json({
@@ -94,19 +103,27 @@ router.post("/login", async (req, res) => {
   }
 });
 
+// ==========================================
+// 3. ВИХІД (LOGOUT)
+// ==========================================
 router.post("/logout", (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
     secure: true,
-    sameSite: "none",
+    sameSite: "lax",
   });
   res.json({ message: "Вихід із системи успішний" });
 });
 
+// ==========================================
+// 4. ВІДНОВЛЕННЯ ПАРОЛЯ
+// ==========================================
 router.post("/forgot-password", async (req, res) => {
   try {
     const { email } = req.body;
-    const user = await User.findOne({ email });
+    if (!email) return res.status(400).json({ error: "Вкажіть ваш Email" });
+
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
 
     if (!user) {
       return res.status(404).json({ error: "Користувача не знайдено" });
@@ -114,7 +131,7 @@ router.post("/forgot-password", async (req, res) => {
 
     const token = crypto.randomBytes(20).toString("hex");
     user.resetPasswordToken = token;
-    user.resetPasswordExpires = Date.now() + 3600000;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 година
     await user.save();
 
     const transporter = nodemailer.createTransport({
@@ -131,30 +148,16 @@ router.post("/forgot-password", async (req, res) => {
       from: "Science Platform <no-reply@science.edu>",
       subject: "Відновлення пароля",
       text: `Ви отримали цей лист, тому що ви (або хтось інший) попросили скинути пароль.\n\n
-              Будь ласка, натисніть на посилання або вставте його в браузер: \n\n
-              ${resetUrl} \n\n
-              Якщо ви цього не робили, ігноруйте цей лист.`,
+            Будь ласка, натисніть на посилання або вставте його в браузер: \n\n
+            ${resetUrl} \n\n
+            Якщо ви цього не робили, ігноруйте цей лист.`,
     };
 
     await transporter.sendMail(mailOptions);
     res.json({ message: "Лист для відновлення надіслано!" });
   } catch (err) {
+    console.error("FORGOT PASSWORD ERROR:", err);
     res.status(500).json({ error: "Помилка при відправці пошти" });
-  }
-});
-
-router.get("/bookmarks/check/:id", verifyToken, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id);
-    if (!user)
-      return res.status(404).json({ error: "Користувача не знайдено" });
-
-    const isBookmarked = user.bookmarks
-      ? user.bookmarks.includes(req.params.id)
-      : false;
-    res.json({ isBookmarked });
-  } catch (err) {
-    res.status(500).json({ error: "Помилка сервера" });
   }
 });
 
@@ -187,13 +190,4 @@ router.post("/reset-password/:token", async (req, res) => {
   }
 });
 
-router.get("/me", verifyToken, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select("-password");
-    if (!user) return res.status(404).json({ message: "Не знайдено" });
-    res.json({ user });
-  } catch (err) {
-    res.status(500).json({ message: "Помилка сервера" });
-  }
-});
 module.exports = router;

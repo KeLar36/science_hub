@@ -1,22 +1,20 @@
 import React, { useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { BookOpen } from "lucide-react";
 import UniversalFilters from "../UniversalFilters";
-import HomeProgramCard from "./HomeProgramCard";
+import UniversalCard from "../UniversalCard";
 
 const ProgramsExplorer = ({
   searchTerm,
   setSearchTerm,
   filterDropdowns,
-  handleResetFilters,
+  onReset,
   loading,
-  filteredPrograms,
+  items = [],
 }) => {
-  const navigate = useNavigate();
-
   const programsWithUrgency = useMemo(() => {
     const now = new Date();
-    return filteredPrograms.map((prog) => {
+    // Безпечний мапінг
+    return items.map((prog) => {
       if (!prog.deadline) return { ...prog, isUrgent: false };
 
       const deadlineDate = new Date(prog.deadline);
@@ -27,7 +25,7 @@ const ProgramsExplorer = ({
 
       return { ...prog, isUrgent };
     });
-  }, [filteredPrograms]);
+  }, [items]);
 
   return (
     <section className="max-w-7xl mx-auto px-4 md:px-6 py-16">
@@ -42,11 +40,11 @@ const ProgramsExplorer = ({
         setSearchTerm={setSearchTerm}
         searchPlaceholder="Пошук можливостей за назвою або організацією..."
         dropdowns={filterDropdowns}
-        onReset={handleResetFilters}
+        onReset={onReset}
       />
 
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
           {[1, 2, 3].map((n) => (
             <div
               key={n}
@@ -62,7 +60,7 @@ const ProgramsExplorer = ({
           ))}
         </div>
       ) : programsWithUrgency.length === 0 ? (
-        <div className="py-24 text-center border border-dashed border-[var(--border-color)] bg-[var(--bg-card)]/10 rounded-2xl">
+        <div className="py-24 text-center border border-dashed border-[var(--border-color)] bg-[var(--bg-card)]/10 rounded-2xl mt-8">
           <BookOpen size={36} className="mx-auto text-purple-600/30 mb-4" />
           <h4 className="text-lg font-bold text-[var(--text-dark)] uppercase mb-1">
             Упс, порожньо
@@ -72,14 +70,14 @@ const ProgramsExplorer = ({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-[fadeIn_0.5s_ease-out_forwards]">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8 animate-[fadeIn_0.5s_ease-out_forwards]">
           {programsWithUrgency.map((p, index) => (
-            <HomeProgramCard
+            <UniversalCard
               key={p._id}
-              p={p}
+              item={p}
+              variant="homeProgram"
               index={index}
               isUrgent={p.isUrgent}
-              onClick={() => navigate(`/program/${p._id}`)}
             />
           ))}
         </div>
