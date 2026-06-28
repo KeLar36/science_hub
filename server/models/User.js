@@ -20,6 +20,12 @@ const UserSchema = new mongoose.Schema(
       required: [true, "Пароль обов'язковий"],
       minLength: [8, "Пароль має бути не менше 8 символів"],
     },
+
+    organizationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
+      default: null,
+    },
     image: {
       type: String,
       default: null,
