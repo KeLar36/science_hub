@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axiosInstance from "../api/axios";
 import toast, { Toaster } from "react-hot-toast";
-import { Loader2, FileText, Bookmark, Award, Target } from "lucide-react";
+import { Loader2, FileText, Bookmark, Target, Trash2 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import ProfileHeader from "../components/profile/ProfileHeader";
@@ -11,6 +11,7 @@ import MiniStatCard from "../components/profile/MiniStatCard";
 import ProfileTabs from "../components/profile/ProfileTabs";
 import EditProfileModal from "../components/profile/EditProfileModal";
 import SubmissionForm from "../components/profile/SubmissionForm";
+import CreateOrganizationModal from "../components/profile/CreateOrganizationModal";
 import UniversalCard from "../components/UniversalCard";
 import { SCIENTIFIC_DOMAINS } from "../constants/domains";
 import { useAuth } from "../context/AuthContext";
@@ -18,88 +19,69 @@ import { useAuth } from "../context/AuthContext";
 export default function ProfilePage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { updateUserState, user: contextUser } = useAuth();
+  const { updateUserState } = useAuth();
 
   const [userData, updateUserStateData] = useState(null);
   const [view, setView] = useState(location.state?.programId ? "form" : "list");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadingAction, setLoadingAction] = useState(null);
+  const [activeTab, setActiveTab] = useState("posts");
+
+  const [myPosts, setMyPosts] = useState([]);
+  const [savedPosts, setSavedPosts] = useState([]);
+  const [activePrograms, setActivePrograms] = useState([]);
+
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isCreateOrgModalOpen, setIsCreateOrgModalOpen] = useState(false);
 
   const [editForm, setEditForm] = useState({
     name: "",
     bio: "",
     city: "",
-    socials: { github: "", linkedin: "", instagram: "", website: "" },
+    topics: "",
   });
-
-  const [articles, setArticles] = useState([]);
-  const [savedPosts, setSavedPosts] = useState([]);
-  const [programs, setPrograms] = useState([]);
   const [file, setFile] = useState(null);
-
-  const targetProgram = location.state?.targetProgram || null;
 
   const [articleData, setArticleData] = useState({
     title: "",
-    description: "",
+    annotation: "",
+    domain: SCIENTIFIC_DOMAINS[0],
     programId: location.state?.programId || "",
-    domain:
-      targetProgram?.domain ||
-      (SCIENTIFIC_DOMAINS && SCIENTIFIC_DOMAINS[0]) ||
-      "Інше",
+    keywords: "",
+    authors: "",
   });
 
-  useEffect(() => {
-    if (location.state?.programId) {
-      setArticleData((prev) => ({
-        ...prev,
-        programId: location.state.programId,
-        domain:
-          targetProgram?.domain ||
-          location.state.domain ||
-          (SCIENTIFIC_DOMAINS && SCIENTIFIC_DOMAINS[0]) ||
-          "Інше",
-      }));
-      setView("form");
-    }
-  }, [location.state, targetProgram]);
+  const targetProgram = useMemo(() => {
+    if (!articleData.programId || !activePrograms.length) return null;
+    return activePrograms.find((p) => p._id === articleData.programId) || null;
+  }, [articleData.programId, activePrograms]);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const fetchProfileData = useCallback(async (signal) => {
     try {
-      const resMe = await axiosInstance.get("/users/me");
-      const user = resMe.data.user;
-
-      updateUserState(user);
-      updateUserStateData(user);
-
-      setEditForm({
-        name: user.name || "",
-        bio: user.bio || "",
-        city: user.city || "",
-        socials: {
-          github: user.socials?.github || "",
-          linkedin: user.socials?.linkedin || "",
-          instagram: user.socials?.instagram || "",
-          website: user.socials?.website || "",
-        },
-      });
-
-      const [resArticles, resPrograms, resBookmarks] = await Promise.all([
-        axiosInstance.get(`/projects/user/${user._id}`),
-        axiosInstance.get("/programs"),
-        axiosInstance.get("/users/bookmarks/all"),
+      setLoading(true);
+      const [userRes, projectsRes, programsRes] = await Promise.all([
+        axiosInstance.get("/users/me", { signal }),
+        axiosInstance.get("/projects/my", { signal }),
+        axiosInstance.get("/programs", { signal }),
       ]);
 
-      setArticles(resArticles.data);
-      setPrograms(resPrograms.data);
-      setSavedPosts(resBookmarks.data);
+      const fetchedUser = userRes.data.user;
+      updateUserStateData(fetchedUser);
+
+      setEditForm({
+        name: fetchedUser?.name || "",
+        bio: fetchedUser?.bio || "",
+        city: fetchedUser?.city || "",
+        topics: fetchedUser?.topics || "",
+      });
+
+      setMyPosts(projectsRes.data || []);
+      setActivePrograms(programsRes.data || []);
+      setSavedPosts(fetchedUser?.bookmarks || []);
     } catch (err) {
-      console.error("Fetch data error:", err);
-      if (err.response?.status === 401 || err.response?.status === 403) {
-        navigate("/login");
-      } else {
-        toast.error("Помилка завантаження даних");
+      if (err.name !== "CanceledError") {
+        console.error("Помилка завантаження профілю:", err);
+        toast.error("Не вдалося оновити дані профілю");
       }
     } finally {
       setLoading(false);
@@ -107,36 +89,80 @@ export default function ProfilePage() {
   }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    const controller = new AbortController();
+    fetchProfileData(controller.signal);
+    return () => controller.abort();
+  }, [fetchProfileData]);
+
+  const handleViewChange = (targetView) => {
+    if (targetView === "form") {
+      setView("form");
+    } else if (targetView === "bookmarks") {
+      setView("list");
+      setActiveTab("bookmarks");
+    } else {
+      setView("list");
+      setActiveTab("posts");
+    }
+  };
+
+  const currentActiveView = useMemo(() => {
+    if (view === "form") return "form";
+    return activeTab === "bookmarks" ? "bookmarks" : "list";
+  }, [view, activeTab]);
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     try {
+      setLoadingAction("profile");
       const res = await axiosInstance.patch("/users/update-profile", editForm);
-      updateUserStateData(res.data);
-      updateUserState(res.data);
+      const updated = res.data.user || res.data;
+      updateUserStateData(updated);
+      updateUserState(updated);
       setIsEditModalOpen(false);
-      toast.success("Профіль оновлено!");
-    } catch (err) {
-      toast.error("Не вдалося оновити профіль");
+      toast.success("Профіль успешно оновлено!");
+    } catch {
+      toast.error("Помилка оновлення профілю");
+    } finally {
+      setLoadingAction(null);
     }
   };
 
-  const handleToggleBookmark = async (e, postId) => {
-    e.stopPropagation();
+  const handleCreateOrganization = async (formData) => {
     try {
-      await axiosInstance.post(`/users/bookmarks/toggle/${postId}`);
-      setSavedPosts((prev) => prev.filter((p) => p._id !== postId));
+      setLoadingAction("createOrg");
+      await axiosInstance.post("/organizations/create", formData);
+      toast.success("Заявку на реєстрацію установи надіслано на модерацію!");
+      setIsCreateOrgModalOpen(false);
+      const controller = new AbortController();
+      fetchProfileData(controller.signal);
+    } catch (err) {
+      toast.error(
+        err.response?.data?.error || "Помилка реєстрації організації",
+      );
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleToggleBookmark = async (e, id) => {
+    const targetId = id || e;
+
+    try {
+      await axiosInstance.post(`/users/bookmarks/toggle/${targetId}`);
+
+      setSavedPosts((prev) => prev.filter((post) => post._id !== targetId));
       toast.success("Закладку видалено");
     } catch (err) {
-      toast.error("Помилка при оновленні закладок");
+      console.error("Помилка оновлення закладок:", err);
+      toast.error("Помилка оновлення закладок");
     }
   };
 
   const handleSubmitArticle = async (e) => {
     e.preventDefault();
-    if (!file) return toast.error("Додайте PDF файл!");
+    if (!file)
+      return toast.error("Будь ласка, завантажте PDF-файл вашої праці");
 
     const formData = new FormData();
     Object.keys(articleData).forEach((key) =>
@@ -144,159 +170,155 @@ export default function ProfilePage() {
     );
     formData.append("file", file);
 
-    setLoading(true);
     try {
+      setLoadingAction("submit");
       await axiosInstance.post("/projects/create", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      toast.success("Роботу подано!");
-
+      toast.success("Вашу наукову працю успішно подано на модерацію!");
+      setView("list");
+      setActiveTab("posts");
       setFile(null);
       setArticleData({
         title: "",
-        description: "",
+        annotation: "",
+        domain: SCIENTIFIC_DOMAINS[0],
         programId: "",
-        domain: (SCIENTIFIC_DOMAINS && SCIENTIFIC_DOMAINS[0]) || "Інше",
+        keywords: "",
+        authors: "",
       });
-
-      setView("list");
-      fetchData();
+      const controller = new AbortController();
+      fetchProfileData(controller.signal);
     } catch (err) {
-      toast.error(err.response?.data?.message || "Помилка подачі");
+      toast.error(err.response?.data?.error || "Помилка відправки статті");
     } finally {
-      setLoading(false);
+      setLoadingAction(null);
     }
   };
 
-  const activePrograms = useMemo(() => {
-    return programs.filter((p) => {
-      if (!p.deadline) return true;
-      return new Date(p.deadline) >= new Date();
-    });
-  }, [programs]);
-
-  const topDomain = useMemo(() => {
-    if (!articles || articles.length === 0) return "Немає даних";
-    const counts = articles.reduce((acc, curr) => {
-      if (curr.domain) {
-        acc[curr.domain] = (acc[curr.domain] || 0) + 1;
-      }
-      return acc;
-    }, {});
-
-    const sortedEntries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-    return sortedEntries[0]?.[0] || "Немає даних";
-  }, [articles]);
-
-  if (loading && !userData) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--bg-main)]">
-        <Loader2 className="animate-spin text-purple-600" size={40} />
+        <Loader2 size={32} className="animate-spin text-purple-600" />
       </div>
     );
   }
 
-  if (!userData) return null;
-
   return (
-    <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-dark)] antialiased">
-      <Toaster position="bottom-right" />
+    <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-dark)] flex flex-col">
+      <Toaster />
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 md:px-8 pt-36 pb-24 relative">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-12">
+
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-12 mt-14">
+        {/* 🟢 СТРУКТУРА ЗМІНЕНА НА FLEX-COL ДЛЯ СТАБІЛЬНОГО ВЕРТИКАЛЬНОГО БУДІВНИЦТВА */}
+        <div className="flex flex-col gap-6 text-left items-stretch w-full">
+          {/* 1. ПРОФІЛЬНА ШАПКА */}
           <ProfileHeader
             userData={userData}
             navigate={navigate}
             onOpenEdit={() => setIsEditModalOpen(true)}
+            onOpenCreateOrg={() => setIsCreateOrgModalOpen(true)}
           />
-          <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
+
+          {/* 2. ЛІЧИЛЬНИКИ ТА КНОПКИ ДІЙ */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
             <MiniStatCard
-              label="Мої статті"
-              val={articles.length}
+              label="Мої праці"
+              val={myPosts.length}
               icon={FileText}
-              color="text-blue-500"
-              bg="bg-blue-500/5"
-              onClick={() => setView("list")}
+              color="text-purple-600"
+              bg="bg-purple-500/5"
+              onClick={() => {
+                setView("list");
+                setActiveTab("posts");
+              }}
             />
             <MiniStatCard
-              label="Збережено"
+              label="Збережено закладок"
               val={savedPosts.length}
               icon={Bookmark}
-              color="text-purple-600"
-              bg="bg-purple-600/5"
-              onClick={() => setView("bookmarks")}
-            />
-            <MiniStatCard
-              label="Прийнято"
-              val={`${articles.filter((a) => a.status === "Прийнято").length}/${articles.length}`}
-              icon={Award}
-              color="text-emerald-500"
-              bg="bg-emerald-500/5"
-            />
-            <MiniStatCard
-              label="Топ галузь"
-              val={topDomain}
-              icon={Target}
-              color="text-amber-500"
+              color="text-amber-600"
               bg="bg-amber-500/5"
+              onClick={() => {
+                setView("list");
+                setActiveTab("bookmarks");
+              }}
+            />
+            <MiniStatCard
+              label="Подати статтю"
+              val="Нова публікація"
+              icon={Target}
+              color="text-emerald-600"
+              bg="bg-emerald-500/5"
+              onClick={() => setView("form")}
             />
           </div>
-        </div>
 
-        <ProfileTabs activeView={view} onViewChange={setView} />
+          {/* 3. НАВІГАЦІЙНІ ТАБИ СТОРІНКИ */}
+          <div className="w-full mt-2">
+            <ProfileTabs
+              activeView={currentActiveView}
+              onViewChange={handleViewChange}
+            />
+          </div>
 
-        <div className="min-h-[300px]">
+          {/* 4. ГОЛОВНИЙ КОНТЕНТ */}
           {view === "list" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-[fadeIn_0.3s_ease-out]">
-              {articles.length === 0 ? (
-                <div className="col-span-full text-center py-12 border border-dashed border-[var(--border-color)] rounded-2xl text-[var(--text-gray)] text-sm">
-                  У вас немає поданих статей.
+            <div className="w-full">
+              {activeTab === "posts" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {myPosts.length === 0 ? (
+                    <div className="col-span-full p-12 text-center border border-dashed border-[var(--border-color)] rounded-3xl text-[var(--text-gray)] text-sm font-medium bg-[var(--bg-card)]">
+                      Ви ще не завантажували власних наукових робіт.
+                    </div>
+                  ) : (
+                    myPosts.map((post) => (
+                      <UniversalCard
+                        key={post._id}
+                        item={post}
+                        variant="profile"
+                      />
+                    ))
+                  )}
                 </div>
-              ) : (
-                articles.map((art) => (
-                  <UniversalCard
-                    key={art._id}
-                    item={art}
-                    variant="profileArticle"
-                    onActionClick={(e, item) => {
-                      toast(`Ревізія для програми: ${item.title}`);
-                    }}
-                  />
-                ))
               )}
-            </div>
-          )}
 
-          {view === "bookmarks" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-[fadeIn_0.3s_ease-out]">
-              {savedPosts.length === 0 ? (
-                <div className="col-span-full text-center py-12 border border-dashed border-[var(--border-color)] rounded-2xl text-[var(--text-gray)] text-sm">
-                  У вас немає збережених закладок.
+              {activeTab === "bookmarks" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full text-left">
+                  {!Array.isArray(savedPosts) || savedPosts.length === 0 ? (
+                    <div className="col-span-full p-12 text-center border border-dashed border-[var(--border-color)] rounded-3xl text-[var(--text-gray)] text-sm font-medium bg-[var(--bg-card)]">
+                      У вас немає збережених закладок.
+                    </div>
+                  ) : (
+                    savedPosts.map((post) =>
+                      post && post.title ? (
+                        <UniversalCard
+                          key={post._id}
+                          item={post}
+                          variant="profileBookmark" // Твій системний варіант
+                          onRemoveBookmark={handleToggleBookmark}
+                        />
+                      ) : null,
+                    )
+                  )}
                 </div>
-              ) : (
-                savedPosts.map((post) => (
-                  <UniversalCard
-                    key={post._id}
-                    item={post}
-                    variant="profileBookmark"
-                    onRemoveBookmark={handleToggleBookmark}
-                  />
-                ))
               )}
             </div>
           )}
 
           {view === "form" && (
-            <SubmissionForm
-              data={articleData}
-              setData={setArticleData}
-              activePrograms={activePrograms}
-              targetProgram={targetProgram}
-              onSubmit={handleSubmitArticle}
-              file={file}
-              setFile={setFile}
-              domains={SCIENTIFIC_DOMAINS}
-            />
+            <div className="w-full">
+              <SubmissionForm
+                data={articleData}
+                setData={setArticleData}
+                activePrograms={activePrograms}
+                targetProgram={targetProgram}
+                onSubmit={handleSubmitArticle}
+                file={file}
+                setFile={setFile}
+                domains={SCIENTIFIC_DOMAINS}
+              />
+            </div>
           )}
         </div>
       </main>
@@ -308,6 +330,14 @@ export default function ProfilePage() {
         setEditForm={setEditForm}
         onSubmit={handleUpdateProfile}
       />
+
+      <CreateOrganizationModal
+        isOpen={isCreateOrgModalOpen}
+        onClose={() => setIsCreateOrgModalOpen(false)}
+        onSubmit={handleCreateOrganization}
+        loadingAction={loadingAction}
+      />
+
       <Footer />
     </div>
   );

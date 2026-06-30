@@ -50,10 +50,14 @@ const HeroSection = ({ isAuth, onNavigate }) => {
 
               <div className="flex flex-wrap gap-8 items-center pt-2">
                 <button
-                  onClick={() => onNavigate(isAuth ? "/profile" : "/register")}
+                  onClick={() => {
+                    onNavigate(isAuth ? "/profile" : "/register");
+                  }}
                   className="group relative flex items-center gap-4 bg-purple-600 text-white px-8 py-4 text-xs font-bold uppercase tracking-wider transition-all duration-300 rounded-xl shadow-md shadow-purple-600/10 hover:bg-purple-700 hover:shadow-lg hover:shadow-purple-600/25 active:scale-[0.98]"
                 >
-                  <span className="relative z-10">Почати шлях</span>
+                  <span className="relative z-10">
+                    {isAuth ? "Мій профіль" : "Почати шлях"}
+                  </span>
                   <ArrowUpRight
                     size={14}
                     className="transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"

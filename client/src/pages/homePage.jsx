@@ -35,7 +35,7 @@ const HomePage = () => {
 
     const checkAuth = async () => {
       try {
-        const res = await axiosInstance.get("/auth/me");
+        const res = await axiosInstance.get("/users/me");
         if (res.status === 200) setIsAuth(true);
       } catch (err) {
         setIsAuth(false);

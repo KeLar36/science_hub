@@ -7,8 +7,10 @@ import {
   Linkedin,
   Globe,
   UserCheck,
+  ShieldAlert,
   FileText,
   FileCheck,
+  Building2,
 } from "lucide-react";
 
 export default function ProfileHeader({
@@ -16,8 +18,18 @@ export default function ProfileHeader({
   apiUrl,
   navigate,
   onOpenEdit,
+  onOpenCreateOrg,
 }) {
   const { user } = useAuth();
+
+  // 🛡️ Надійна заглушка на випадок, якщо дані профілю ще завантажуються з сервера
+  if (!userData) {
+    return (
+      <div className="lg:col-span-3 bento-card p-8 md:p-10 flex items-center justify-center bg-[var(--bg-card)] border border-[var(--border-color)] rounded-[2rem] h-48">
+        <div className="w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="lg:col-span-3 bento-card p-8 md:p-10 flex flex-col md:flex-row items-center md:items-start gap-8 relative overflow-hidden bg-[var(--bg-card)] border border-[var(--border-color)] rounded-[2rem]">
@@ -61,7 +73,7 @@ export default function ProfileHeader({
 
           <div className="flex items-center justify-center md:justify-start gap-1.5 text-[var(--text-gray)] text-xs font-semibold">
             <MapPin size={14} className="text-purple-500" />
-            <span>{userData.city || "Ukraїna"}</span>
+            <span>{userData.city || "International"}</span>
           </div>
         </div>
 
@@ -119,12 +131,34 @@ export default function ProfileHeader({
             )}
 
           <div className="flex items-center gap-2">
-            {user && ["admin", "superadmin"].includes(user.role) && (
+            {/* 🟢 Кнопка «Створити організацію» для звичайних користувачів без установи */}
+            {user &&
+              user.role !== "superadmin" &&
+              !userData?.organizationId && (
+                <button
+                  onClick={onOpenCreateOrg}
+                  className="px-3 py-2 bg-purple-600/5 hover:bg-purple-600 hover:text-white border border-purple-500/10 text-purple-600 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
+                >
+                  <Building2 size={14} /> Створити організацію
+                </button>
+              )}
+
+            {user && user.role === "superadmin" && (
               <button
-                onClick={() => navigate("/admin")}
+                onClick={() => navigate("/superadmin")}
                 className="px-3 py-2 bg-purple-600/5 hover:bg-purple-600 hover:text-white border border-purple-500/10 text-purple-600 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
               >
-                <UserCheck size={14} /> Адмінка
+                <ShieldAlert size={14} /> Суперпанель
+              </button>
+            )}
+
+            {/* 🏢 Кнопка для локального АДМІНІСТРАТОРА ОРГАНІЗАЦІЇ (тепер ТІЛЬКИ для "admin") */}
+            {user && user.role === "admin" && (
+              <button
+                onClick={() => navigate("/org-admin")}
+                className="px-3 py-2 bg-purple-600/5 hover:bg-purple-600 hover:text-white border border-purple-500/10 text-purple-600 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
+              >
+                <UserCheck size={14} /> Кабінет Організації
               </button>
             )}
 

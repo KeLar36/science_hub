@@ -35,6 +35,9 @@ const modules = {
     ["blockquote", "code-block"],
     ["link", "clean"],
   ],
+  clipboard: {
+    matchVisual: false, // 🎯 Залізобетонно лікує екранування при копіюванні
+  },
 };
 
 const CreatePost = () => {
@@ -93,16 +96,23 @@ const CreatePost = () => {
     setIsPublishing(true);
     try {
       const formData = new FormData();
-      formData.append("title", title);
-      formData.append("content", content);
+      formData.append("title", title.trim());
+      formData.append("content", content.trim());
       formData.append("category", category);
       formData.append("status", status);
+
+      const cleanText = content
+        .replace(/<\/?[^>]+(>|$)/g, " ")
+        .replace(/&nbsp;/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      const shortDesc = cleanText.substring(0, 180);
+      formData.append("shortDescription", shortDesc);
+
       if (imageFile) formData.append("image", imageFile);
 
       const config = {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+        headers: { "Content-Type": "multipart/form-data" },
       };
 
       if (isEditMode) {
@@ -136,53 +146,30 @@ const CreatePost = () => {
       <Navbar />
 
       <style>{`
-        .editor-wrapper .quill { 
-          border: none !important;
-          background: var(--bg-card);
-        }
-        .editor-wrapper .ql-toolbar { 
-          border: none !important;
-          border-bottom: 1px solid var(--border-color) !important;
-          padding: 1.5rem !important;
-          position: sticky;
-          top: 0;
-          z-index: 10;
-          background: var(--bg-card);
-        }
-        .editor-wrapper .ql-container { 
-          border: none !important;
-          font-family: inherit;
-        }
-        .editor-wrapper .ql-editor { 
-          padding: 3rem !important;
-          min-height: 600px;
-          font-size: 1.125rem;
-          line-height: 1.8;
-          color: var(--text-dark);
-        }
-        .editor-wrapper .ql-editor.ql-blank::before {
-          color: var(--text-gray);
-          font-style: normal;
-          opacity: 0.5;
-          padding-left: 3rem;
-        }
+        .editor-wrapper .quill { border: none !important; background: var(--bg-card); }
+        .editor-wrapper .ql-toolbar { border: none !important; border-bottom: 1px solid var(--border-color) !important; padding: 1.5rem !important; position: sticky; top: 0; z-index: 10; background: var(--bg-card); }
+        .editor-wrapper .ql-container { border: none !important; font-family: inherit; }
+        .editor-wrapper .ql-editor { padding: 3rem !important; min-height: 600px; font-size: 1.125rem; line-height: 1.8; color: var(--text-dark); }
+        .editor-wrapper .ql-editor.ql-blank::before { color: var(--text-gray); font-style: normal; opacity: 0.5; padding-left: 3rem; }
       `}</style>
 
       <div className="sticky top-[70px] z-40 bg-[var(--bg-card)]/80 backdrop-blur-xl border-b border-[var(--border-color)] py-4">
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
           <button
+            type="button"
             onClick={() => navigate("/content-panel")}
             className="group flex items-center gap-2 text-[var(--text-gray)] font-bold text-sm hover:text-[var(--purple-main)] transition-all"
           >
             <ChevronLeft
               size={18}
               className="group-hover:-translate-x-1 transition-transform"
-            />
+            />{" "}
             Назад
           </button>
 
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={() => handleSavePost("draft")}
               disabled={isPublishing}
               className="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs text-[var(--text-gray)] border border-[var(--border-color)] hover:bg-[var(--bg-main)] transition-all"
@@ -190,15 +177,16 @@ const CreatePost = () => {
               <Save size={16} /> Чернетка
             </button>
             <button
+              type="button"
               onClick={() => handleSavePost("published")}
               disabled={isPublishing}
-              className="flex items-center gap-2 px-8 py-2.5 rounded-xl bg-[var(--purple-main)] text-white font-bold text-xs shadow-lg shadow-purple-500/20 hover:bg-[var(--text-dark)] transition-all active:scale-95 disabled:opacity-50"
+              className="flex items-center gap-2 px-8 py-2.5 rounded-xl bg-[var(--purple-main)] text-white font-bold text-xs shadow-lg shadow-purple-500/20 hover:bg-[var(--text-dark)] transition-all disabled:opacity-50"
             >
               {isPublishing ? (
                 <Loader2 size={16} className="animate-spin" />
               ) : (
                 <Send size={16} />
-              )}
+              )}{" "}
               {isEditMode ? "ОНОВИТИ" : "ОПУБЛІКУВАТИ"}
             </button>
           </div>
@@ -210,8 +198,7 @@ const CreatePost = () => {
           <div className="lg:col-span-8 space-y-8">
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-[var(--purple-main)] font-black uppercase tracking-widest text-[10px]">
-                <Type size={14} />
-                Content Headline
+                <Type size={14} /> Content Headline
               </div>
               <textarea
                 value={title}
@@ -222,7 +209,7 @@ const CreatePost = () => {
               />
             </div>
 
-            <div className="editor-wrapper border border-[var(--border-color)] rounded-[32px] overflow-hidden bg-[var(--bg-card)] shadow-2xl shadow-purple-500/5">
+            <div className="editor-wrapper border border-[var(--border-color)] rounded-[32px] overflow-hidden bg-[var(--bg-card)] shadow-2xl">
               <ReactQuill
                 theme="snow"
                 modules={modules}
@@ -244,12 +231,9 @@ const CreatePost = () => {
                   {CATEGORIES.map((cat) => (
                     <button
                       key={cat}
+                      type="button"
                       onClick={() => setCategory(cat)}
-                      className={`text-left px-5 py-3 rounded-xl text-xs font-bold transition-all ${
-                        category === cat
-                          ? "bg-[var(--purple-main)] text-white shadow-md shadow-purple-500/20"
-                          : "text-[var(--text-gray)] hover:bg-[var(--bg-main)] border border-transparent hover:border-[var(--border-color)]"
-                      }`}
+                      className={`text-left px-5 py-3 rounded-xl text-xs font-bold transition-all ${category === cat ? "bg-[var(--purple-main)] text-white shadow-md shadow-purple-500/20" : "text-[var(--text-gray)] hover:bg-[var(--bg-main)] border border-transparent hover:border-[var(--border-color)]"}`}
                     >
                       {cat}
                     </button>
@@ -262,7 +246,6 @@ const CreatePost = () => {
                   <Layout size={16} className="text-[var(--purple-main)]" />{" "}
                   Обкладинка
                 </h3>
-
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -300,6 +283,7 @@ const CreatePost = () => {
 
                 {imagePreview && (
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       setImageFile(null);

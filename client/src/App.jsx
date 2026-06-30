@@ -13,7 +13,8 @@ import HomePage from "./pages/homePage";
 import LoginPage from "./pages/loginPage";
 import RegisterPage from "./pages/registerPage";
 import ProfilePage from "./pages/profilePage";
-import AdminPage from "./pages/AdminPage";
+import SuperAdminPage from "./adminPanels/superadmin/SuperAdminPage";
+import OrgAdminPage from "./adminPanels/orgAdmin/OrgAdminPage";
 import AboutPage from "./pages/aboutPage";
 import ProgramDetails from "./pages/ProgramDetails";
 import ReviewerPage from "./pages/ReviewerPage";
@@ -115,14 +116,25 @@ function AppContent() {
             </ProtectedRoute>
           }
         />
+
         <Route
-          path="/admin"
+          path="/superadmin"
           element={
-            <ProtectedRoute allowedRoles={["admin", "superadmin"]}>
-              <AdminPage />
+            <ProtectedRoute allowedRoles={["superadmin"]}>
+              <SuperAdminPage />
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/org-admin"
+          element={
+            <ProtectedRoute allowedRoles={["admin", "superadmin"]}>
+              <OrgAdminPage />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/reviewer"
           element={

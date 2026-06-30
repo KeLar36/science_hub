@@ -27,16 +27,21 @@ export default function ArchivePage() {
     setError(null);
     try {
       const response = await axiosInstance.get("/projects/archive");
+
+      console.log("Данні з архіву:", response.data);
+
+      if (response.data && response.data.length === 0) {
+        console.warn("Архів порожній, перевірте бекенд-фільтри");
+      }
+
       setArticles(response.data);
     } catch (err) {
-      console.error("Error fetching archived projects:", err);
-      setError(
-        err.response?.data?.message || "Не вдалося завантажити архів статей",
-      );
+      console.error("Помилка:", err);
+      setError(err.response?.data?.message || "Помилка завантаження архіву");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, []); // Якщо архів має оновлюватися, додай сюди залежності, якщо вони є
 
   useEffect(() => {
     fetchArchiveData();

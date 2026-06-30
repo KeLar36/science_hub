@@ -7,16 +7,23 @@ const upload = require("../middleware/upload");
 const mongoose = require("mongoose");
 const { verifyToken, checkRole } = require("../middleware/auth");
 
-const getOrganizationMemberIds = async (adminId) => {
+const getOrganizationMemberIds = async (adminId, queryOrgId) => {
   const adminUser = await User.findById(adminId);
-  if (!adminUser || !adminUser.organizationId) return [];
+  if (!adminUser) return [];
 
+  if (adminUser.role === "superadmin" && queryOrgId) {
+    const members = await User.find({ organizationId: queryOrgId }).select(
+      "_id",
+    );
+    return members.map((m) => m._id);
+  }
+
+  if (!adminUser.organizationId) return [];
   const members = await User.find({
     organizationId: adminUser.organizationId,
   }).select("_id");
   return members.map((m) => m._id);
 };
-
 // ==========================================
 // 1. БЛОК СТВОРЕННЯ ТА ОНОВЛЕННЯ (Користувачі — повністю відкрита подача)
 // ==========================================
@@ -226,7 +233,6 @@ router.patch(
       if (!project)
         return res.status(404).json({ error: "Проєкт не знайдено" });
 
-      // Перевірка, чи це призначений рецензент
       const isAssignedReviewer =
         project.reviewerId && project.reviewerId.toString() === req.user.id;
       if (!isAssignedReviewer && req.user.role !== "superadmin") {
@@ -299,26 +305,37 @@ router.get("/user/:userId", verifyToken, async (req, res) => {
 
 const fetchAdminProjects = async (req, res) => {
   try {
-    if (req.user.role === "superadmin") {
-      const projects = await Project.find()
-        .populate("authorId", "name email")
-        .populate("programId", "title type")
-        .populate("reviewerId", "name")
-        .sort({ createdAt: -1 });
-      return res.json(projects);
-    }
+    const memberIds = await getOrganizationMemberIds(
+      req.user.id,
+      req.query.orgId,
+    );
+    let query = {};
 
     if (req.user.role === "admin") {
-      const memberIds = await getOrganizationMemberIds(req.user.id);
-
-      const projects = await Project.find({ authorId: { $in: memberIds } })
-        .populate("authorId", "name email")
-        .populate("programId", "title type")
-        .populate("reviewerId", "name")
-        .sort({ createdAt: -1 });
-      return res.json(projects);
+      const adminUser = await User.findById(req.user.id).select(
+        "organizationId",
+      );
+      if (!adminUser || !adminUser.organizationId) {
+        return res.json([]);
+      }
+      query = { authorId: { $in: memberIds } };
+    } else if (req.user.role === "superadmin") {
+      if (req.query.orgId) {
+        query = { authorId: { $in: memberIds } };
+      } else {
+        query = {};
+      }
     }
+
+    const projects = await Project.find(query)
+      .populate("authorId", "name email")
+      .populate("programId", "title type")
+      .populate("reviewerId", "name")
+      .sort({ createdAt: -1 });
+
+    return res.json(projects);
   } catch (err) {
+    console.error("Fetch Admin Projects Error:", err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -339,16 +356,19 @@ router.get(
 router.get("/archive", async (req, res) => {
   try {
     const projects = await Project.find({ status: "Прийнято" })
-      .populate({
-        path: "programId",
-        select: "title type issn impactFactor organizer location externalLink",
-      })
+      .populate("programId", "title type")
       .populate("authorId", "name email")
       .sort({ createdAt: -1 });
 
     const publicArchive = projects.filter((project) => {
-      const programType = project.programId?.type;
-      return programType === "Науковий журнал" || programType === "Конференція";
+      if (project.programId) {
+        const pType = project.programId.type
+          ? project.programId.type.trim().toLowerCase()
+          : "";
+        const allowedTypes = ["науковий журнал", "конференція", "стаття"];
+        return allowedTypes.includes(pType);
+      }
+      return false;
     });
 
     res.json(publicArchive);
@@ -412,5 +432,25 @@ router.patch(
     }
   },
 );
+
+// =========================================================================
+// 📄 Отримання всіх наукових робіт поточного користувача
+// =========================================================================
+router.get("/my", verifyToken, async (req, res) => {
+  try {
+    const authorId = req.user.id;
+
+    const myProjects = await Project.find({ authorId })
+      .populate("programId", "title type deadline")
+      .sort({ createdAt: -1 });
+
+    res.json(myProjects);
+  } catch (err) {
+    console.error("Get My Projects Error:", err);
+    res
+      .status(500)
+      .json({ error: "Помилка сервера при отриманні ваших наукових робіт" });
+  }
+});
 
 module.exports = router;

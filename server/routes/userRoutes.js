@@ -12,7 +12,11 @@ const adminAccess = checkRole(["admin", "superadmin"]);
 
 router.get("/me", verifyToken, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select("-password");
+    const user = await User.findById(req.user.id).select("-password").populate({
+      path: "bookmarks",
+      model: "Post",
+    });
+
     if (!user)
       return res.status(404).json({ message: "Користувача не знайдено" });
 
@@ -82,6 +86,24 @@ router.get("/bookmarks/check/:id", verifyToken, async (req, res) => {
   }
 });
 
+router.get("/saved-posts", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).populate({
+      path: "bookmarks",
+      model: "Post",
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "Користувача не знайдено" });
+    }
+
+    res.json(user.bookmarks || []);
+  } catch (err) {
+    console.error("Помилка завантаження збережених постів блогу:", err);
+    res.status(500).json({ message: "Помилка сервера" });
+  }
+});
+
 router.post("/bookmarks/toggle/:id", verifyToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
@@ -125,55 +147,62 @@ router.get("/community", async (req, res) => {
   }
 });
 
-router.get("/count", verifyToken, async (req, res) => {
-  try {
-    if (req.user.role === "superadmin") {
-      const count = await User.countDocuments();
-      return res.json({ count });
-    }
-
-    if (req.user.role === "admin") {
-      const currentUser = await User.findById(req.user.id);
-      if (!currentUser || !currentUser.organizationId)
-        return res.json({ count: 0 });
-
-      const count = await User.countDocuments({
-        organizationId: currentUser.organizationId,
-      });
-      return res.json({ count });
-    }
-
-    const count = await User.countDocuments({ isBanned: false });
-    res.json({ count });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
 // ==========================================
 // 4. АДМІНІСТРАТИВНІ РОУТИ (Збирають користувачів для кабінету організації)
 // ==========================================
 
 router.get("/all", verifyToken, adminAccess, async (req, res) => {
   try {
-    if (req.user.role === "superadmin") {
-      const users = await User.find()
-        .select("-password")
-        .sort({ createdAt: -1 });
-      return res.json(users);
-    }
+    let query = {};
 
     if (req.user.role === "admin") {
-      const currentUser = await User.findById(req.user.id);
-      if (!currentUser || !currentUser.organizationId) return res.json([]);
-
-      const users = await User.find({
-        organizationId: currentUser.organizationId,
-      })
-        .select("-password")
-        .sort({ createdAt: -1 });
-      return res.json(users);
+      const freshUser = await User.findById(req.user.id).select(
+        "organizationId",
+      );
+      if (!freshUser || !freshUser.organizationId) {
+        return res.json([]);
+      }
+      query.organizationId = freshUser.organizationId;
+    } else if (req.user.role === "superadmin") {
+      if (req.query.orgId) {
+        query.organizationId = req.query.orgId;
+      } else {
+        query = {};
+      }
     }
+
+    const users = await User.find(query)
+      .select("-password")
+      .populate("organizationId", "name")
+      .sort({ createdAt: -1 });
+
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+router.get("/count", verifyToken, adminAccess, async (req, res) => {
+  try {
+    let query = {};
+
+    if (req.user.role === "admin") {
+      const freshUser = await User.findById(req.user.id).select(
+        "organizationId",
+      );
+      if (!freshUser || !freshUser.organizationId) {
+        return res.json({ count: 0 });
+      }
+      query.organizationId = freshUser.organizationId;
+    } else if (req.user.role === "superadmin") {
+      if (req.query.orgId) {
+        query.organizationId = req.query.orgId;
+      } else {
+        query = {};
+      }
+    }
+
+    const count = await User.countDocuments(query);
+    res.json({ count });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

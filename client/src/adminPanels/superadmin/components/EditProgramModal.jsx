@@ -14,7 +14,20 @@ import {
 import "react-datepicker/dist/react-datepicker.css";
 import "react-quill-new/dist/quill.snow.css";
 
-import { SCIENTIFIC_DOMAINS, PROGRAM_TYPES } from "../../constants/domains";
+import { SCIENTIFIC_DOMAINS, PROGRAM_TYPES } from "../../../constants/domains";
+
+const stripHtmlFast = (html) => {
+  if (!html) return "";
+  let text = html.replace(/<\/?[^>]+(>|$)/g, " "); // Заміна тегів на пробіли
+  text = text
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+  return text.replace(/\s+/g, " ").trim();
+};
 
 const EditProgramModal = ({
   isOpen,
@@ -27,12 +40,19 @@ const EditProgramModal = ({
 
   useEffect(() => {
     if (programData && isOpen) {
+      const fallbackDescription = programData.description
+        ? stripHtmlFast(programData.description).substring(0, 200)
+        : "";
+
       setFormData({
         ...programData,
         deadline: programData.deadline
           ? new Date(programData.deadline)
           : new Date(),
-        shortDescription: programData.shortDescription || "",
+        shortDescription:
+          programData.shortDescription ||
+          programData.shortDesc ||
+          fallbackDescription,
         organizer: programData.organizer || "",
         externalLink: programData.externalLink || "",
         location: programData.location || "Онлайн",
@@ -78,6 +98,7 @@ const EditProgramModal = ({
         </div>
 
         <form
+          id="edit-program-form"
           onSubmit={handleSubmit}
           className="flex-grow overflow-y-auto p-6 space-y-5"
         >
@@ -307,7 +328,7 @@ const EditProgramModal = ({
           </button>
           <button
             type="submit"
-            onClick={handleSubmit}
+            form="edit-program-form"
             disabled={loadingAction === "editProgram"}
             className="flex-[2] py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/10"
           >

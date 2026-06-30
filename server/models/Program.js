@@ -34,6 +34,12 @@ const BaseProgramSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    // 🟢 ДОДАНО: Посилання на організацію, яка володіє цією програмою
+    organizationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
+      default: null, // null = глобальна програма від суперадміна платформи
+    },
     createdAt: {
       type: Date,
       default: Date.now,

@@ -9,6 +9,7 @@ import {
   Trash2,
   ToggleLeft,
   ToggleRight,
+  Building2, // 🟢 Додаємо іконку будівлі для установи
 } from "lucide-react";
 
 const stripHtmlFast = (html) => {
@@ -36,10 +37,10 @@ const ProgramCard = ({
   // Перевіряємо, чи це режим адмін-панелі (якщо передані функції керування)
   const isAdminMode = !!(onEdit || onDelete || onToggleStatus);
 
-  // 1. ВИГЛЯД ДЛЯ ПАНЕЛІ АДМІНІСТРАТОРА (СТАРИЙ ВИД)
+  // 1. ВИГЛЯД ДЛЯ ПАНЕЛІ АДМІНІСТРАТОРА / СУПЕРАДМІНА
   if (isAdminMode) {
     return (
-      <div className="group bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-purple-500/30 p-5 rounded-2xl shadow-xs transition-all flex flex-col justify-between gap-4 relative overflow-hidden">
+      <div className="group bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-purple-500/30 p-5 rounded-2xl shadow-xs transition-all flex flex-col justify-between gap-4 relative overflow-hidden text-left">
         <div className="flex items-center justify-between gap-2">
           <span className="px-2.5 py-1 bg-purple-500/5 text-purple-600 dark:text-purple-400 border border-purple-500/10 rounded-lg text-[10px] font-black tracking-wider uppercase">
             {p.type}
@@ -47,7 +48,7 @@ const ProgramCard = ({
           <div className="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
             {onToggleStatus && (
               <button
-                onClick={() => onToggleStatus(p._id)}
+                onClick={() => onToggleStatus(p._id, p.active)}
                 title={p.active ? "Деактивувати (в архів)" : "Активувати"}
                 className={`p-1.5 rounded-lg transition-colors ${
                   p.active
@@ -83,8 +84,16 @@ const ProgramCard = ({
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <h4 className="text-sm font-black text-[var(--text-dark)] line-clamp-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+        <div className="space-y-1.5 flex-1">
+          {/* 🟢 ВІДОБРАЖЕННЯ УСТАНОВИ ДЛЯ СУПЕРАДМІНА В АДМІН-РЕЖИМІ */}
+          {p.organizationId?.name && (
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-purple-500/5 border border-purple-500/10 rounded-xl text-[10px] font-black text-purple-600 dark:text-purple-400 w-fit uppercase tracking-wider mb-1">
+              <Building2 size={11} />
+              <span>{p.organizationId.name}</span>
+            </div>
+          )}
+
+          <h4 className="text-sm font-black text-[var(--text-dark)] line-clamp-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors uppercase">
             {p.title}
           </h4>
           <p className="text-xs text-[var(--text-gray)] font-mono uppercase tracking-wider">
@@ -118,13 +127,13 @@ const ProgramCard = ({
     );
   }
 
-  // 2. ВЕЛИКИЙ ФІОЛЕТОВИЙ ДИЗАЙН ДЛЯ ГОЛОВНОЇ СТОРІНКИ (ДЛЯ ЮЗЕРІВ)
   const displayIndex = index + 1 < 10 ? `0${index + 1}` : index + 1;
 
+  // 2. СТАНДАРТНИЙ ПУБЛІЧНИЙ ВИГЛЯД КАРТКИ
   return (
     <article
       onClick={onClick}
-      className="group relative p-6 md:p-8 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl cursor-pointer flex flex-col h-[440px] transition-all duration-300 hover:border-purple-500/40 hover:shadow-lg hover:shadow-purple-600/[0.02] will-change-transform hover:-translate-y-1"
+      className="group relative p-6 md:p-8 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl cursor-pointer flex flex-col h-[450px] transition-all duration-300 hover:border-purple-500/40 hover:shadow-lg hover:shadow-purple-600/[0.02] will-change-transform hover:-translate-y-1 text-left"
     >
       <div className="absolute top-4 right-6 text-3xl font-extrabold text-[var(--text-gray)] opacity-[0.04] group-hover:opacity-[0.12] transition-opacity select-none">
         {displayIndex}
@@ -162,11 +171,19 @@ const ProgramCard = ({
       </div>
 
       <div className="space-y-3 mb-auto">
+        {/* 🟢 ПОКАЗ УСТАНОВИ ДЛЯ СУПЕРАДМІНА НА ПУБЛІЧНІЙ КАРТЦІ */}
+        {p.organizationId?.name && (
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-purple-500/5 border border-purple-500/10 rounded-xl text-[10px] font-black text-purple-600 dark:text-purple-400 w-fit uppercase tracking-wider">
+            <Building2 size={11} />
+            <span>{p.organizationId.name}</span>
+          </div>
+        )}
+
         <h3 className="text-xl font-bold text-[var(--text-dark)] leading-snug uppercase tracking-tight group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors line-clamp-2">
           {p.title}
         </h3>
 
-        <p className="text-xs text-[var(--text-gray)] line-clamp-5 leading-relaxed font-normal opacity-90">
+        <p className="text-xs text-[var(--text-gray)] line-clamp-4 leading-relaxed font-normal opacity-90">
           {stripHtmlFast(p.cleanedDescription || p.description)}
         </p>
       </div>

@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
       isChecking.current = true;
 
       try {
-        const res = await axios.get("/auth/me");
+        const res = await axios.get("/users/me");
 
         if (res.data && res.data.user) {
           setUser(res.data.user);
@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (userData) => {
     setLoading(true);
     try {
-      const res = await axios.get("/auth/me");
+      const res = await axios.get("/users/me");
       if (res.data && res.data.user) {
         setUser(res.data.user);
       } else {

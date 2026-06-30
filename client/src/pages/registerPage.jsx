@@ -1,7 +1,8 @@
 /* eslint-disable no-unused-vars */
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axiosInstance from "../api/axios";
+import { useAuth } from "../context/AuthContext";
 import toast, { Toaster } from "react-hot-toast";
 import {
   UserPlus,
@@ -29,10 +30,17 @@ const RegisterPage = () => {
     city: "",
     domain: "Інше",
   });
+
+  const { isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/", { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // 🟣 Сортуємо міста за українським алфавітом
   const sortedCities = useMemo(() => {
     return [...UKRAINIAN_CITIES].sort((a, b) => a.localeCompare(b, "uk"));
   }, []);

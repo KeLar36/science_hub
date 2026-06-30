@@ -8,33 +8,96 @@ const {
   DatasetProgram,
   CourseProgram,
 } = require("../models/Program");
+const User = require("../models/User");
+const jwt = require("jsonwebtoken"); // 🟢 Переконайся, що бібліотеку імпортовано для ручної розшифровки публічного роуту
 const { verifyToken, checkRole } = require("../middleware/auth");
 
+// =========================================================================
+// 📄 ОТРИМАННЯ ПРОГРАМ (Глобальний пошук та ізоляція для кабінетів організацій)
+// =========================================================================
 router.get("/", async (req, res) => {
   try {
-    const programs = await Program.find({ active: true }).sort({ deadline: 1 });
+    let query = { active: true };
+
+    // 1. Якщо фронтенд явно передав параметр orgId (наприклад, суперадмін зайшов у кабінет)
+    if (req.query.orgId) {
+      query.organizationId = req.query.orgId;
+    }
+    // 2. Якщо запит робить залогінений адмін організації і він переглядає свій кабінет
+    else if (req.headers.authorization) {
+      try {
+        const token = req.headers.authorization.split(" ")[1];
+        const decoded = jwt.verify(
+          token,
+          process.env.JWT_SECRET || "secret_key",
+        );
+
+        if (decoded && decoded.role === "admin") {
+          // Беремо актуальний орг-айді прямо з бази, щоб захиститися від старих токенів
+          const freshUser = await User.findById(decoded.id).select(
+            "organizationId",
+          );
+          if (freshUser && freshUser.organizationId) {
+            query.organizationId = freshUser.organizationId;
+          } else {
+            return res.json([]); // Адмін без організації не бачить нічого
+          }
+        }
+      } catch (e) {
+        // Якщо токен невалідний або це публічний гість із головної сторінки сайту — просто ігноруємо
+      }
+    }
+
+    const programs = await Program.find(query)
+      .populate("organizationId", "name logo")
+      .sort({ deadline: 1 });
+
     res.json(programs);
   } catch (err) {
+    console.error("Get Programs Error:", err);
     res.status(500).json({ error: "Помилка при отриманні програм" });
   }
 });
 
+// Отримання архівних програм
 router.get(
   "/archive",
   verifyToken,
   checkRole(["admin", "superadmin"]),
   async (req, res) => {
     try {
-      const archived = await Program.find({ active: false }).sort({
-        updatedAt: -1,
-      });
+      let query = { active: false };
+
+      // 1. Якщо суперадмін переглядає архів конкретної організації
+      if (req.query.orgId) {
+        query.organizationId = req.query.orgId;
+      }
+      // 2. Якщо це звичайний локальний адмін організації
+      else if (req.user.role === "admin") {
+        const adminUser = await User.findById(req.user.id).select(
+          "organizationId",
+        );
+        if (!adminUser || !adminUser.organizationId) {
+          return res.json([]);
+        }
+        query.organizationId = adminUser.organizationId;
+      }
+
+      const archived = await Program.find(query)
+        .populate("organizationId", "name logo")
+        .sort({ updatedAt: -1 });
+
       res.json(archived);
     } catch (err) {
+      console.error("Get Archive Programs Error:", err);
       res.status(500).json({ error: "Помилка при отриманні архіву" });
     }
   },
 );
 
+// =========================================================================
+// 🟢 СТВОРЕННЯ ПРОГРАМИ (Гнучке автоматичне призначення організації)
+// =========================================================================
 router.post(
   "/",
   verifyToken,
@@ -53,6 +116,7 @@ router.post(
         impactFactor,
         externalLink,
         location,
+        orgId, // Може прийти від суперадміна, якщо він діє всередині кабінету філії
       } = req.body;
 
       if (!title || !description || !deadline || !type) {
@@ -61,12 +125,33 @@ router.post(
         });
       }
 
+      const freshUser = await User.findById(req.user.id).select(
+        "organizationId",
+      );
+      if (!freshUser)
+        return res.status(404).json({ error: "Адміністратора не знайдено" });
+
+      let assignedOrgId = null;
+
+      if (req.user.role === "admin") {
+        if (!freshUser.organizationId) {
+          return res.status(403).json({
+            error:
+              "Ваш профіль не прив'язано до жодної організації. Створення заборонено.",
+          });
+        }
+        assignedOrgId = freshUser.organizationId;
+      } else if (req.user.role === "superadmin") {
+        assignedOrgId = orgId || null;
+      }
+
       const baseData = {
         title,
         description,
         deadline,
         domain,
         createdBy: req.user.id,
+        organizationId: assignedOrgId,
         active: true,
       };
 
@@ -129,6 +214,9 @@ router.post(
   },
 );
 
+// =========================================================================
+// ✏️ РЕДАГУВАННЯ ТА КЕРУВАННЯ (З перевіркою належності до однієї організації)
+// =========================================================================
 router.put(
   "/:id",
   verifyToken,
@@ -155,13 +243,21 @@ router.put(
         return res.status(404).json({ error: "Програму не знайдено" });
       }
 
-      if (
-        req.user.role === "admin" &&
-        program.createdBy.toString() !== req.user.id
-      ) {
-        return res.status(403).json({
-          error: "Ви можете редагувати тільки власноруч створені програми",
-        });
+      // Перевірка організації для звичайного локального адміна
+      if (req.user.role === "admin") {
+        const freshUser = await User.findById(req.user.id).select(
+          "organizationId",
+        );
+        if (
+          !freshUser ||
+          !program.organizationId ||
+          program.organizationId.toString() !==
+            freshUser.organizationId.toString()
+        ) {
+          return res.status(403).json({
+            error: "Ви можете редагувати тільки програми вашої організації",
+          });
+        }
       }
 
       program.title = title || program.title;
@@ -213,13 +309,22 @@ router.patch(
       if (!program)
         return res.status(404).json({ error: "Програму не знайдено" });
 
-      if (
-        req.user.role === "admin" &&
-        program.createdBy.toString() !== req.user.id
-      ) {
-        return res
-          .status(403)
-          .json({ error: "У вас немає прав на зміну статусу цієї програми" });
+      // Перевірка організації для зміни статусу
+      if (req.user.role === "admin") {
+        const freshUser = await User.findById(req.user.id).select(
+          "organizationId",
+        );
+        if (
+          !freshUser ||
+          !program.organizationId ||
+          program.organizationId.toString() !==
+            freshUser.organizationId.toString()
+        ) {
+          return res.status(403).json({
+            error:
+              "У вас немає права змінювати статус програм інших організацій",
+          });
+        }
       }
 
       program.active = !program.active;
@@ -244,13 +349,21 @@ router.delete(
       if (!program)
         return res.status(404).json({ error: "Програму не знайдено" });
 
-      if (
-        req.user.role === "admin" &&
-        program.createdBy.toString() !== req.user.id
-      ) {
-        return res
-          .status(403)
-          .json({ error: "Ви не можете видалити цю програму" });
+      // Перевірка організації для безповоротного видалення
+      if (req.user.role === "admin") {
+        const freshUser = await User.findById(req.user.id).select(
+          "organizationId",
+        );
+        if (
+          !freshUser ||
+          !program.organizationId ||
+          program.organizationId.toString() !==
+            freshUser.organizationId.toString()
+        ) {
+          return res.status(403).json({
+            error: "Ви не можете видалити програму іншої організації",
+          });
+        }
       }
 
       await Program.findByIdAndDelete(req.params.id);
@@ -263,7 +376,10 @@ router.delete(
 
 router.get("/:id", async (req, res) => {
   try {
-    const program = await Program.findById(req.params.id);
+    const program = await Program.findById(req.params.id).populate(
+      "organizationId",
+      "name logo description website",
+    );
     if (!program)
       return res.status(404).json({ error: "Програму не знайдено" });
     res.json(program);
