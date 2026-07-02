@@ -55,20 +55,24 @@ export default function SuperAdminPage() {
     location: "Онлайн",
   });
 
-  const fetchSuperAdminData = useCallback(
+  const [loadedData, setLoadedData] = useState({
+    overview: false,
+    users: false,
+    organizations: false,
+    projects: false,
+    programs: false,
+  });
+
+  // 1. Базова ініціалізація (тільки перевірка прав та лічильники для аналітики)
+  const initSuperAdmin = useCallback(
     async (signal) => {
       try {
         setLoading(true);
-        // Суперадмін тягне глобальні ендпоінти БЕЗ жодних фільтрів orgId
-        const [meRes, statsRes, usersRes, projectsRes, programsRes, orgsRes] =
-          await Promise.all([
-            axiosInstance.get("/users/me", { signal }),
-            axiosInstance.get("/users/count", { signal }),
-            axiosInstance.get("/users/all", { signal }),
-            axiosInstance.get("/projects/all", { signal }),
-            axiosInstance.get("/programs", { signal }),
-            axiosInstance.get("/organizations/all", { signal }),
-          ]);
+        const [meRes, statsRes, projectsRes] = await Promise.all([
+          axiosInstance.get("/users/me", { signal }),
+          axiosInstance.get("/users/count", { signal }),
+          axiosInstance.get("/projects/all", { signal }), // потрібно для графіків аналітики
+        ]);
 
         const userData = meRes.data.user || meRes.data;
         if (userData?.role !== "superadmin") {
@@ -78,23 +82,24 @@ export default function SuperAdminPage() {
         }
 
         setCurrentUser(userData);
-        setUsers(usersRes.data || []);
         setProjects(projectsRes.data || []);
-        setPrograms(programsRes.data || []);
-        setOrganizations(orgsRes.data || []);
 
         const userCount = statsRes.data?.count ?? statsRes.data?.users ?? 0;
+        const fetchedProjects = projectsRes.data || [];
+
         setStats({
           users: userCount,
-          projects: projectsRes.data?.length || 0,
-          approvedProjects:
-            projectsRes.data?.filter((p) => p.status === "Прийнято").length ||
-            0,
+          projects: fetchedProjects.length,
+          approvedProjects: fetchedProjects.filter(
+            (p) => p.status === "Прийнято",
+          ).length,
         });
+
+        setLoadedData((prev) => ({ ...prev, overview: true }));
       } catch (err) {
         if (err.name !== "CanceledError") {
-          console.error("Помилка суперадмінки:", err);
-          toast.error("Не вдалося завантажити глобальні дані платформи");
+          console.error("Помилка ініціалізації адмінки:", err);
+          toast.error("Не вдалося завантажити базові дані платформи");
         }
       } finally {
         setLoading(false);
@@ -103,18 +108,47 @@ export default function SuperAdminPage() {
     [navigate],
   );
 
+  const fetchTabData = async (tabName) => {
+    if (loadedData[tabName]) return;
+
+    try {
+      setLoadingAction(`loading_${tabName}`);
+      if (tabName === "users") {
+        const res = await axiosInstance.get("/users/all");
+        setUsers(res.data || []);
+      } else if (tabName === "organizations") {
+        const res = await axiosInstance.get("/organizations/all");
+        setOrganizations(res.data || []);
+      } else if (tabName === "programs") {
+        const res = await axiosInstance.get("/programs");
+        setPrograms(res.data || []);
+      }
+      setLoadedData((prev) => ({ ...prev, [tabName]: true }));
+    } catch (err) {
+      console.error(`Помилка завантаження вкладки ${tabName}:`, err);
+      toast.error("Не вдалося оновити дані вкладки");
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
   useEffect(() => {
     const controller = new AbortController();
-    if (!authLoading) fetchSuperAdminData(controller.signal);
+    if (!authLoading) initSuperAdmin(controller.signal);
     return () => controller.abort();
-  }, [authLoading, fetchSuperAdminData]);
+  }, [authLoading, initSuperAdmin]);
 
-  // Створення ГЛОБАЛЬНОЇ програми (від імені самої платформи)
+  useEffect(() => {
+    if (!loading && activeTab !== "overview") {
+      fetchTabData(activeTab);
+    }
+  }, [activeTab, loading]);
+
   const handleCreateGlobalProgram = async (e) => {
     e.preventDefault();
     try {
       setLoadingAction("createProgram");
-      const res = await axiosInstance.post("/programs", newProgram); // orgId тут буде null автоматично
+      const res = await axiosInstance.post("/programs", newProgram);
       setPrograms([res.data, ...programs]);
       setNewProgram({
         title: "",
@@ -313,55 +347,63 @@ export default function SuperAdminPage() {
           </div>
         </div>
 
-        {activeTab === "overview" && (
-          <DashboardTab
-            stats={{
-              ...stats,
-              programs: programs.length,
-              organizations: organizations.length,
-            }}
-            chartData={dashboardData.chartData}
-            pieData={dashboardData.pieData}
-            topAuthors={dashboardData.topAuthors}
-          />
-        )}
-        {activeTab === "users" && (
-          <UsersTab
-            users={users}
-            currentUser={currentUser}
-            onUpdateRole={handleUpdateRole}
-            onToggleBan={handleToggleBan}
-            loadingAction={loadingAction}
-          />
-        )}
-        {activeTab === "organizations" && (
-          <OrganizationsTab
-            organizations={organizations}
-            onUpdateStatus={handleUpdateOrganizationStatus}
-            loadingAction={loadingAction}
-            onViewCabinet={(id) => navigate(`/org-admin?orgId=${id}`)}
-          />
-        )}
-        {activeTab === "projects" && (
-          <ProjectsTab
-            projects={projects}
-            onUpdateStatus={handleUpdateProjectStatus}
-            loadingAction={loadingAction}
-            onAssignReviewer={handleAssignReviewer}
-            users={users}
-          />
-        )}
-        {activeTab === "programs" && (
-          <ProgramsTab
-            programs={programs}
-            setPrograms={setPrograms}
-            newProgram={newProgram}
-            setNewProgram={setNewProgram}
-            onCreateProgram={handleCreateGlobalProgram}
-            onToggleStatus={handleToggleGlobalProgramStatus}
-            loadingAction={loadingAction}
-            organizationName=""
-          />
+        {loadingAction === `loading_${activeTab}` ? (
+          <div className="py-20 flex justify-center items-center">
+            <Loader2 size={24} className="animate-spin text-purple-600" />
+          </div>
+        ) : (
+          <>
+            {activeTab === "overview" && (
+              <DashboardTab
+                stats={{
+                  ...stats,
+                  programs: programs.length,
+                  organizations: organizations.length,
+                }}
+                chartData={dashboardData.chartData}
+                pieData={dashboardData.pieData}
+                topAuthors={dashboardData.topAuthors}
+              />
+            )}
+            {activeTab === "users" && (
+              <UsersTab
+                users={users}
+                currentUser={currentUser}
+                onUpdateRole={handleUpdateRole}
+                onToggleBan={handleToggleBan}
+                loadingAction={loadingAction}
+              />
+            )}
+            {activeTab === "organizations" && (
+              <OrganizationsTab
+                organizations={organizations}
+                onUpdateStatus={handleUpdateOrganizationStatus}
+                loadingAction={loadingAction}
+                onViewCabinet={(id) => navigate(`/org-admin?orgId=${id}`)}
+              />
+            )}
+            {activeTab === "projects" && (
+              <ProjectsTab
+                projects={projects}
+                onUpdateStatus={handleUpdateProjectStatus}
+                loadingAction={loadingAction}
+                onAssignReviewer={handleAssignReviewer}
+                users={users}
+              />
+            )}
+            {activeTab === "programs" && (
+              <ProgramsTab
+                programs={programs}
+                setPrograms={setPrograms}
+                newProgram={newProgram}
+                setNewProgram={setNewProgram}
+                onCreateProgram={handleCreateGlobalProgram}
+                onToggleStatus={handleToggleGlobalProgramStatus}
+                loadingAction={loadingAction}
+                organizationName=""
+              />
+            )}
+          </>
         )}
       </main>
       <Footer />
