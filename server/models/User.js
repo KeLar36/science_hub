@@ -24,6 +24,7 @@ const UserSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Organization",
       default: null,
+      index: true,
     },
     image: {
       type: String,

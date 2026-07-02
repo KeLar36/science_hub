@@ -12,7 +12,6 @@ const adminAccess = checkRole(["admin", "superadmin"]);
 
 router.get("/me", verifyToken, async (req, res) => {
   try {
-    // Прибираємо важкий populate. Залишаємо тільки масив айдішників закладок, якщо треба
     const user = await User.findById(req.user.id).select("-password");
 
     if (!user)
@@ -179,6 +178,7 @@ router.get("/all", verifyToken, adminAccess, async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+
 router.get("/count", verifyToken, adminAccess, async (req, res) => {
   try {
     let query = {};
