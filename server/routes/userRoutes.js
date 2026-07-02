@@ -12,10 +12,8 @@ const adminAccess = checkRole(["admin", "superadmin"]);
 
 router.get("/me", verifyToken, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select("-password").populate({
-      path: "bookmarks",
-      model: "Post",
-    });
+    // Прибираємо важкий populate. Залишаємо тільки масив айдішників закладок, якщо треба
+    const user = await User.findById(req.user.id).select("-password");
 
     if (!user)
       return res.status(404).json({ message: "Користувача не знайдено" });
