@@ -1,5 +1,15 @@
 import React, { useState } from "react";
-import { X, Building2, Globe, FileText, Send, Loader2 } from "lucide-react";
+import {
+  X,
+  Building2,
+  Globe,
+  FileText,
+  Send,
+  Loader2,
+  MapPin,
+  Scale,
+  Layers,
+} from "lucide-react";
 
 export default function CreateOrganizationModal({
   isOpen,
@@ -10,9 +20,12 @@ export default function CreateOrganizationModal({
   const [formData, setFormData] = useState({
     name: "",
     edrpou: "",
-    description: "",
+    type: "Університет",
+    legalForm: "ДУ/КЗ",
+    city: "",
     website: "",
     logo: "",
+    description: "",
   });
 
   if (!isOpen) return null;
@@ -25,6 +38,29 @@ export default function CreateOrganizationModal({
     e.preventDefault();
     onSubmit(formData);
   };
+
+  const typeOptions = [
+    "Університет",
+    "НДІ",
+    "Наукове видавництво",
+    "Державна структура",
+    "Приватна компанія",
+    "Інше",
+  ];
+
+  const legalFormOptions = [
+    "ДУ/КЗ",
+    "КНП",
+    "ДП",
+    "ТОВ",
+    "ФОП",
+    "ГО",
+    "БФ/БО",
+    "ПрАТ",
+    "АТ",
+    "ПП",
+    "Інше",
+  ];
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
@@ -66,11 +102,53 @@ export default function CreateOrganizationModal({
             />
           </div>
 
-          {/* ЄДРПОУ та Вебсайт */}
+          {/* ДВА СЕЛЕКТОРИ (Профіль та Юридична форма) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[11px] font-bold text-[var(--text-gray)] uppercase tracking-wider pl-1 flex items-center gap-1.5">
-                <FileText size={12} className="text-purple-500" /> Код ЄДРПОУ *
+                <Layers size={12} className="text-purple-500" /> Науковий
+                профіль *
+              </label>
+              <select
+                name="type"
+                value={formData.type}
+                onChange={handleChange}
+                className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 outline-none focus:border-purple-600 transition-all text-sm text-[var(--text-dark)] font-semibold cursor-pointer"
+              >
+                {typeOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-[var(--text-gray)] uppercase tracking-wider pl-1 flex items-center gap-1.5">
+                <Scale size={12} className="text-purple-500" />{" "}
+                Організаційно-правова форма *
+              </label>
+              <select
+                name="legalForm"
+                value={formData.legalForm}
+                onChange={handleChange}
+                className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 outline-none focus:border-purple-600 transition-all text-sm text-[var(--text-dark)] font-semibold cursor-pointer"
+              >
+                {legalFormOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* ЄДРПОУ та Місто */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-[var(--text-gray)] uppercase tracking-wider pl-1 flex items-center gap-1.5">
+                <FileText size={12} className="text-purple-500" /> Код ЄДРПОУ /
+                Ідентифікатор *
               </label>
               <input
                 type="text"
@@ -86,6 +164,25 @@ export default function CreateOrganizationModal({
 
             <div className="space-y-1.5">
               <label className="text-[11px] font-bold text-[var(--text-gray)] uppercase tracking-wider pl-1 flex items-center gap-1.5">
+                <MapPin size={12} className="text-purple-500" /> Місто
+                розташування *
+              </label>
+              <input
+                type="text"
+                name="city"
+                required
+                placeholder="Напр., Ужгород"
+                value={formData.city}
+                onChange={handleChange}
+                className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 outline-none focus:border-purple-600 transition-all text-sm text-[var(--text-dark)] font-semibold"
+              />
+            </div>
+          </div>
+
+          {/* Вебсайт та Логотип */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-[var(--text-gray)] uppercase tracking-wider pl-1 flex items-center gap-1.5">
                 <Globe size={12} className="text-purple-500" /> Вебсайт
               </label>
               <input
@@ -97,21 +194,20 @@ export default function CreateOrganizationModal({
                 className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 outline-none focus:border-purple-600 transition-all text-sm text-[var(--text-dark)] font-semibold"
               />
             </div>
-          </div>
 
-          {/* Логотип */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-bold text-[var(--text-gray)] uppercase tracking-wider pl-1">
-              URL логотипу
-            </label>
-            <input
-              type="text"
-              name="logo"
-              placeholder="https://example.com/logo.png"
-              value={formData.logo}
-              onChange={handleChange}
-              className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 outline-none focus:border-purple-600 transition-all text-sm text-[var(--text-dark)] font-semibold"
-            />
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-[var(--text-gray)] uppercase tracking-wider pl-1">
+                URL логотипу
+              </label>
+              <input
+                type="text"
+                name="logo"
+                placeholder="https://example.com/logo.png"
+                value={formData.logo}
+                onChange={handleChange}
+                className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 outline-none focus:border-purple-600 transition-all text-sm text-[var(--text-dark)] font-semibold"
+              />
+            </div>
           </div>
 
           {/* Опис */}

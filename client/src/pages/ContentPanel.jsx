@@ -54,7 +54,11 @@ const ContentPanel = () => {
     }
   };
 
-  const filteredPosts = posts.filter((p) =>
+  const postsArray = Array.isArray(posts)
+    ? posts
+    : posts?.items || posts?.posts || [];
+
+  const filteredPosts = postsArray.filter((p) =>
     (p.title || "").toLowerCase().includes(search.toLowerCase()),
   );
 

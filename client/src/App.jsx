@@ -17,10 +17,10 @@ const HomePage = lazy(() => import("./pages/homePage"));
 const LoginPage = lazy(() => import("./pages/loginPage"));
 const RegisterPage = lazy(() => import("./pages/registerPage"));
 const ProfilePage = lazy(() => import("./pages/profilePage"));
-const SuperAdminPage = lazy(
-  () => import("./adminPanels/superadmin/SuperAdminPage"),
-);
-const OrgAdminPage = lazy(() => import("./adminPanels/orgAdmin/OrgAdminPage"));
+
+const SuperAdminPage = lazy(() => import("./pages/admin/SuperAdminPage"));
+const OrgAdminPage = lazy(() => import("./pages/admin/OrgAdminPage"));
+
 const AboutPage = lazy(() => import("./pages/aboutPage"));
 const ProgramDetails = lazy(() => import("./pages/ProgramDetails"));
 const ReviewerPage = lazy(() => import("./pages/ReviewerPage"));
@@ -34,8 +34,8 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const ArchivePage = lazy(() => import("./pages/ArchivePage"));
 
 const PageLoader = () => (
-  <div className="min-h-screen bg-[#0d0d0e] flex items-center justify-center">
-    <div className="w-8 h-8 border-2 border-[var(--purple-main)] border-t-transparent rounded-full animate-spin"></div>
+  <div className="min-h-screen bg-[var(--bg-main)] flex items-center justify-center">
+    <div className="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
   </div>
 );
 
@@ -43,7 +43,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   const { isAuthenticated, user, loading } = useAuth();
 
   if (loading) {
-    return <PageLoader />; // Використовуємо наш новий компонент
+    return <PageLoader />;
   }
 
   if (!isAuthenticated) {
@@ -88,9 +88,7 @@ function AppContent() {
           <Route
             path="/content-panel"
             element={
-              <ProtectedRoute
-                allowedRoles={["content-manager", "admin", "superadmin"]}
-              >
+              <ProtectedRoute allowedRoles={["content-manager", "superadmin"]}>
                 <ContentPanel />
               </ProtectedRoute>
             }
@@ -98,9 +96,7 @@ function AppContent() {
           <Route
             path="/content-management"
             element={
-              <ProtectedRoute
-                allowedRoles={["content-manager", "admin", "superadmin"]}
-              >
+              <ProtectedRoute allowedRoles={["content-manager", "superadmin"]}>
                 <CreatePost />
               </ProtectedRoute>
             }
@@ -108,9 +104,7 @@ function AppContent() {
           <Route
             path="/edit-post/:id"
             element={
-              <ProtectedRoute
-                allowedRoles={["content-manager", "admin", "superadmin"]}
-              >
+              <ProtectedRoute allowedRoles={["content-manager", "superadmin"]}>
                 <CreatePost />
               </ProtectedRoute>
             }

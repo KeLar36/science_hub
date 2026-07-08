@@ -3,7 +3,14 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axiosInstance from "../api/axios";
 import toast, { Toaster } from "react-hot-toast";
-import { Loader2, FileText, Bookmark, Target, Trash2 } from "lucide-react";
+import {
+  Loader2,
+  FileText,
+  Bookmark,
+  Target,
+  Trash2,
+  FileCheck,
+} from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import ProfileHeader from "../components/profile/ProfileHeader";
@@ -12,7 +19,7 @@ import ProfileTabs from "../components/profile/ProfileTabs";
 import EditProfileModal from "../components/profile/EditProfileModal";
 import SubmissionForm from "../components/profile/SubmissionForm";
 import CreateOrganizationModal from "../components/profile/CreateOrganizationModal";
-import UniversalCard from "../components/UniversalCard";
+import UniversalCard from "../components/ui/UniversalCard";
 import { SCIENTIFIC_DOMAINS } from "../constants/domains";
 import { useAuth } from "../context/AuthContext";
 
@@ -21,14 +28,15 @@ export default function ProfilePage() {
   const location = useLocation();
   const { updateUserState } = useAuth();
 
-  const [userData, updateUserStateData] = useState(null);
+  const [userData, setUserData] = useState(null);
   const [view, setView] = useState(location.state?.programId ? "form" : "list");
-  const [loading, setLoading] = useState(true);
-  const [loadingAction, setLoadingAction] = useState(null);
-  const [activeTab, setActiveTab] = useState("posts");
 
-  const [myPosts, setMyPosts] = useState([]);
-  const [savedPosts, setSavedPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [tabLoading, setTabLoading] = useState(false);
+  const [loadingAction, setLoadingAction] = useState(null);
+
+  const [myProjects, setMyProjects] = useState([]);
+  const [bookmarks, setBookmarks] = useState([]);
   const [activePrograms, setActivePrograms] = useState([]);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -36,161 +44,224 @@ export default function ProfilePage() {
 
   const [editForm, setEditForm] = useState({
     name: "",
-    bio: "",
     city: "",
-    topics: "",
+    bio: "",
+    socials: { linkedin: "", github: "" },
   });
-  const [file, setFile] = useState(null);
+
+  const targetProgram = location.state?.programId || null;
+  const targetProgramTitle = location.state?.programTitle || "";
+  const targetProgramType = location.state?.programType || "";
+  const targetProgramDomain = location.state?.programDomain || null;
 
   const [articleData, setArticleData] = useState({
     title: "",
-    annotation: "",
-    domain: SCIENTIFIC_DOMAINS[0],
-    programId: location.state?.programId || "",
-    keywords: "",
-    authors: "",
+    description: "",
+    programId: targetProgram || "", // 🟢 Ставимо ID одразу з переходу
+    domain: targetProgramDomain || SCIENTIFIC_DOMAINS[0], // 🟢 Ставимо галузь одразу з переходу
   });
 
-  const targetProgram = useMemo(() => {
-    if (!articleData.programId || !activePrograms.length) return null;
-    return activePrograms.find((p) => p._id === articleData.programId) || null;
-  }, [articleData.programId, activePrograms]);
+  const [file, setFile] = useState(null);
 
-  const fetchProfileData = useCallback(async (signal) => {
+  const initProfile = useCallback(async (signal) => {
     try {
       setLoading(true);
-      const [userRes, projectsRes, programsRes] = await Promise.all([
-        axiosInstance.get("/users/me", { signal }),
-        axiosInstance.get("/projects/my", { signal }),
-        axiosInstance.get("/programs", { signal }),
-      ]);
 
-      const fetchedUser = userRes.data.user;
-      updateUserStateData(fetchedUser);
+      const userRes = await axiosInstance.get("/users/me", { signal });
+      const currentSubUser = userRes.data.user || userRes.data;
+      setUserData(currentSubUser);
 
       setEditForm({
-        name: fetchedUser?.name || "",
-        bio: fetchedUser?.bio || "",
-        city: fetchedUser?.city || "",
-        topics: fetchedUser?.topics || "",
+        name: currentSubUser.name || "",
+        city: currentSubUser.city || "",
+        bio: currentSubUser.bio || "",
+        socials: {
+          linkedin: currentSubUser.socials?.linkedin || "",
+          github: currentSubUser.socials?.github || "",
+        },
       });
-
-      setMyPosts(projectsRes.data || []);
-      setActivePrograms(programsRes.data || []);
-      setSavedPosts(fetchedUser?.bookmarks || []);
     } catch (err) {
       if (err.name !== "CanceledError") {
-        console.error("Помилка завантаження профілю:", err);
-        toast.error("Не вдалося оновити дані профілю");
+        toast.error("Не вдалося завантажити профіль");
       }
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // 2. Безпечне ліниве завантаження під вкладки
+  const userId = userData?._id;
+  useEffect(() => {
+    if (!userId) return;
+
+    const controller = new AbortController();
+
+    if (view === "list") {
+      setTabLoading(true);
+      axiosInstance
+        .get("/projects/my", { signal: controller.signal })
+        .then((res) => setMyProjects(res.data || []))
+        .catch(() => toast.error("Помилка завантаження ваших робіт"))
+        .finally(() => setTabLoading(false));
+    }
+
+    if (view === "bookmarks") {
+      setTabLoading(true);
+      axiosInstance
+        .get("/posts/bookmarks", { signal: controller.signal })
+        .then((res) => setBookmarks(res.data || []))
+        .catch(() => toast.error("Помилка завантаження закладок"))
+        .finally(() => setTabLoading(false));
+    }
+
+    if (view === "form") {
+      setTabLoading(true);
+      axiosInstance
+        .get("/programs/public?limit=100", { signal: controller.signal })
+        .then((res) => {
+          const programsList =
+            res.data?.programs || res.data?.items || res.data || [];
+          setActivePrograms(programsList);
+
+          if (targetProgram && programsList.length > 0) {
+            const matchedProgram = programsList.find(
+              (p) => p._id === targetProgram,
+            );
+            if (matchedProgram) {
+              setArticleData((prev) => ({
+                ...prev,
+                programId: matchedProgram._id,
+                domain: matchedProgram.domain || prev.domain,
+              }));
+            }
+          }
+        })
+        .catch(() => toast.error("Помилка завантаження активних конкурсів"))
+        .finally(() => setTabLoading(false));
+    }
+
+    return () => controller.abort();
+  }, [view, userId]);
+
   useEffect(() => {
     const controller = new AbortController();
-    fetchProfileData(controller.signal);
+    initProfile(controller.signal);
     return () => controller.abort();
-  }, [fetchProfileData]);
+  }, [initProfile]);
 
-  const handleViewChange = (targetView) => {
-    if (targetView === "form") {
-      setView("form");
-    } else if (targetView === "bookmarks") {
-      setView("list");
-      setActiveTab("bookmarks");
-    } else {
-      setView("list");
-      setActiveTab("posts");
+  useEffect(() => {
+    if (targetProgram && activePrograms.length > 0) {
+      const found = activePrograms.find((p) => p._id === targetProgram);
+      if (found) {
+        setArticleData((prev) => ({
+          ...prev,
+          programId: found._id,
+          domain: found.domain || prev.domain,
+        }));
+      }
     }
-  };
+  }, [targetProgram, activePrograms]);
 
-  const currentActiveView = useMemo(() => {
-    if (view === "form") return "form";
-    return activeTab === "bookmarks" ? "bookmarks" : "list";
-  }, [view, activeTab]);
+  const stats = useMemo(() => {
+    return {
+      total: myProjects.length,
+      approved: myProjects.filter((p) => p.status === "Прийнято").length,
+    };
+  }, [myProjects]);
+
+  const renderedProjects = useMemo(() => {
+    if (myProjects.length === 0) {
+      return (
+        <div className="col-span-full bg-[var(--bg-card)] border border-[var(--border-color)] p-12 text-center rounded-3xl text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider">
+          📁 Ви ще не подали жодної наукової праці.
+        </div>
+      );
+    }
+    return myProjects.map((project) => (
+      <UniversalCard key={project._id} item={project} isAdminMode={false} />
+    ));
+  }, [myProjects]);
+
+  const renderedBookmarks = useMemo(() => {
+    if (bookmarks.length === 0) {
+      return (
+        <div className="col-span-full bg-[var(--bg-card)] border border-[var(--border-color)] p-12 text-center rounded-3xl text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider">
+          🔖 Списку закладок немає або він порожній.
+        </div>
+      );
+    }
+    return bookmarks.map((post) =>
+      post && post.title ? (
+        <UniversalCard key={post._id} item={post} variant="profileBookmark" />
+      ) : null,
+    );
+  }, [bookmarks]);
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     try {
-      setLoadingAction("profile");
       const res = await axiosInstance.patch("/users/update-profile", editForm);
-      const updated = res.data.user || res.data;
-      updateUserStateData(updated);
-      updateUserState(updated);
+      const updatedUser = res.data.user || res.data;
+      setUserData(updatedUser);
+      updateUserState(updatedUser);
       setIsEditModalOpen(false);
-      toast.success("Профіль успешно оновлено!");
+      toast.success("Профіль успішно оновлено!");
     } catch {
       toast.error("Помилка оновлення профілю");
-    } finally {
-      setLoadingAction(null);
     }
   };
 
   const handleCreateOrganization = async (formData) => {
     try {
       setLoadingAction("createOrg");
-      await axiosInstance.post("/organizations/create", formData);
-      toast.success("Заявку на реєстрацію установи надіслано на модерацію!");
+      const res = await axiosInstance.post("/organizations/create", formData);
+      setUserData((prev) => ({
+        ...prev,
+        organizationId: res.data.organization,
+      }));
       setIsCreateOrgModalOpen(false);
-      const controller = new AbortController();
-      fetchProfileData(controller.signal);
+      toast.success("Заявку на реєстрацію установи надіслано на модерацію!");
     } catch (err) {
       toast.error(
-        err.response?.data?.error || "Помилка реєстрації організації",
+        err.response?.data?.message || "Помилка створення організації",
       );
     } finally {
       setLoadingAction(null);
     }
   };
 
-  const handleToggleBookmark = async (e, id) => {
-    const targetId = id || e;
-
-    try {
-      await axiosInstance.post(`/users/bookmarks/toggle/${targetId}`);
-
-      setSavedPosts((prev) => prev.filter((post) => post._id !== targetId));
-      toast.success("Закладку видалено");
-    } catch (err) {
-      console.error("Помилка оновлення закладок:", err);
-      toast.error("Помилка оновлення закладок");
-    }
-  };
-
   const handleSubmitArticle = async (e) => {
     e.preventDefault();
     if (!file)
-      return toast.error("Будь ласка, завантажте PDF-файл вашої праці");
+      return toast.error("Будь ласка, завантажте файл вашої наукової праці!");
 
     const formData = new FormData();
-    Object.keys(articleData).forEach((key) =>
-      formData.append(key, articleData[key]),
-    );
+    formData.append("title", articleData.title);
+    formData.append("description", articleData.description);
+    formData.append("domain", articleData.domain);
     formData.append("file", file);
+    if (targetProgram) formData.append("programId", targetProgram);
 
     try {
-      setLoadingAction("submit");
-      await axiosInstance.post("/projects/create", formData, {
+      setLoadingAction("submitArticle");
+      await axiosInstance.post("/projects", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      toast.success("Вашу наукову працю успішно подано на модерацію!");
-      setView("list");
-      setActiveTab("posts");
-      setFile(null);
+      toast.success("Вашу працю успішно надіслано на рецензування!");
       setArticleData({
         title: "",
-        annotation: "",
-        domain: SCIENTIFIC_DOMAINS[0],
-        programId: "",
-        keywords: "",
-        authors: "",
+        description: "",
+        programId: targetProgram || "",
+        domain: targetProgramDomain || SCIENTIFIC_DOMAINS[0],
       });
-      const controller = new AbortController();
-      fetchProfileData(controller.signal);
-    } catch (err) {
-      toast.error(err.response?.data?.error || "Помилка відправки статті");
+
+      setFile(null);
+      setView("list");
+
+      const projectsRes = await axiosInstance.get("/projects/my");
+      setMyProjects(projectsRes.data || []);
+    } catch {
+      toast.error("Помилка під час відправки праці");
     } finally {
       setLoadingAction(null);
     }
@@ -198,128 +269,92 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--bg-main)]">
+      <div className="min-h-screen bg-[var(--bg-main)] flex items-center justify-center">
         <Loader2 size={32} className="animate-spin text-purple-600" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-dark)] flex flex-col">
+    <div className="min-h-screen bg-[var(--bg-main)] flex flex-col text-[var(--text-dark)]">
       <Toaster />
       <Navbar />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-12 mt-14">
-        {/* 🟢 СТРУКТУРА ЗМІНЕНА НА FLEX-COL ДЛЯ СТАБІЛЬНОГО ВЕРТИКАЛЬНОГО БУДІВНИЦТВА */}
-        <div className="flex flex-col gap-6 text-left items-stretch w-full">
-          {/* 1. ПРОФІЛЬНА ШАПКА */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 pt-32 pb-16 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start text-left">
+        <div className="lg:col-span-4 top-28">
           <ProfileHeader
             userData={userData}
             navigate={navigate}
             onOpenEdit={() => setIsEditModalOpen(true)}
             onOpenCreateOrg={() => setIsCreateOrgModalOpen(true)}
           />
+        </div>
 
-          {/* 2. ЛІЧИЛЬНИКИ ТА КНОПКИ ДІЙ */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
+        <div className="lg:col-span-8 space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <MiniStatCard
-              label="Мої праці"
-              val={myPosts.length}
+              label="Усіх публікацій"
+              val={stats.total}
               icon={FileText}
-              color="text-purple-600"
               bg="bg-purple-500/5"
-              onClick={() => {
-                setView("list");
-                setActiveTab("posts");
-              }}
+              color="text-purple-600"
             />
             <MiniStatCard
-              label="Збережено закладок"
-              val={savedPosts.length}
-              icon={Bookmark}
-              color="text-amber-600"
-              bg="bg-amber-500/5"
-              onClick={() => {
-                setView("list");
-                setActiveTab("bookmarks");
-              }}
-            />
-            <MiniStatCard
-              label="Подати статтю"
-              val="Нова публікація"
-              icon={Target}
-              color="text-emerald-600"
+              label="Схвалено праць"
+              val={stats.approved}
+              icon={FileCheck}
               bg="bg-emerald-500/5"
-              onClick={() => setView("form")}
+              color="text-emerald-500"
+            />
+            <MiniStatCard
+              label="У закладках"
+              val={bookmarks.length}
+              icon={Bookmark}
+              bg="bg-blue-500/5"
+              color="text-blue-500"
             />
           </div>
 
-          {/* 3. НАВІГАЦІЙНІ ТАБИ СТОРІНКИ */}
-          <div className="w-full mt-2">
-            <ProfileTabs
-              activeView={currentActiveView}
-              onViewChange={handleViewChange}
-            />
+          <ProfileTabs activeView={view} onViewChange={setView} />
+
+          <div className="w-full">
+            {tabLoading ? (
+              <div className="py-20 flex justify-center items-center">
+                <Loader2 size={24} className="animate-spin text-purple-600" />
+              </div>
+            ) : (
+              <div className="animate-in fade-in duration-200">
+                {view === "list" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {renderedProjects}
+                  </div>
+                )}
+
+                {view === "bookmarks" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {renderedBookmarks}
+                  </div>
+                )}
+
+                {view === "form" && (
+                  <div className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-3xl shadow-xs">
+                    <SubmissionForm
+                      data={articleData}
+                      setData={setArticleData}
+                      activePrograms={activePrograms}
+                      targetProgram={targetProgram}
+                      targetProgramTitle={targetProgramTitle}
+                      targetProgramType={targetProgramType}
+                      onSubmit={handleSubmitArticle}
+                      file={file}
+                      setFile={setFile}
+                      domains={SCIENTIFIC_DOMAINS}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-
-          {/* 4. ГОЛОВНИЙ КОНТЕНТ */}
-          {view === "list" && (
-            <div className="w-full">
-              {activeTab === "posts" && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {myPosts.length === 0 ? (
-                    <div className="col-span-full p-12 text-center border border-dashed border-[var(--border-color)] rounded-3xl text-[var(--text-gray)] text-sm font-medium bg-[var(--bg-card)]">
-                      Ви ще не завантажували власних наукових робіт.
-                    </div>
-                  ) : (
-                    myPosts.map((post) => (
-                      <UniversalCard
-                        key={post._id}
-                        item={post}
-                        variant="profile"
-                      />
-                    ))
-                  )}
-                </div>
-              )}
-
-              {activeTab === "bookmarks" && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full text-left">
-                  {!Array.isArray(savedPosts) || savedPosts.length === 0 ? (
-                    <div className="col-span-full p-12 text-center border border-dashed border-[var(--border-color)] rounded-3xl text-[var(--text-gray)] text-sm font-medium bg-[var(--bg-card)]">
-                      У вас немає збережених закладок.
-                    </div>
-                  ) : (
-                    savedPosts.map((post) =>
-                      post && post.title ? (
-                        <UniversalCard
-                          key={post._id}
-                          item={post}
-                          variant="profileBookmark" // Твій системний варіант
-                          onRemoveBookmark={handleToggleBookmark}
-                        />
-                      ) : null,
-                    )
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {view === "form" && (
-            <div className="w-full">
-              <SubmissionForm
-                data={articleData}
-                setData={setArticleData}
-                activePrograms={activePrograms}
-                targetProgram={targetProgram}
-                onSubmit={handleSubmitArticle}
-                file={file}
-                setFile={setFile}
-                domains={SCIENTIFIC_DOMAINS}
-              />
-            </div>
-          )}
         </div>
       </main>
 
@@ -330,14 +365,12 @@ export default function ProfilePage() {
         setEditForm={setEditForm}
         onSubmit={handleUpdateProfile}
       />
-
       <CreateOrganizationModal
         isOpen={isCreateOrgModalOpen}
         onClose={() => setIsCreateOrgModalOpen(false)}
         onSubmit={handleCreateOrganization}
         loadingAction={loadingAction}
       />
-
       <Footer />
     </div>
   );

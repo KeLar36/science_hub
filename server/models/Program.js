@@ -34,11 +34,10 @@ const BaseProgramSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    // 🟢 ДОДАНО: Посилання на організацію, яка володіє цією програмою
     organizationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Organization",
-      default: null, // null = глобальна програма від суперадміна платформи
+      default: null,
     },
     createdAt: {
       type: Date,
@@ -116,11 +115,10 @@ const CourseProgram = Program.discriminator(
   }),
 );
 
-module.exports = {
-  Program,
-  JournalProgram,
-  GrantProgram,
-  ConferenceProgram,
-  DatasetProgram,
-  CourseProgram,
-};
+Program.JournalProgram = JournalProgram;
+Program.GrantProgram = GrantProgram;
+Program.ConferenceProgram = ConferenceProgram;
+Program.DatasetProgram = DatasetProgram;
+Program.CourseProgram = CourseProgram;
+
+module.exports = Program;

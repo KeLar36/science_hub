@@ -9,13 +9,12 @@ export default function ArchiveGrid({
   onSelectArticle,
   getDownloadUrl,
 }) {
-  if (loading) {
+  if (loading)
     return (
-      <div className="text-center py-20 text-purple-600 font-black text-sm uppercase tracking-widest animate-pulse">
-        Завантаження матеріалів архіву...
+      <div className="text-center py-20 text-purple-600 font-black animate-pulse">
+        Завантаження...
       </div>
     );
-  }
 
   if (error) {
     return (

@@ -16,7 +16,7 @@ const verifyToken = (req, res, next) => {
   if (!token) {
     return res
       .status(401)
-      .json({ message: "Доступ заборонено. Авторизаційну куку не знайдено." });
+      .json({ error: "Доступ заборонено. Авторизаційну куку не знайдено." });
   }
 
   try {
@@ -24,10 +24,22 @@ const verifyToken = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (err) {
-    return res
-      .status(403)
-      .json({ message: "Недійсний або прострочений токен." });
+    return res.status(403).json({ error: "Недійсний або прострочений токен." });
   }
+};
+
+const optionalToken = (req, res, next) => {
+  const token = req.cookies ? req.cookies.token : null;
+
+  if (!token) {
+    return next();
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+  } catch (err) {}
+  next();
 };
 
 const checkRole = (roles) => {
@@ -35,7 +47,7 @@ const checkRole = (roles) => {
     if (!req.user || !roles.includes(req.user.role)) {
       return res
         .status(403)
-        .json({ message: "У вас недостатньо прав для цієї дії." });
+        .json({ error: "У вас недостатньо прав для цієї дії." });
     }
     next();
   };
@@ -50,17 +62,18 @@ const canManageUser = async (req, res, next) => {
     if (actorRole === "superadmin") return next();
 
     const targetUser = await User.findById(targetUserId);
-    if (!targetUser)
+    if (!targetUser) {
       return res
         .status(404)
-        .json({ message: "Цільового користувача не знайдено" });
+        .json({ error: "Цільового користувача не знайдено" });
+    }
 
     const actorWeight = ROLE_WEIGHTS[actorRole] || 0;
     const targetWeight = ROLE_WEIGHTS[targetUser.role] || 0;
 
     if (actorWeight <= targetWeight) {
       return res.status(403).json({
-        message: "Недостатньо прав: ваша роль має рівну або нижчу вагу.",
+        error: "Недостатньо прав: ваша роль має рівну або нижчу вагу.",
       });
     }
 
@@ -74,21 +87,20 @@ const canManageUser = async (req, res, next) => {
           targetUser.organizationId.toString()
       ) {
         return res.status(403).json({
-          message: "Заборонено: цей користувач не є членом вашої організації.",
+          error: "Заборонено: цей користувач не є членом вашої організації.",
         });
       }
     }
 
     next();
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Помилка авторизації ієрархії", error: error.message });
+    next(error);
   }
 };
 
 module.exports = {
   verifyToken,
+  optionalToken,
   checkRole,
   canManageUser,
   ROLE_WEIGHTS,

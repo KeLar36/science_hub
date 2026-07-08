@@ -9,20 +9,19 @@ import {
   BarChart3,
   AlignLeft,
 } from "lucide-react";
+import { Button } from "./ui/Button";
 import "react-datepicker/dist/react-datepicker.css";
 import "react-quill-new/dist/quill.snow.css";
 
-import { SCIENTIFIC_DOMAINS, PROGRAM_TYPES } from "../../../constants/domains";
+import { SCIENTIFIC_DOMAINS, PROGRAM_TYPES } from "../constants/domains";
 
 const ProgramForm = ({
   newProgram,
   setNewProgram,
   loadingAction,
   onSubmit,
-  onTypeChange,
-  organizationName, // 🟢 Передаємо назву організації з кабінету
+  organizationName,
 }) => {
-  // 🟢 Автоматично вписуємо назву організації в поле organizer, якщо тип змінився на Грант чи Конференцію
   useEffect(() => {
     if (
       organizationName &&
@@ -35,7 +34,7 @@ const ProgramForm = ({
   }, [newProgram.type, organizationName, setNewProgram]);
 
   return (
-    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-3xl shadow-xs h-fit sticky top-6">
+    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-3xl shadow-xs top-6">
       <h3 className="text-lg font-black text-[var(--text-dark)] uppercase tracking-tight mb-4 flex items-center gap-2">
         ✨ Нова можливість
       </h3>
@@ -101,7 +100,6 @@ const ProgramForm = ({
           </div>
         </div>
 
-        {/* ДИНАМІЧНІ ПОЛЯ ЗАЛЕЖНО ВІД ТИПУ */}
         {newProgram.type === "Науковий журнал" && (
           <div className="grid grid-cols-2 gap-3 p-3 bg-[var(--bg-main)]/50 border border-[var(--border-color)] rounded-2xl animate-in fade-in slide-in-from-top-2 duration-150">
             <div className="space-y-1">
@@ -159,13 +157,13 @@ const ProgramForm = ({
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-[var(--text-gray)] uppercase pl-1клад">
+              <label className="text-[10px] font-black text-[var(--text-gray)] uppercase pl-1">
                 Хто організатор
               </label>
               <input
                 type="text"
                 required
-                disabled={!!organizationName} // 🟢 Блокуємо, якщо назва заповнилась автоматично
+                disabled={!!organizationName}
                 placeholder="Організатор конкурсу"
                 value={newProgram.organizer || ""}
                 onChange={(e) =>
@@ -187,7 +185,7 @@ const ProgramForm = ({
                 <input
                   type="text"
                   required
-                  disabled={!!organizationName} // 🟢 Блокуємо автоматичне поле
+                  disabled={!!organizationName}
                   placeholder="Назва установи"
                   value={newProgram.organizer || ""}
                   onChange={(e) =>
@@ -234,7 +232,7 @@ const ProgramForm = ({
           </div>
         )}
 
-        {[/*"Грант",*/ "Датасет", "Курс"].includes(newProgram.type) && (
+        {["Датасет", "Курс"].includes(newProgram.type) && (
           <div className="space-y-1 p-3 bg-[var(--bg-main)]/50 border border-[var(--border-color)] rounded-2xl animate-in fade-in slide-in-from-top-2 duration-150">
             <label className="text-[10px] font-black text-[var(--text-gray)] uppercase pl-1">
               Зовнішнє посилання
@@ -292,12 +290,7 @@ const ProgramForm = ({
           <label className="text-[11px] font-bold text-[var(--text-gray)] uppercase tracking-wider pl-1">
             Повний опис та регламент конкурсу
           </label>
-          <div className="quill-wrapper rounded-xl overflow-hidden border border-[var(--border-color)] bg-[var(--bg-main)]">
-            <style>{`
-              .ql-toolbar.ql-snow { border: none !important; border-bottom: 1px solid var(--border-color) !important; background: var(--bg-card); }
-              .ql-container.ql-snow { border: none !important; min-height: 140px; font-family: inherit; }
-              .ql-editor { font-size: 0.8rem; color: var(--text-dark); }
-            `}</style>
+          <div className="rounded-xl overflow-hidden border border-[var(--border-color)] bg-[var(--bg-main)] [&_.ql-toolbar]:border-none [&_.ql-toolbar]:bg-[var(--bg-card)] [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-[var(--border-color)] [&_.ql-container]:border-none [&_.ql-container]:min-h-[140px] [&_.ql-editor]:text-xs [&_.ql-editor]:text-[var(--text-dark)]">
             <ReactQuill
               theme="snow"
               value={newProgram.description}
@@ -309,18 +302,15 @@ const ProgramForm = ({
           </div>
         </div>
 
-        {/* КНОПКА ПОДАЧІ */}
-        <div className="flex gap-2 pt-2">
-          <button
+        <div className="pt-2">
+          <Button
             type="submit"
-            disabled={loadingAction === "createProgram"}
-            className="w-full py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all active:scale-[0.99] flex items-center justify-center gap-1.5 italic shadow-md shadow-purple-600/10"
+            isLoading={loadingAction === "createProgram"}
+            className="w-full py-3 text-xs font-black tracking-widest uppercase italic shadow-md shadow-purple-600/10"
+            icon={PlusCircle}
           >
-            <PlusCircle size={14} />{" "}
-            {loadingAction === "createProgram"
-              ? "Створення..."
-              : "Опублікувати"}
-          </button>
+            Опублікувати
+          </Button>
         </div>
       </form>
     </div>

@@ -52,7 +52,12 @@ const ProgramDetails = () => {
       return;
     }
     navigate("/profile", {
-      state: { programId: program._id, targetProgram: program },
+      state: {
+        programId: program._id,
+        programTitle: program.title,
+        programType: program.type,
+        programDomain: program.domain,
+      },
     });
   };
 

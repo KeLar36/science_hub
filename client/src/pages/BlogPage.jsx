@@ -5,7 +5,7 @@ import { BookOpen, Terminal, Sparkles, SlidersHorizontal } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import UniversalFilters from "../components/UniversalFilters";
-import UniversalCard from "../components/UniversalCard";
+import UniversalCard from "../components/ui/UniversalCard";
 import { CATEGORIES } from "../constants/categories";
 
 const Blog = () => {

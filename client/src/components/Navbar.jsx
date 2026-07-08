@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useDarkMode } from "../hooks/useDarkMode";
 import { useAuth } from "../hooks/useAuth";
+import { Button } from "./ui/Button";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -74,7 +75,6 @@ const Navbar = () => {
     >
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between relative z-[110]">
-          {/* Логотип */}
           <Link
             to="/"
             onClick={closeMenu}
@@ -99,7 +99,6 @@ const Navbar = () => {
             </div>
           </Link>
 
-          {/* Десктопна навігація */}
           <div className="hidden lg:flex items-center gap-8">
             {navLinks.map((link, idx) => {
               const isActive = location.pathname === link.path;
@@ -124,19 +123,18 @@ const Navbar = () => {
             })}
           </div>
 
-          {/* Кнопки дій */}
           <div className="flex justify-center items-center gap-2">
-            <button
+            <Button
+              variant="secondary"
               onClick={toggleTheme}
               className="p-2.5 rounded-xl border border-transparent text-[var(--text-gray)] hover:text-[#6d28d9] hover:bg-[var(--bg-card)] transition-all duration-300"
               aria-label="Toggle theme"
             >
               {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
-            </button>
+            </Button>
 
             {user ? (
               <div className="flex items-center gap-3">
-                {/* Кнопка профілю: ТЕПЕР ПРИХОВАНА НА МЕНШЕ НІЖ 768px (hidden md:flex) */}
                 <Link
                   to="/profile"
                   onClick={closeMenu}
@@ -153,13 +151,14 @@ const Navbar = () => {
                   )}
                 </Link>
 
-                <button
+                <Button
+                  variant="secondary"
                   onClick={handleLogout}
                   className="hidden lg:flex p-2.5 rounded-xl text-[var(--text-gray)] hover:text-rose-500 hover:bg-rose-500/5 transition-all duration-300"
                   title="Вийти з акаунту"
                 >
                   <LogOut size={16} />
-                </button>
+                </Button>
               </div>
             ) : (
               <Link
@@ -171,18 +170,18 @@ const Navbar = () => {
               </Link>
             )}
 
-            <button
+            <Button
+              variant="secondary"
               onClick={() => setIsOpen(!isOpen)}
               className="lg:hidden p-2.5 rounded-xl text-[var(--text-dark)] transition-colors"
               aria-label="Toggle menu"
             >
               {isOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* Мобільне меню: Використовує динамічні змінні теми без прозорості */}
       <div
         className={`fixed inset-x-0 top-0 bottom-0 h-[100dvh] bg-[var(--bg-main)] bg-opacity-100 lg:hidden flex flex-col justify-between transition-all duration-500 ease-in-out ${
           isOpen
@@ -219,7 +218,6 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Нижня плашка — адаптована під колір теми */}
         <div className="p-8 pb-12 border-t border-[var(--border-color)] bg-[var(--bg-main)] bg-opacity-100 shadow-[0_-10px_30px_rgba(0,0,0,0.03)] relative z-20">
           {user ? (
             <div className="space-y-4">
@@ -252,12 +250,13 @@ const Navbar = () => {
                 >
                   Кабінет
                 </Link>
-                <button
+                <Button
+                  variant="danger"
                   onClick={handleLogout}
-                  className="py-3.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 text-center text-[10px] font-black uppercase tracking-widest rounded-xl transition-colors active:scale-98 transition-transform"
+                  className="w-full py-3.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all active:scale-98"
                 >
                   Вийти
-                </button>
+                </Button>
               </div>
             </div>
           ) : (

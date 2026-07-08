@@ -1,5 +1,6 @@
 import React from "react";
 import { Mail } from "lucide-react";
+import { Button } from "../ui/Button";
 
 const DigestSection = () => {
   return (
@@ -26,11 +27,14 @@ const DigestSection = () => {
           <input
             type="email"
             placeholder="Електронна пошта"
-            className="flex-grow bg-transparent border-b border-[var(--border-color)] px-2 py-3 text-sm font-medium outline-none focus:border-purple-600 dark:focus:border-purple-400 transition-all text-[var(--text-dark)] placeholder:text-[var(--text-gray)]/40"
+            className="flex-grow bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-3.5 text-sm font-medium outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-500/20 transition-all text-[var(--text-dark)] placeholder:text-[var(--text-gray)]/40"
           />
-          <button className="bg-purple-600 text-white px-8 py-3.5 text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-purple-700 transition-all active:scale-98 shrink-0 shadow-md shadow-purple-600/15">
+          <Button
+            size="lg"
+            className="font-bold tracking-wider uppercase shrink-0 shadow-md shadow-purple-600/15"
+          >
             Підписатись
-          </button>
+          </Button>
         </div>
       </div>
     </section>

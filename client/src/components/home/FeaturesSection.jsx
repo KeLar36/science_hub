@@ -1,5 +1,6 @@
 import React from "react";
 import { Search, ShieldCheck, FileText } from "lucide-react";
+import { BentoCard } from "../ui/BentoCard";
 
 const FeaturesSection = () => {
   const features = [
@@ -11,7 +12,7 @@ const FeaturesSection = () => {
     {
       icon: <ShieldCheck className="text-purple-600" size={20} />,
       title: "Перевірені джерела",
-      desc: "Ми збираємо та валідуємо інформацію лише з офіційних баз даних, університетських порталів та фондів фінансування.",
+      desc: "Ми збираємо та валідуємо інформацію лише з офіційних баз даних, університетських порталів та фондений фінансування.",
     },
     {
       icon: <FileText className="text-purple-600" size={20} />,
@@ -37,20 +38,16 @@ const FeaturesSection = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {features.map((f, index) => (
-          <div
-            key={index}
-            className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-3xl space-y-4"
-          >
-            <div className="w-10 h-10 bg-purple-600/10 rounded-xl flex items-center justify-center">
-              {f.icon}
+          <BentoCard key={index} title={f.title}>
+            <div className="flex flex-col gap-4">
+              <div className="w-10 h-10 bg-purple-600/10 rounded-xl flex items-center justify-center">
+                {f.icon}
+              </div>
+              <p className="text-xs text-[var(--text-gray)] leading-relaxed font-medium">
+                {f.desc}
+              </p>
             </div>
-            <h3 className="text-base font-extrabold text-[var(--text-dark)] uppercase tracking-tight">
-              {f.title}
-            </h3>
-            <p className="text-xs text-[var(--text-gray)] leading-relaxed font-medium">
-              {f.desc}
-            </p>
-          </div>
+          </BentoCard>
         ))}
       </div>
     </section>

@@ -1,101 +1,21 @@
 const express = require("express");
 const router = express.Router();
-const Post = require("../models/Post");
-const User = require("../models/User");
+const postController = require("../controllers/postController");
 const { verifyToken, checkRole } = require("../middleware/auth");
+const checkBanStatus = require("../middleware/checkBanStatus");
 const upload = require("../middleware/upload");
 
-const checkBanStatus = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user.id).select("isBanned");
-    if (!user || user.isBanned) {
-      return res
-        .status(403)
-        .json({ message: "Доступ заборонено: ваш акаунт заблоковано." });
-    }
-    next();
-  } catch (err) {
-    res.status(500).json({ message: "Помилка верифікації користувача" });
-  }
-};
-
-// ==========================================
-// 1. ПУБЛІЧНІ РОУТИ (Доступні абсолютно всім)
-// ==========================================
-
-router.get("/", async (req, res) => {
-  try {
-    const { category } = req.query;
-    let query = { status: "published" };
-
-    if (category && category !== "Всі") {
-      query.category = category;
-    }
-    const posts = await Post.find(query).sort({ createdAt: -1 });
-    res.json(posts);
-  } catch (err) {
-    res.status(500).json({ message: "Помилка при отриманні постів" });
-  }
-});
-
-router.get("/:id", async (req, res) => {
-  try {
-    const post = await Post.findById(req.params.id)
-      .populate("authorId", "name role image")
-      .populate("comments.user", "name role image");
-
-    if (!post) return res.status(404).json({ message: "Пост не знайдено" });
-
-    const types = ["fire", "heart", "clap", "idea"];
-    if (!post.reactions) {
-      post.reactions = { fire: [], heart: [], clap: [], idea: [] };
-    } else {
-      types.forEach((type) => {
-        if (!Array.isArray(post.reactions[type])) {
-          post.reactions[type] = [];
-        }
-      });
-    }
-
-    res.json(post);
-  } catch (err) {
-    console.error("Помилка при отриманні поста:", err);
-    if (err.kind === "ObjectId")
-      return res.status(404).json({ message: "Некоректний ID" });
-    res.status(500).json({ message: "Помилка сервера" });
-  }
-});
-
-// ==========================================
-// 2. АДМІНІСТРАТИВНІ РОУТИ (Керування контентом)
-// ==========================================
-
+router.get("/", postController.getAll);
 router.post(
   "/create",
   verifyToken,
   checkBanStatus,
   checkRole(["admin", "content-manager", "superadmin"]),
   upload.single("image"),
-  async (req, res) => {
-    try {
-      const { title, content, category, status } = req.body;
-      const newPost = new Post({
-        title,
-        content,
-        category,
-        status: status || "published",
-        authorId: req.user.id,
-        coverImage: req.file ? req.file.path : null,
-      });
-      await newPost.save();
-      res.status(201).json(newPost);
-    } catch (err) {
-      res
-        .status(500)
-        .json({ message: "Не вдалося створити пост", error: err.message });
-    }
-  },
+  postController.create,
 );
+
+router.get("/:id", postController.getById);
 
 router.put(
   "/:id",
@@ -103,165 +23,33 @@ router.put(
   checkBanStatus,
   checkRole(["admin", "content-manager", "superadmin"]),
   upload.single("image"),
-  async (req, res) => {
-    try {
-      const { title, content, category, status } = req.body;
-      let updateData = { title, content, category, status };
-
-      if (req.file) {
-        updateData.coverImage = req.file.path;
-      }
-
-      const updatedPost = await Post.findByIdAndUpdate(
-        req.params.id,
-        { $set: updateData },
-        { new: true },
-      ).populate("authorId", "name role");
-
-      if (!updatedPost)
-        return res.status(404).json({ message: "Пост не знайдено" });
-
-      res.json(updatedPost);
-    } catch (err) {
-      console.error("Update Error:", err);
-      res.status(500).json({ message: "Помилка при оновленні поста" });
-    }
-  },
+  postController.update,
 );
-
 router.delete(
   "/:id",
   verifyToken,
   checkBanStatus,
   checkRole(["admin", "superadmin"]),
-  async (req, res) => {
-    try {
-      const deletedPost = await Post.findByIdAndDelete(req.params.id);
-      if (!deletedPost)
-        return res.status(404).json({ message: "Пост не знайдено" });
-      res.json({ message: "Пост успішно видалено" });
-    } catch (err) {
-      res.status(500).json({ message: "Помилка при видаленні" });
-    }
-  },
+  postController.delete,
 );
 
-// ==========================================
-// 3. ІНТЕРАКТИВНИЙ БЛОК (Авторизовані користувачі)
-// ==========================================
-
-router.post("/:id/comment", verifyToken, checkBanStatus, async (req, res) => {
-  try {
-    const { text } = req.body;
-    if (!text || text.trim() === "") {
-      return res.status(400).json({ message: "Текст не може бути порожнім" });
-    }
-
-    const post = await Post.findByIdAndUpdate(
-      req.params.id,
-      {
-        $push: {
-          comments: {
-            user: req.user.id,
-            text: text.trim(),
-          },
-        },
-      },
-      { new: true },
-    ).populate("comments.user", "name role image");
-
-    if (!post) return res.status(404).json({ message: "Пост не знайдено" });
-
-    const newComment = post.comments[post.comments.length - 1];
-    res.status(201).json(newComment);
-  } catch (err) {
-    console.error("Comment Error:", err);
-    res.status(500).json({ message: "Помилка при додаванні коментаря" });
-  }
-});
-
+router.post(
+  "/:id/comment",
+  verifyToken,
+  checkBanStatus,
+  postController.addComment,
+);
 router.delete(
   "/:postId/comment/:commentId",
   verifyToken,
   checkBanStatus,
-  async (req, res) => {
-    try {
-      const { postId, commentId } = req.params;
-      const post = await Post.findById(postId).populate(
-        "comments.user",
-        "role",
-      );
-
-      if (!post) return res.status(404).json({ message: "Пост не знайдено" });
-
-      const comment = post.comments.id(commentId);
-      if (!comment)
-        return res.status(404).json({ message: "Коментар не знайдено" });
-
-      const currentUserRole = req.user.role;
-      const currentUserId = req.user.id;
-
-      const commentAuthorId = comment.user?._id?.toString() || null;
-      const commentAuthorRole = comment.user?.role || "user";
-
-      const isOwner = commentAuthorId === currentUserId;
-      const isSuper = currentUserRole === "superadmin";
-      const isAdmin = currentUserRole === "admin";
-      const isTargetHigherRole =
-        commentAuthorRole === "admin" || commentAuthorRole === "superadmin";
-
-      if (
-        isOwner ||
-        isSuper ||
-        (isAdmin && !isTargetHigherRole) ||
-        !commentAuthorId
-      ) {
-        post.comments.pull(commentId);
-        await post.save();
-        return res.json({ message: "Коментар видалено" });
-      }
-
-      return res
-        .status(403)
-        .json({ message: "Недостатньо прав для видалення цього коментаря" });
-    } catch (err) {
-      console.error("Delete Comment Error:", err);
-      res.status(500).json({ message: "Помилка сервера" });
-    }
-  },
+  postController.deleteComment,
 );
-
-router.post("/:id/react", verifyToken, checkBanStatus, async (req, res) => {
-  try {
-    const { type } = req.body;
-    const userId = req.user.id;
-    const validReactions = ["fire", "heart", "clap", "idea"];
-
-    if (!validReactions.includes(type)) {
-      return res.status(400).json({ message: "Невалідний тип реакції" });
-    }
-
-    const post = await Post.findById(req.params.id);
-    if (!post) return res.status(404).json({ message: "Пост не знайдено" });
-
-    if (!post.reactions) post.reactions = {};
-    if (!post.reactions[type]) post.reactions[type] = [];
-
-    const hasReacted = post.reactions[type].includes(userId);
-
-    const update = hasReacted
-      ? { $pull: { [`reactions.${type}`]: userId } }
-      : { $addToSet: { [`reactions.${type}`]: userId } };
-
-    const updatedPost = await Post.findByIdAndUpdate(req.params.id, update, {
-      new: true,
-    });
-
-    res.json({ reactions: updatedPost.reactions });
-  } catch (err) {
-    console.error("Reaction Error:", err);
-    res.status(500).json({ message: "Помилка сервера" });
-  }
-});
+router.post(
+  "/:id/react",
+  verifyToken,
+  checkBanStatus,
+  postController.toggleReaction,
+);
 
 module.exports = router;

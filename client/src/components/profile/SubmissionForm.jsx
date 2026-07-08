@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useMemo } from "react";
 import ReactQuill from "react-quill-new";
 import { ChevronDown, UploadCloud, Send } from "lucide-react";
@@ -32,11 +33,14 @@ export default function SubmissionForm({
   setData,
   activePrograms = [],
   targetProgram = null,
+  targetProgramTitle = "", // 🟢 Отримуємо нові пропси з ProfilePage
+  targetProgramType = "", // 🟢 Отримуємо нові пропси з ProfilePage
   onSubmit,
   file,
   setFile,
   domains = [],
 }) {
+  // Визначаємо поточну програму для кастомізації написів
   const currentProgram = useMemo(() => {
     return (
       targetProgram ||
@@ -45,7 +49,9 @@ export default function SubmissionForm({
     );
   }, [targetProgram, activePrograms, data.programId]);
 
-  const programType = currentProgram?.type || "Науковий журнал";
+  // Визначаємо тип програми: пріоритет у того, що прийшов з карток деталей
+  const programType =
+    targetProgramType || currentProgram?.type || "Науковий журнал";
 
   const contentText = useMemo(() => {
     switch (programType) {
@@ -111,51 +117,56 @@ export default function SubmissionForm({
     >
       {quillStyles}
 
-      {currentProgram && (
-        <div className="p-4 bg-purple-600/[0.03] border border-purple-500/15 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+      {/* 🟢 КЕЙС 1: Користувач перейшов з конкретної програми — показуємо монолітну плашку-контекст */}
+      {targetProgramTitle ? (
+        <div className="p-4 bg-purple-500/[0.03] border border-purple-500/15 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-2 text-left">
           <div>
             <span className="text-[9px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
               Контекст подачі ({programType})
             </span>
             <h4 className="text-sm font-black text-[var(--text-dark)] uppercase">
-              {currentProgram.title}
+              {targetProgramTitle}
             </h4>
           </div>
-          {currentProgram.organizer && (
+          {data.domain && (
             <span className="text-[10px] font-mono px-2.5 py-1 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-[var(--text-gray)] font-semibold w-fit">
-              {currentProgram.organizer}
+              {data.domain}
             </span>
           )}
         </div>
-      )}
-
-      {!targetProgram && activePrograms.length > 0 && (
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-[var(--text-gray)] ml-1">
-            Оберіть програму / журнал
-          </label>
-          <div className="relative">
-            <select
-              value={data.programId}
-              required
-              onChange={(e) => setData({ ...data, programId: e.target.value })}
-              className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-xs text-[var(--text-dark)] font-semibold appearance-none outline-hidden focus:border-purple-500 transition-colors cursor-pointer"
-            >
-              <option value="">-- Оберіть зі списку --</option>
-              {activePrograms.map((p) => (
-                <option key={p._id} value={p._id}>
-                  [{p.type}] {p.title}
-                </option>
-              ))}
-            </select>
-            <ChevronDown
-              size={14}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-gray)] pointer-events-none"
-            />
+      ) : (
+        /* 🟢 КЕЙС 2: Звичайний режим — користувач зайшов сам з профілю, рендеримо селектор вибору програми */
+        activePrograms.length > 0 && (
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-[var(--text-gray)] ml-1">
+              Оберіть програму / журнал
+            </label>
+            <div className="relative">
+              <select
+                value={data.programId || ""}
+                required
+                onChange={(e) =>
+                  setData({ ...data, programId: e.target.value })
+                }
+                className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-xs text-[var(--text-dark)] font-semibold appearance-none outline-hidden focus:border-purple-500 transition-colors cursor-pointer"
+              >
+                <option value="">-- Оберіть зі списку --</option>
+                {activePrograms.map((p) => (
+                  <option key={p._id} value={p._id}>
+                    [{p.type}] {p.title}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={14}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-gray)] pointer-events-none"
+              />
+            </div>
           </div>
-        </div>
+        )
       )}
 
+      {/* Поле назви статті/матеріалу */}
       <div className="space-y-1">
         <label className="text-xs font-semibold text-[var(--text-gray)] ml-1">
           {contentText.titleLabel}
@@ -170,30 +181,37 @@ export default function SubmissionForm({
         />
       </div>
 
-      <div className="space-y-1">
-        <label className="text-xs font-semibold text-[var(--text-gray)] ml-1">
-          Наукова галузь / Напрям
-        </label>
-        <div className="relative">
-          <select
-            value={data.domain}
-            required
-            onChange={(e) => setData({ ...data, domain: e.target.value })}
-            className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-xs text-[var(--text-dark)] font-semibold appearance-none outline-hidden focus:border-purple-500 transition-colors cursor-pointer"
-          >
-            {domains.map((dom, i) => (
-              <option key={i} value={dom}>
-                {dom}
+      {/* 🟢 СЕЛЕКТОР ГАЛУЗІ: Рендеримо його тільки якщо ми НЕ прийшли з конкретної картки програм */}
+      {!targetProgramTitle && (
+        <div className="space-y-1">
+          <label className="text-xs font-semibold text-[var(--text-gray)] ml-1">
+            Наукова галузь / Напрям
+          </label>
+          <div className="relative">
+            <select
+              value={data.domain || ""}
+              required
+              onChange={(e) => setData({ ...data, domain: e.target.value })}
+              className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-xs text-[var(--text-dark)] font-semibold appearance-none outline-hidden focus:border-purple-500 transition-colors cursor-pointer"
+            >
+              <option value="" disabled>
+                -- Оберіть галузь --
               </option>
-            ))}
-          </select>
-          <ChevronDown
-            size={14}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-gray)] pointer-events-none"
-          />
+              {domains.map((dom, i) => (
+                <option key={i} value={dom}>
+                  {dom}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              size={14}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-gray)] pointer-events-none"
+            />
+          </div>
         </div>
-      </div>
+      )}
 
+      {/* Завантаження файлів */}
       <div className="space-y-1">
         <label className="text-xs font-semibold text-[var(--text-gray)] ml-1">
           Супровідний файл (Документ, Тези, Проєкт)
@@ -237,6 +255,7 @@ export default function SubmissionForm({
         </label>
       </div>
 
+      {/* Текстовий редактор ReactQuill */}
       <div className="space-y-2">
         <label className="text-xs font-semibold text-[var(--text-gray)] ml-1">
           {contentText.descLabel}
@@ -251,7 +270,7 @@ export default function SubmissionForm({
         </div>
       </div>
 
-      {/* Динамічна кнопка подачі */}
+      {/* Динамічна кнопка відправки */}
       <button
         type="submit"
         className="w-full py-4 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all active:scale-[0.99] flex items-center justify-center gap-2 italic shadow-lg shadow-purple-600/10"

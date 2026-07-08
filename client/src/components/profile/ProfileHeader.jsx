@@ -3,184 +3,111 @@ import { useAuth } from "../../context/AuthContext";
 import {
   MapPin,
   Settings,
-  Github,
-  Linkedin,
-  Globe,
   UserCheck,
   ShieldAlert,
   FileText,
   FileCheck,
-  Building2,
 } from "lucide-react";
 
 export default function ProfileHeader({
   userData,
-  apiUrl,
   navigate,
   onOpenEdit,
   onOpenCreateOrg,
 }) {
   const { user } = useAuth();
 
-  // 🛡️ Надійна заглушка на випадок, якщо дані профілю ще завантажуються з сервера
   if (!userData) {
     return (
-      <div className="lg:col-span-3 bento-card p-8 md:p-10 flex items-center justify-center bg-[var(--bg-card)] border border-[var(--border-color)] rounded-[2rem] h-48">
+      <div className="bento-card p-8 flex items-center justify-center bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl h-48 animate-pulse">
         <div className="w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="lg:col-span-3 bento-card p-8 md:p-10 flex flex-col md:flex-row items-center md:items-start gap-8 relative overflow-hidden bg-[var(--bg-card)] border border-[var(--border-color)] rounded-[2rem]">
-      <div className="absolute top-0 left-0 w-64 h-64 bg-purple-600/5 rounded-full blur-3xl -z-10" />
+    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-3xl flex flex-col gap-5 relative overflow-hidden transition-all text-left hover:border-purple-500/10">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-purple-600/[0.03] blur-3xl rounded-full pointer-events-none" />
 
-      <div className="relative shrink-0">
-        <div className="w-28 h-28 rounded-3xl bg-gradient-to-br from-purple-600 to-indigo-700 overflow-hidden shadow-xl flex items-center justify-center ring-4 ring-purple-500/10">
-          {userData.image ? (
-            <img
-              src={
-                userData.image.startsWith("http")
-                  ? userData.image
-                  : `${apiUrl}${userData.image}`
-              }
-              alt="Avatar"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.target.style.display = "none";
-              }}
-            />
-          ) : (
-            <div className="text-white text-4xl font-extrabold uppercase">
-              {userData.name?.charAt(0)}
+      <div className="flex items-center gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-purple-600/10 text-purple-600 flex items-center justify-center font-black text-xl border border-purple-600/20 shrink-0">
+          {userData.name ? userData.name[0].toUpperCase() : "U"}
+        </div>
+        <div className="min-w-0">
+          <h2 className="text-base font-black text-[var(--text-dark)] leading-tight truncate">
+            {userData.name}
+          </h2>
+          <p className="text-xs text-[var(--text-gray)] font-medium truncate mt-0.5">
+            {userData.email}
+          </p>
+          {userData.city && (
+            <div className="flex items-center gap-1 text-[10px] text-purple-600 font-bold mt-1 uppercase tracking-wide">
+              <MapPin size={10} /> {userData.city}
             </div>
           )}
         </div>
       </div>
 
-      <div className="text-center md:text-left flex-1 space-y-4">
-        <div>
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-2">
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-[var(--text-dark)]">
-              {userData.name}
-            </h1>
-            {userData.role !== "user" && (
-              <span className="px-2.5 py-1 bg-purple-600/10 text-purple-600 dark:text-purple-400 rounded-md text-[10px] font-bold tracking-wider uppercase border border-purple-500/10">
-                {userData.role}
-              </span>
-            )}
-          </div>
+      <div className="px-3 py-1.5 bg-purple-500/5 text-purple-600 border border-purple-500/10 text-[9px] font-black uppercase tracking-widest rounded-xl w-fit">
+        Роль: {user?.role || "Користувач"}
+      </div>
 
-          <div className="flex items-center justify-center md:justify-start gap-1.5 text-[var(--text-gray)] text-xs font-semibold">
-            <MapPin size={14} className="text-purple-500" />
-            <span>{userData.city || "International"}</span>
-          </div>
-        </div>
-
-        <p className="text-[var(--text-gray)] text-sm leading-relaxed max-w-2xl font-medium">
-          {userData.bio ||
-            "Дослідник відкритої науки. Інформація про наукові інтереси поки не заповнена."}
+      {userData.bio && (
+        <p className="text-xs text-[var(--text-gray)] font-medium leading-relaxed border-t border-[var(--border-color)] pt-3 line-clamp-3">
+          {userData.bio}
         </p>
+      )}
 
-        <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 pt-2">
-          <div className="flex gap-3">
-            {userData.socials?.github && (
-              <a
-                href={userData.socials.github}
-                target="_blank"
-                rel="noreferrer"
-                className="p-2 bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-gray)] hover:text-purple-600 hover:border-purple-500/30 rounded-xl transition-all shadow-sm"
-              >
-                <Github size={18} />
-              </a>
-            )}
-            {userData.socials?.linkedin && (
-              <a
-                href={userData.socials.linkedin}
-                target="_blank"
-                rel="noreferrer"
-                className="p-2 bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-gray)] hover:text-purple-600 hover:border-purple-500/30 rounded-xl transition-all shadow-sm"
-              >
-                <Linkedin size={18} />
-              </a>
-            )}
-            {userData.socials?.website && (
-              <a
-                href={userData.socials.website}
-                target="_blank"
-                rel="noreferrer"
-                className="p-2 bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-gray)] hover:text-purple-600 hover:border-purple-500/30 rounded-xl transition-all shadow-sm"
-              >
-                <Globe size={18} />
-              </a>
-            )}
+      <div className="space-y-2 border-t border-[var(--border-color)] pt-4 mt-2">
+        <button
+          onClick={onOpenEdit}
+          className="w-full px-3 py-2.5 bg-[var(--bg-main)] hover:bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-dark)] rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2"
+        >
+          <Settings size={13} className="text-purple-600" /> Редагувати профіль
+        </button>
+
+        {user?.role === "admin" && (
+          <button
+            onClick={() => navigate("/org-admin")}
+            className="w-full px-3 py-2.5 bg-purple-600 text-white rounded-xl text-xs font-black uppercase tracking-wider italic transition-all hover:bg-purple-700 flex items-center justify-center gap-2 shadow-sm shadow-purple-600/10"
+          >
+            <UserCheck size={13} /> Кабінет Установи
+          </button>
+        )}
+
+        {user?.role === "superadmin" && (
+          <>
             <button
-              onClick={onOpenEdit}
-              className="p-2 bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-dark)] hover:text-purple-600 hover:border-purple-500/30 rounded-xl transition-all shadow-sm"
-              title="Налаштування профілю"
+              onClick={() => navigate("/superadmin")}
+              className="w-full px-3 py-2.5 bg-amber-500 text-white rounded-xl text-xs font-black uppercase tracking-wider italic transition-all hover:bg-amber-600 flex items-center justify-center gap-2"
             >
-              <Settings size={18} />
+              <ShieldAlert size={13} /> SuperAdmin Панель
             </button>
-          </div>
 
-          {user &&
-            ["admin", "superadmin", "content-manager", "reviewer"].includes(
-              user.role,
-            ) && (
-              <div className="h-5 w-[1px] bg-[var(--border-color)] hidden sm:block" />
-            )}
+            <button
+              onClick={() => navigate("/reviewer")}
+              className="w-full px-3 py-2.5 bg-purple-600 text-white rounded-xl text-xs font-black uppercase tracking-wider italic transition-all hover:bg-purple-700 flex items-center justify-center gap-2 shadow-sm shadow-purple-600/10"
+            >
+              <FileCheck size={13} /> Панель рецензента
+            </button>
 
-          <div className="flex items-center gap-2">
-            {/* 🟢 Кнопка «Створити організацію» для звичайних користувачів без установи */}
-            {user &&
-              user.role !== "superadmin" &&
-              !userData?.organizationId && (
-                <button
-                  onClick={onOpenCreateOrg}
-                  className="px-3 py-2 bg-purple-600/5 hover:bg-purple-600 hover:text-white border border-purple-500/10 text-purple-600 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
-                >
-                  <Building2 size={14} /> Створити організацію
-                </button>
-              )}
+            <button
+              onClick={() => navigate("/content-panel")}
+              className="w-full px-3 py-2.5 bg-purple-600 text-white rounded-xl text-xs font-black uppercase tracking-wider italic transition-all hover:bg-purple-700 flex items-center justify-center gap-2 shadow-sm shadow-purple-600/10"
+            >
+              <FileText size={13} /> Менеджер контенту
+            </button>
+          </>
+        )}
 
-            {user && user.role === "superadmin" && (
-              <button
-                onClick={() => navigate("/superadmin")}
-                className="px-3 py-2 bg-purple-600/5 hover:bg-purple-600 hover:text-white border border-purple-500/10 text-purple-600 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
-              >
-                <ShieldAlert size={14} /> Суперпанель
-              </button>
-            )}
-
-            {/* 🏢 Кнопка для локального АДМІНІСТРАТОРА ОРГАНІЗАЦІЇ (тепер ТІЛЬКИ для "admin") */}
-            {user && user.role === "admin" && (
-              <button
-                onClick={() => navigate("/org-admin")}
-                className="px-3 py-2 bg-purple-600/5 hover:bg-purple-600 hover:text-white border border-purple-500/10 text-purple-600 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
-              >
-                <UserCheck size={14} /> Кабінет Організації
-              </button>
-            )}
-
-            {user && ["content-manager", "superadmin"].includes(user.role) && (
-              <button
-                onClick={() => navigate("/content-panel")}
-                className="px-3 py-2 bg-blue-500/5 hover:bg-blue-500 hover:text-white border border-blue-500/10 text-blue-500 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
-              >
-                <FileText size={14} /> Контент
-              </button>
-            )}
-
-            {user && ["reviewer", "superadmin"].includes(user.role) && (
-              <button
-                onClick={() => navigate("/reviewer")}
-                className="px-3 py-2 bg-emerald-500/5 hover:bg-emerald-500 hover:text-white border border-emerald-500/10 text-emerald-500 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
-              >
-                <FileCheck size={14} /> Рецензії
-              </button>
-            )}
-          </div>
-        </div>
+        {user?.role === "user" && !userData.organizationId && (
+          <button
+            onClick={onOpenCreateOrg}
+            className="w-full px-3 py-2.5 bg-purple-600/5 hover:bg-purple-600 hover:text-white border border-purple-500/10 text-purple-600 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2"
+          >
+            🏢 Створити установу
+          </button>
+        )}
       </div>
     </div>
   );
