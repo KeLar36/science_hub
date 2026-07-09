@@ -2,6 +2,7 @@ const Organization = require("../models/Organization");
 const User = require("../models/User");
 const Project = require("../models/Project");
 const Program = require("../models/Program");
+const mongoose = require("mongoose");
 
 class OrganizationService {
   async getOrganizationUsers(orgId, page = 1, limit = 8) {
@@ -30,39 +31,6 @@ class OrganizationService {
       totalItems,
     };
   }
-
-  async getOrganizationProjects(orgId, page = 1, limit = 8) {
-    const skip = (page - 1) * limit;
-
-    const org = await Organization.findById(orgId).select("members");
-    if (!org) {
-      const error = new Error("Організацію не знайдено");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    const memberIds = org.members || [];
-
-    const totalItems = await Project.countDocuments({
-      authorId: { $in: memberIds },
-    });
-    const totalPages = Math.ceil(totalItems / limit);
-
-    const projects = await Project.find({ authorId: { $in: memberIds } })
-      .populate("authorId", "name email")
-      .populate("programId", "title type")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    return {
-      items: projects,
-      currentPage: page,
-      totalPages: totalPages || 1,
-      totalItems,
-    };
-  }
-
   async getOrganizationPrograms(orgId, page = 1, limit = 8) {
     const skip = (page - 1) * limit;
 
@@ -82,15 +50,16 @@ class OrganizationService {
     };
   }
 
-  async getAll(page = 1, limit = 8) {
+  async getAll(query = {}, page = 1, limit = 8) {
     const skip = (page - 1) * limit;
-    const organizations = await Organization.find()
+
+    const organizations = await Organization.find(query)
       .populate("creatorId", "name email")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    const total = await Organization.countDocuments();
+    const total = await Organization.countDocuments(query);
     const totalPages = Math.ceil(total / limit);
 
     return { organizations, totalPages, currentPage: page };
@@ -143,11 +112,12 @@ class OrganizationService {
       status: "pending",
       members: [userId],
     });
+
     await newOrg.save();
 
+    const User = mongoose.model("User");
     await User.findByIdAndUpdate(userId, {
-      role: "admin",
-      organizationId: newOrg._id,
+      pendingOrganizationId: newOrg._id,
     });
 
     return newOrg;
@@ -165,6 +135,18 @@ class OrganizationService {
 
     if (status === "approved") {
       org.isVerified = true;
+
+      if (org.edrpou.includes("-rejected-")) {
+        org.edrpou = org.edrpou.split("-rejected-")[0];
+      }
+      org.name = org.name.replace(/\s*\(Відхилено\)/g, "").trim();
+
+      const User = mongoose.model("User");
+      await User.findByIdAndUpdate(org.creatorId, {
+        role: "admin",
+        organizationId: org._id,
+        $unset: { pendingOrganizationId: 1 },
+      });
     }
 
     if (status === "rejected") {
@@ -172,9 +154,9 @@ class OrganizationService {
       org.edrpou = `${org.edrpou}-rejected-${Date.now()}`;
       org.name = `${org.name} (Відхилено)`;
 
+      const User = mongoose.model("User");
       await User.findByIdAndUpdate(org.creatorId, {
-        role: "user",
-        organizationId: null,
+        $unset: { pendingOrganizationId: 1 },
       });
     }
 
@@ -253,6 +235,70 @@ class OrganizationService {
       (req) => req.userId.toString() !== userId.toString(),
     );
     await organization.save();
+  }
+
+  async getPagedPendingRequests(orgId, { page = 1, limit = 8, search = "" }) {
+    const skip = (page - 1) * limit;
+
+    const pipeline = [
+      { $match: { _id: new mongoose.Types.ObjectId(orgId) } },
+
+      { $unwind: "$joinRequests" },
+
+      {
+        $lookup: {
+          from: "users",
+          localField: "joinRequests.userId",
+          foreignField: "_id",
+          as: "userData",
+        },
+      },
+
+      { $unwind: "$userData" },
+
+      {
+        $project: {
+          _id: "$joinRequests._id",
+          createdAt: "$joinRequests.createdAt",
+          user: {
+            _id: "$userData._id",
+            name: "$userData.name",
+            email: "$userData.email",
+            image: "$userData.image",
+          },
+        },
+      },
+    ];
+
+    if (search.trim()) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { "user.name": { $regex: search.trim(), $options: "i" } },
+            { "user.email": { $regex: search.trim(), $options: "i" } },
+          ],
+        },
+      });
+    }
+
+    const allResults = await Organization.aggregate(pipeline);
+    const totalItems = allResults.length;
+    const totalPages = Math.ceil(totalItems / limit);
+
+    pipeline.push(
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+    );
+
+    const items = await Organization.aggregate(pipeline);
+
+    return {
+      items,
+      currentPage: page,
+      totalPages: totalPages || 1,
+      totalItems,
+    };
   }
 }
 

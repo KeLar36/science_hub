@@ -8,6 +8,12 @@ router.get("/archive", projectController.getArchive);
 router.get("/", verifyToken, projectController.getAll);
 router.get("/my", verifyToken, projectController.getMyProjects);
 router.post("/", verifyToken, checkRole(["user"]), projectController.create);
+router.get(
+  "/reviewer/queue",
+  verifyToken,
+  checkRole(["reviewer", "admin", "superadmin"]),
+  projectController.getReviewerQueue,
+);
 router.get("/:id", verifyToken, projectController.getById);
 
 router.post(

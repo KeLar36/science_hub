@@ -3,13 +3,14 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import axiosInstance from "../../api/axios";
 import toast, { Toaster } from "react-hot-toast";
-import { ShieldCheck, Users, FileText, Loader2 } from "lucide-react";
+import { ShieldCheck, Users, FileText, Loader2, UserPlus } from "lucide-react";
 
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { UsersManagement } from "../../components/dashboard/UsersManagement";
 import { ProjectsManagement } from "../../components/dashboard/ProjectsManagement";
 import { ProgramsManagement } from "../../components/dashboard/ProgramsManagement";
+import { OrganizationRequestsTab } from "../../components/dashboard/OrganizationRequestsTab";
 import { useAuth } from "../../context/AuthContext";
 
 export default function OrgAdminPage() {
@@ -25,7 +26,6 @@ export default function OrgAdminPage() {
   const [loading, setLoading] = useState(true);
   const [organization, setOrganization] = useState(null);
 
-  // Ініціалізація кабінету установи та завантаження її профілю
   const initOrgAdmin = useCallback(
     async (signal) => {
       try {
@@ -76,6 +76,7 @@ export default function OrgAdminPage() {
 
   const tabs = [
     { id: "users", label: "Співробітники", icon: Users },
+    { id: "requests", label: "Заявки на вступ 🟣", icon: UserPlus },
     { id: "projects", label: "Модерація робіт", icon: FileText },
     { id: "programs", label: "Конкурси установи", icon: ShieldCheck },
   ];
@@ -93,7 +94,6 @@ export default function OrgAdminPage() {
       <Navbar />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-12">
-        {/* Кнопка навігації Назад */}
         <div className="mb-4 mt-15 text-left">
           <button
             onClick={() => navigate("/profile")}
@@ -144,6 +144,10 @@ export default function OrgAdminPage() {
               userRole="admin"
               orgId={targetOrgId}
             />
+          )}
+
+          {activeTab === "requests" && (
+            <OrganizationRequestsTab organizationId={targetOrgId} />
           )}
 
           {activeTab === "projects" && (

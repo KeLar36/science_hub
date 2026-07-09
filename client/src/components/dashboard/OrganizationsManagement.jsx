@@ -46,7 +46,13 @@ export const OrganizationsManagement = ({ onViewCabinet }) => {
   const fetchOrganizations = async (pageNumber = 1) => {
     try {
       setLoading(true);
-      let url = `/organizations/all?page=${pageNumber}&limit=8`;
+
+      const validatedPage =
+        Number.isNaN(Number(pageNumber)) || typeof pageNumber === "object"
+          ? 1
+          : Number(pageNumber);
+
+      let url = `/organizations/all?page=${validatedPage}&limit=8`;
 
       if (searchTerm.trim()) {
         url += `&search=${encodeURIComponent(searchTerm.trim())}`;
@@ -59,15 +65,11 @@ export const OrganizationsManagement = ({ onViewCabinet }) => {
 
       const response = await axiosInstance.get(url);
 
-      const items =
-        response.data?.organizations ||
-        response.data?.items ||
-        response.data ||
-        [];
+      const items = response.data?.organizations || response.data?.items || [];
+      setOrganizations(items);
 
-      setOrganizations(Array.isArray(items) ? items : []);
-      setCurrentPage(response.data?.currentPage || pageNumber);
-      setTotalPages(response.data?.totalPages || 1);
+      setCurrentPage(Number(response.data?.currentPage) || pageNumber);
+      setTotalPages(Number(response.data?.totalPages) || 1);
     } catch (err) {
       console.error("💥 Помилка фетчу організацій:", err);
       toast.error("Не вдалося завантажити список установ");

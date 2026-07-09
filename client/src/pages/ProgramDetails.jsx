@@ -47,10 +47,16 @@ const ProgramDetails = () => {
   }, [id]);
 
   const handleApply = () => {
+    if (program?.externalLink) {
+      window.open(program.externalLink, "_blank", "noopener,noreferrer");
+      return;
+    }
+
     if (!isAuthenticated) {
       toast.error("Будь ласка, увійдіть в систему, щоб подати заявку");
       return;
     }
+
     navigate("/profile", {
       state: {
         programId: program._id,
@@ -109,6 +115,10 @@ const ProgramDetails = () => {
   };
 
   const getButtonText = () => {
+    if (program.externalLink) {
+      return "Перейти до першоджерела";
+    }
+
     switch (program.type) {
       case "Науковий журнал":
         return "Подати статтю";
@@ -202,7 +212,6 @@ const ProgramDetails = () => {
                 {program.title}
               </h1>
 
-              {/* Короткий опис */}
               {program.shortDescription && (
                 <p className="text-xs sm:text-sm text-[var(--text-gray)] leading-relaxed font-medium border-l-2 border-purple-500/30 pl-4 py-1">
                   {program.shortDescription}
@@ -241,15 +250,15 @@ const ProgramDetails = () => {
               </h3>
               <div
                 className="prose dark:prose-invert max-w-none text-xs sm:text-sm leading-relaxed text-[var(--text-dark)] opacity-95
-      w-full overflow-hidden break-words whitespace-pre-wrap
-      [&_p]:mb-4 [&_p]:break-words
-      [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-4
-      [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-4
-      [&_li]:mb-1 [&_li]:break-words
-      [&_strong]:font-bold [&_strong]:text-purple-600 dark:[&_strong]:text-purple-400
-      [&_h1]:text-lg [&_h1]:font-black [&_h1]:uppercase [&_h1]:mt-6 [&_h1]:mb-3
-      [&_h2]:text-base [&_h2]:font-black [&_h2]:uppercase [&_h2]:mt-5 [&_h2]:mb-2
-      [&_h3]:text-sm [&_h3]:font-bold [&_h3]:uppercase [&_h3]:mt-4 [&_h3]:mb-2"
+              w-full overflow-hidden break-words whitespace-pre-wrap
+              [&_p]:mb-4 [&_p]:break-words
+              [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-4
+              [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-4
+              [&_li]:mb-1 [&_li]:break-words
+              [&_strong]:font-bold [&_strong]:text-purple-600 dark:[&_strong]:text-purple-400
+              [&_h1]:text-lg [&_h1]:font-black [&_h1]:uppercase [&_h1]:mt-6 [&_h1]:mb-3
+              [&_h2]:text-base [&_h2]:font-black [&_h2]:uppercase [&_h2]:mt-5 [&_h2]:mb-2
+              [&_h3]:text-sm [&_h3]:font-bold [&_h3]:uppercase [&_h3]:mt-4 [&_h3]:mb-2"
                 dangerouslySetInnerHTML={{
                   __html: program.description
                     ? program.description
@@ -267,7 +276,7 @@ const ProgramDetails = () => {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 text-xs font-bold text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 underline underline-offset-4 tracking-wide uppercase transition-colors"
                   >
-                    Офіційне джерело платформи
+                    Офіційне джерело конкурсу
                     <ExternalLink size={14} />
                   </a>
                 </div>
@@ -279,7 +288,11 @@ const ProgramDetails = () => {
                 className="w-full md:w-auto bg-purple-600 hover:bg-purple-700 text-white px-8 py-4 sm:px-16 sm:py-5 rounded-xl sm:rounded-2xl font-black text-base sm:text-lg shadow-xl shadow-purple-600/20 hover:shadow-purple-600/30 transition-all active:scale-[0.98] flex items-center justify-center gap-3 sm:gap-4 uppercase tracking-tight italic"
                 onClick={handleApply}
               >
-                <Send size={20} className="sm:size-[22px]" />
+                {program.externalLink ? (
+                  <ExternalLink size={20} className="sm:size-[22px]" />
+                ) : (
+                  <Send size={20} className="sm:size-[22px]" />
+                )}
                 {getButtonText()}
               </button>
 
@@ -288,12 +301,16 @@ const ProgramDetails = () => {
                   size={16}
                   className="text-purple-600 dark:text-purple-400 shrink-0 mt-0.5"
                 />
-                <div className="space-y-1">
+                <div className="space-y-1 text-left">
                   <p className="text-xs font-bold uppercase tracking-wider text-purple-700 dark:text-purple-400 leading-tight">
-                    Заявки приймаються автоматично
+                    {program.externalLink
+                      ? "Зовнішня подача документів"
+                      : "Заявки приймаються автоматично"}
                   </p>
                   <p className="text-[11px] font-medium text-[var(--text-dark)] opacity-90 leading-normal">
-                    Обробка менеджером платформи триває до 72 годин.
+                    {program.externalLink
+                      ? "Платформа перенаправляє вас на офіційну сторінку грантодавця для прямої реєстрації."
+                      : "Обробка внутрішніми менеджерами та рецензентами платформи триває до 72 годин."}
                   </p>
                 </div>
               </div>

@@ -89,10 +89,11 @@ class ProjectService {
     if (reviewData.reviewStatus !== undefined)
       project.reviewStatus = reviewData.reviewStatus;
     if (reviewData.status !== undefined) project.status = reviewData.status;
+    if (reviewData.reviewerRecommendation !== undefined)
+      project.reviewerRecommendation = reviewData.reviewerRecommendation;
 
     return await project.save();
   }
-
   async delete(id) {
     const project = await Project.findByIdAndDelete(id);
     if (!project) {
@@ -116,6 +117,16 @@ class ProjectService {
       const programType = project.programId?.type;
       return allowedPublicTypes.includes(programType);
     });
+  }
+  async getReviewerQueue(reviewerId) {
+    const projects = await Project.find({
+      reviewerId: reviewerId,
+      reviewStatus: { $ne: "Завершено" },
+    })
+      .populate("authorId", "name email")
+      .populate("programId", "title");
+
+    return projects;
   }
 }
 

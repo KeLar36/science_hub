@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect } from "react";
 import DatePicker from "react-datepicker";
 import ReactQuill from "react-quill-new";
@@ -8,6 +9,7 @@ import {
   BookOpen,
   BarChart3,
   AlignLeft,
+  Link2,
 } from "lucide-react";
 import { Button } from "./ui/Button";
 import "react-datepicker/dist/react-datepicker.css";
@@ -34,7 +36,7 @@ const ProgramForm = ({
   }, [newProgram.type, organizationName, setNewProgram]);
 
   return (
-    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-3xl shadow-xs top-6">
+    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-3xl shadow-xs top-6 text-left">
       <h3 className="text-lg font-black text-[var(--text-dark)] uppercase tracking-tight mb-4 flex items-center gap-2">
         ✨ Нова можливість
       </h3>
@@ -175,79 +177,64 @@ const ProgramForm = ({
           </div>
         )}
 
-        {newProgram.type === "Конференція" && (
-          <div className="space-y-3 p-3 bg-[var(--bg-main)]/50 border border-[var(--border-color)] rounded-2xl animate-in fade-in slide-in-from-top-2 duration-150">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-[var(--text-gray)] uppercase pl-1">
-                  Організатор
-                </label>
-                <input
-                  type="text"
-                  required
-                  disabled={!!organizationName}
-                  placeholder="Назва установи"
-                  value={newProgram.organizer || ""}
-                  onChange={(e) =>
-                    setNewProgram({
-                      ...newProgram,
-                      organizer: e.target.value,
-                    })
-                  }
-                  className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-3 py-2 outline-none focus:border-purple-600 text-xs font-bold text-[var(--text-dark)] disabled:opacity-70 disabled:bg-[var(--bg-main)]"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-[var(--text-gray)] uppercase pl-1">
-                  Локація
-                </label>
-                <input
-                  type="text"
-                  placeholder="Напр., Ужгород або Онлайн"
-                  value={newProgram.location || ""}
-                  onChange={(e) =>
-                    setNewProgram({ ...newProgram, location: e.target.value })
-                  }
-                  className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-3 py-2 outline-none focus:border-purple-600 text-xs font-semibold text-[var(--text-dark)]"
-                />
-              </div>
-            </div>
+        {newProgram.type === "Conference" ||
+        newProgram.type === "Конференція" ? (
+          <div className="grid grid-cols-2 gap-3 p-3 bg-[var(--bg-main)]/50 border border-[var(--border-color)] rounded-2xl animate-in fade-in slide-in-from-top-2 duration-150">
             <div className="space-y-1">
               <label className="text-[10px] font-black text-[var(--text-gray)] uppercase pl-1">
-                Посилання на сайт конференції
+                Організатор
               </label>
               <input
-                type="url"
-                placeholder="https://conference.example.com"
-                value={newProgram.externalLink || ""}
+                type="text"
+                required
+                disabled={!!organizationName}
+                placeholder="Назва установи"
+                value={newProgram.organizer || ""}
                 onChange={(e) =>
                   setNewProgram({
                     ...newProgram,
-                    externalLink: e.target.value,
+                    organizer: e.target.value,
                   })
+                }
+                className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-3 py-2 outline-none focus:border-purple-600 text-xs font-bold text-[var(--text-dark)] disabled:opacity-70 disabled:bg-[var(--bg-main)]"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-[var(--text-gray)] uppercase pl-1">
+                Локація
+              </label>
+              <input
+                type="text"
+                placeholder="Напр., Ужгород або Онлайн"
+                value={newProgram.location || ""}
+                onChange={(e) =>
+                  setNewProgram({ ...newProgram, location: e.target.value })
                 }
                 className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-3 py-2 outline-none focus:border-purple-600 text-xs font-semibold text-[var(--text-dark)]"
               />
             </div>
           </div>
-        )}
+        ) : null}
 
-        {["Датасет", "Курс"].includes(newProgram.type) && (
-          <div className="space-y-1 p-3 bg-[var(--bg-main)]/50 border border-[var(--border-color)] rounded-2xl animate-in fade-in slide-in-from-top-2 duration-150">
-            <label className="text-[10px] font-black text-[var(--text-gray)] uppercase pl-1">
-              Зовнішнє посилання
-            </label>
-            <input
-              type="url"
-              placeholder="https://example.com/resource"
-              value={newProgram.externalLink || ""}
-              onChange={(e) =>
-                setNewProgram({ ...newProgram, externalLink: e.target.value })
-              }
-              className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-3 py-2 outline-none focus:border-purple-600 text-xs font-semibold text-[var(--text-dark)]"
-            />
-          </div>
-        )}
+        <div className="space-y-1 p-3 bg-purple-600/[0.02] border border-purple-500/15 rounded-2xl">
+          <label className="text-[10px] font-black text-purple-600 dark:text-purple-400 uppercase pl-1 flex items-center gap-1">
+            <Link2 size={12} /> Зовнішнє посилання на оригінал конкурсу /
+            ресурсу (Опціонально)
+          </label>
+          <input
+            type="url"
+            placeholder="https://example-university.edu/grant-page"
+            value={newProgram.externalLink || ""}
+            onChange={(e) =>
+              setNewProgram({ ...newProgram, externalLink: e.target.value })
+            }
+            className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-3 py-2 outline-none focus:border-purple-600 text-xs font-semibold text-[var(--text-dark)]"
+          />
+          <p className="text-[9px] text-[var(--text-gray)] pl-1 pt-0.5 font-medium">
+            * Якщо заповнено, кнопка подачі автоматично перенаправлятиме
+            користувачів на цей сайт.
+          </p>
+        </div>
 
         <div className="grid grid-cols-1 gap-3">
           <div className="space-y-1 flex flex-col">
@@ -286,7 +273,7 @@ const ProgramForm = ({
           />
         </div>
 
-        <div className="space-y-1 text-left">
+        <div className="space-y-1">
           <label className="text-[11px] font-bold text-[var(--text-gray)] uppercase tracking-wider pl-1">
             Повний опис та регламент конкурсу
           </label>

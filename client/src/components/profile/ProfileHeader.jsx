@@ -7,6 +7,7 @@ import {
   ShieldAlert,
   FileText,
   FileCheck,
+  Building2,
 } from "lucide-react";
 
 export default function ProfileHeader({
@@ -14,6 +15,7 @@ export default function ProfileHeader({
   navigate,
   onOpenEdit,
   onOpenCreateOrg,
+  onOpenJoinOrg, // 🟢 Новий проп для відкриття модалки приєднання
 }) {
   const { user } = useAuth();
 
@@ -76,37 +78,47 @@ export default function ProfileHeader({
         )}
 
         {user?.role === "superadmin" && (
-          <>
-            <button
-              onClick={() => navigate("/superadmin")}
-              className="w-full px-3 py-2.5 bg-amber-500 text-white rounded-xl text-xs font-black uppercase tracking-wider italic transition-all hover:bg-amber-600 flex items-center justify-center gap-2"
-            >
-              <ShieldAlert size={13} /> SuperAdmin Панель
-            </button>
+          <button
+            onClick={() => navigate("/superadmin")}
+            className="w-full px-3 py-2.5 bg-amber-500 text-white rounded-xl text-xs font-black uppercase tracking-wider italic transition-all hover:bg-amber-600 flex items-center justify-center gap-2"
+          >
+            <ShieldAlert size={13} /> SuperAdmin Панель
+          </button>
+        )}
 
-            <button
-              onClick={() => navigate("/reviewer")}
-              className="w-full px-3 py-2.5 bg-purple-600 text-white rounded-xl text-xs font-black uppercase tracking-wider italic transition-all hover:bg-purple-700 flex items-center justify-center gap-2 shadow-sm shadow-purple-600/10"
-            >
-              <FileCheck size={13} /> Панель рецензента
-            </button>
+        {(user?.role === "superadmin" || user?.role === "reviewer") && (
+          <button
+            onClick={() => navigate("/reviewer")}
+            className="w-full px-3 py-2.5 bg-purple-600 text-white rounded-xl text-xs font-black uppercase tracking-wider italic transition-all hover:bg-purple-700 flex items-center justify-center gap-2 shadow-sm shadow-purple-600/10"
+          >
+            <FileCheck size={13} /> Панель рецензента
+          </button>
+        )}
 
-            <button
-              onClick={() => navigate("/content-panel")}
-              className="w-full px-3 py-2.5 bg-purple-600 text-white rounded-xl text-xs font-black uppercase tracking-wider italic transition-all hover:bg-purple-700 flex items-center justify-center gap-2 shadow-sm shadow-purple-600/10"
-            >
-              <FileText size={13} /> Менеджер контенту
-            </button>
-          </>
+        {(user?.role === "superadmin" || user?.role === "content-manager") && (
+          <button
+            onClick={() => navigate("/content-panel")}
+            className="w-full px-3 py-2.5 bg-purple-600 text-white rounded-xl text-xs font-black uppercase tracking-wider italic transition-all hover:bg-purple-700 flex items-center justify-center gap-2 shadow-sm shadow-purple-600/10"
+          >
+            <FileText size={13} /> Менеджер контенту
+          </button>
         )}
 
         {user?.role === "user" && !userData.organizationId && (
-          <button
-            onClick={onOpenCreateOrg}
-            className="w-full px-3 py-2.5 bg-purple-600/5 hover:bg-purple-600 hover:text-white border border-purple-500/10 text-purple-600 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2"
-          >
-            🏢 Створити установу
-          </button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full pt-1">
+            <button
+              onClick={onOpenJoinOrg}
+              className="px-3 py-2.5 bg-purple-600 hover:bg-purple-700 text-white border border-transparent rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-sm shadow-purple-600/5"
+            >
+              <Building2 size={13} /> Приєднатися до установи
+            </button>
+            <button
+              onClick={onOpenCreateOrg}
+              className="px-3 py-2.5 bg-purple-600/5 hover:bg-purple-600 hover:text-white border border-purple-500/10 text-purple-600 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2"
+            >
+              🏢 Створити установу
+            </button>
+          </div>
         )}
       </div>
     </div>

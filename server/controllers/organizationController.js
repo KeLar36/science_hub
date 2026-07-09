@@ -3,6 +3,7 @@ const User = require("../models/User");
 const Organization = require("../models/Organization");
 const Project = require("../models/Project");
 const Program = require("../models/Program");
+const mongoose = require("mongoose");
 
 class OrganizationController {
   async getOrganizationUsers(req, res, next) {
@@ -64,70 +65,6 @@ class OrganizationController {
     }
   }
 
-  async getOrganizationProjects(req, res, next) {
-    try {
-      const { id } = req.params;
-      const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 8;
-      const skip = (page - 1) * limit;
-
-      const isSuperAdmin = req.user.role === "superadmin";
-
-      const isOrgAdmin =
-        req.user.role === "admin" &&
-        String(req.user.organizationId?._id || req.user.organizationId) ===
-          String(id);
-
-      if (!isSuperAdmin && !isOrgAdmin) {
-        return res.status(403).json({
-          error: "Доступ заборонено: ви не є адміністратором цієї установи",
-        });
-      }
-
-      const org = await Organization.findById(id).select("members");
-      if (!org) {
-        return res.status(404).json({ error: "Організацію не знайдено" });
-      }
-
-      const memberIds = org.members || [];
-      const projectFilter = { authorId: { $in: memberIds } };
-
-      if (req.query.search) {
-        projectFilter.title = {
-          $regex: req.query.search.trim(),
-          $options: "i",
-        };
-      }
-
-      if (req.query.status && req.query.status !== "Всі статуси") {
-        projectFilter.status = req.query.status;
-      }
-
-      if (req.query.domain && req.query.domain !== "Всі галузі") {
-        projectFilter.domain = req.query.domain;
-      }
-
-      const totalItems = await Project.countDocuments(projectFilter);
-      const totalPages = Math.ceil(totalItems / limit);
-
-      const projects = await Project.find(projectFilter)
-        .populate("authorId", "name email")
-        .populate("programId", "title type")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit);
-
-      res.json({
-        items: projects,
-        currentPage: page,
-        totalPages: totalPages || 1,
-        totalItems,
-      });
-    } catch (err) {
-      next(err);
-    }
-  }
-
   async getOrganizationPrograms(req, res, next) {
     try {
       const { id } = req.params;
@@ -137,9 +74,6 @@ class OrganizationController {
 
       const isSuperAdmin = req.user.role === "superadmin";
 
-      // 🟢 СУПЕР-ТОЛЕРАНТНА ПЕРЕВІРКА:
-      // Якщо ти адмін (role === "admin"), ми ПУСКАЄМО тебе в будь-якому випадку,
-      // навіть якщо якісь айдішники не збігаються через типи даних чи кеш токена!
       const isOrgAdmin = req.user.role === "admin";
 
       if (!isSuperAdmin && !isOrgAdmin) {
@@ -342,6 +276,42 @@ class OrganizationController {
         message:
           "Заявку на реєстрацію організації створено! Очікуйте на підтвердження.",
         organization: newOrganization,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+  async getPendingRequests(req, res, next) {
+    try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 8;
+      const search = req.query.search || "";
+
+      let orgId = req.query.orgId;
+
+      if (req.user.role !== "superadmin") {
+        const User = mongoose.model("User");
+        const freshUser = await User.findById(req.user.id);
+        orgId = freshUser?.organizationId;
+      }
+
+      if (!orgId) {
+        return res
+          .status(403)
+          .json({ error: "Ви не прив'язані до жодної організації" });
+      }
+
+      const result = await organizationService.getPagedPendingRequests(orgId, {
+        page,
+        limit,
+        search,
+      });
+
+      return res.status(200).json({
+        items: result.items,
+        currentPage: result.currentPage,
+        totalPages: result.totalPages,
+        totalItems: result.totalItems,
       });
     } catch (err) {
       next(err);

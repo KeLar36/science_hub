@@ -1,20 +1,68 @@
-import React, { useMemo } from "react";
+/* eslint-disable react-hooks/exhaustive-deps */
+import React, { useState, useEffect, useMemo } from "react";
 import { BookOpen, Loader2 } from "lucide-react";
+import axiosInstance from "../../api/axios"; // підкоригуй шлях, якщо потрібно
 import UniversalFilters from "../UniversalFilters";
 import UniversalCard from "../ui/UniversalCard";
 import { Pagination } from "../ui/Pagination";
+import { SCIENTIFIC_DOMAINS, PROGRAM_TYPES } from "../../constants/domains";
 
-const ProgramsExplorer = ({
-  searchTerm,
-  setSearchTerm,
-  filterDropdowns,
-  onReset,
-  loading,
-  items = [],
-  currentPage,
-  totalPages,
-  onPageChange,
-}) => {
+const ProgramsExplorer = () => {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedDomain, setSelectedDomain] = useState("Всі галузі");
+  const [selectedType, setSelectedType] = useState("Всі типи");
+
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(1);
+    }, 400);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedDomain, selectedType]);
+
+  const fetchPrograms = async (currentPage) => {
+    try {
+      setLoading(true);
+
+      let url = `/programs?page=${currentPage}&limit=9`;
+
+      if (debouncedSearch.trim()) {
+        url += `&search=${encodeURIComponent(debouncedSearch.trim())}`;
+      }
+      if (selectedType !== "Всі типи") {
+        url += `&type=${encodeURIComponent(selectedType)}`;
+      }
+      if (selectedDomain !== "Всі галузі") {
+        url += `&domain=${encodeURIComponent(selectedDomain)}`;
+      }
+
+      const res = await axiosInstance.get(url);
+
+      setItems(res.data.programs || []);
+      setTotalPages(res.data.totalPages || 1);
+    } catch (err) {
+      console.error("💥 Помилка завантаження програм:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPrograms(page);
+  }, [page, debouncedSearch, selectedDomain, selectedType]);
+
   const programsWithUrgency = useMemo(() => {
     const now = new Date();
     return items.map((prog) => {
@@ -29,10 +77,30 @@ const ProgramsExplorer = ({
     });
   }, [items]);
 
+  const filterDropdowns = [
+    {
+      value: selectedType,
+      onChange: setSelectedType,
+      options: ["Всі типи", ...PROGRAM_TYPES],
+    },
+    {
+      value: selectedDomain,
+      onChange: setSelectedDomain,
+      options: ["Всі галузі", ...SCIENTIFIC_DOMAINS],
+    },
+  ];
+
+  const handleResetFilters = () => {
+    setSearchTerm("");
+    setSelectedType("Всі типи");
+    setSelectedDomain("Всі галузі");
+    setPage(1);
+  };
+
   return (
     <section className="max-w-7xl mx-auto px-4 md:px-6 py-16 flex flex-col gap-8">
       <div>
-        <h2 className="text-xl font-black uppercase tracking-tight text-[var(--text-dark)]">
+        <h2 className="text-xl font-black uppercase tracking-tight text-[var(--text-dark)] text-left">
           ⚡ Актуальні можливості
         </h2>
       </div>
@@ -42,7 +110,7 @@ const ProgramsExplorer = ({
         setSearchTerm={setSearchTerm}
         searchPlaceholder="Пошук можливостей за назвою або організацією..."
         dropdowns={filterDropdowns}
-        onReset={onReset}
+        onReset={handleResetFilters}
       />
 
       {loading ? (
@@ -74,9 +142,9 @@ const ProgramsExplorer = ({
           </div>
 
           <Pagination
-            currentPage={currentPage}
+            currentPage={page}
             totalPages={totalPages}
-            onPageChange={onPageChange}
+            onPageChange={setPage}
           />
         </div>
       )}

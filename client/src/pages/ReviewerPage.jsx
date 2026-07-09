@@ -42,17 +42,10 @@ const ReviewerPage = () => {
   }, []);
 
   const loadMyAssignments = async () => {
-    const { userId } = userData;
-
-    if (!userId) {
-      console.warn("Синхронізація сесії: ID користувача не знайдено");
-      setLoading(false);
-      return;
-    }
-
     try {
       setLoading(true);
-      const res = await axios.get(`/projects/reviewer/${userId}`, {
+
+      const res = await axios.get("/projects/reviewer/queue", {
         withCredentials: true,
       });
 
@@ -63,9 +56,11 @@ const ReviewerPage = () => {
       setMyProjects(activeProjects);
     } catch (err) {
       console.error("Деталі помилки при завантаженні:", err);
+
       if (err.response?.status !== 404) {
         const errorMessage =
           err.response?.data?.message || "Не вдалося завантажити чергу";
+
         toast.error(errorMessage);
       }
     } finally {
@@ -91,18 +86,18 @@ const ReviewerPage = () => {
     const { token } = userData;
 
     const decisionPromise = axios.patch(
-      `/projects/submit-review/${projectId}`,
+      `/projects/${projectId}/review`,
       { status: newStatus, reviewerComments: commentText },
       { headers: { Authorization: `Bearer ${token}` } },
     );
 
     toast.promise(decisionPromise, {
-      loading: "Фіксація вердикту...",
+      loading: "Фіксація вердикту в системі...",
       success: () => {
         setMyProjects((prev) => prev.filter((p) => p._id !== projectId));
         setActiveCommentId(null);
         setCommentText("");
-        return <b>Рішення успішно збережено! 🟣</b>;
+        return <b>Експертну оцінку успішно надіслано адмініструванню! 🟣</b>;
       },
       error: (err) => {
         console.error(err);

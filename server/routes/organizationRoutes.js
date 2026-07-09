@@ -14,24 +14,10 @@ router.get(
 );
 
 router.get(
-  "/:id/users",
+  "/requests/pending",
   verifyToken,
   checkRole(["admin", "superadmin"]),
-  organizationController.getOrganizationUsers,
-);
-
-router.get(
-  "/:id/projects",
-  verifyToken,
-  checkRole(["admin", "superadmin"]),
-  organizationController.getOrganizationProjects,
-);
-
-router.get(
-  "/:id/programs",
-  verifyToken,
-  checkRole(["admin", "superadmin"]),
-  organizationController.getOrganizationPrograms,
+  organizationController.getPendingRequests,
 );
 
 router.post(
@@ -46,6 +32,20 @@ router.post(
   verifyToken,
   checkRole(["admin", "superadmin"]),
   organizationController.rejectJoinRequest,
+);
+
+router.get(
+  "/:id/users",
+  verifyToken,
+  checkRole(["admin", "superadmin"]),
+  organizationController.getOrganizationUsers,
+);
+
+router.get(
+  "/:id/programs",
+  verifyToken,
+  checkRole(["admin", "superadmin"]),
+  organizationController.getOrganizationPrograms,
 );
 
 router.get("/:id", verifyToken, organizationController.getById);

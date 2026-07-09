@@ -13,7 +13,7 @@ class AuthController {
       await authService.register(req.body);
       res.status(201).json({ message: "Користувача успішно створено!" });
     } catch (err) {
-      next(err); // Передаємо в errorHandler
+      next(err);
     }
   }
 

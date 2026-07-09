@@ -25,6 +25,11 @@ const BaseProgramSchema = new mongoose.Schema(
       required: true,
       default: "Всі галузі",
     },
+    externalLink: {
+      type: String,
+      trim: true,
+      default: null,
+    },
     active: {
       type: Boolean,
       default: true,
@@ -90,10 +95,6 @@ const ConferenceProgram = Program.discriminator(
       required: true,
       trim: true,
     },
-    externalLink: {
-      type: String,
-      trim: true,
-    },
     location: {
       type: String,
       default: "Онлайн",
@@ -103,17 +104,10 @@ const ConferenceProgram = Program.discriminator(
 
 const DatasetProgram = Program.discriminator(
   "Датасет",
-  new mongoose.Schema({
-    externalLink: { type: String, trim: true },
-  }),
+  new mongoose.Schema({}),
 );
 
-const CourseProgram = Program.discriminator(
-  "Курс",
-  new mongoose.Schema({
-    externalLink: { type: String, trim: true },
-  }),
-);
+const CourseProgram = Program.discriminator("Курс", new mongoose.Schema({}));
 
 Program.JournalProgram = JournalProgram;
 Program.GrantProgram = GrantProgram;

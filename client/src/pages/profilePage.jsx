@@ -19,6 +19,7 @@ import ProfileTabs from "../components/profile/ProfileTabs";
 import EditProfileModal from "../components/profile/EditProfileModal";
 import SubmissionForm from "../components/profile/SubmissionForm";
 import CreateOrganizationModal from "../components/profile/CreateOrganizationModal";
+import JoinOrganizationModal from "../components/profile/JoinOrganizationModal";
 import UniversalCard from "../components/ui/UniversalCard";
 import { SCIENTIFIC_DOMAINS } from "../constants/domains";
 import { useAuth } from "../context/AuthContext";
@@ -41,6 +42,7 @@ export default function ProfilePage() {
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCreateOrgModalOpen, setIsCreateOrgModalOpen] = useState(false);
+  const [isJoinOrgModalOpen, setIsJoinOrgModalOpen] = useState(false);
 
   const [editForm, setEditForm] = useState({
     name: "",
@@ -57,8 +59,8 @@ export default function ProfilePage() {
   const [articleData, setArticleData] = useState({
     title: "",
     description: "",
-    programId: targetProgram || "", // 🟢 Ставимо ID одразу з переходу
-    domain: targetProgramDomain || SCIENTIFIC_DOMAINS[0], // 🟢 Ставимо галузь одразу з переходу
+    programId: targetProgram || "",
+    domain: targetProgramDomain || SCIENTIFIC_DOMAINS[0],
   });
 
   const [file, setFile] = useState(null);
@@ -89,7 +91,6 @@ export default function ProfilePage() {
     }
   }, []);
 
-  // 2. Безпечне ліниве завантаження під вкладки
   const userId = userData?._id;
   useEffect(() => {
     if (!userId) return;
@@ -108,7 +109,7 @@ export default function ProfilePage() {
     if (view === "bookmarks") {
       setTabLoading(true);
       axiosInstance
-        .get("/posts/bookmarks", { signal: controller.signal })
+        .get("/users/bookmarks/all", { signal: controller.signal })
         .then((res) => setBookmarks(res.data || []))
         .catch(() => toast.error("Помилка завантаження закладок"))
         .finally(() => setTabLoading(false));
@@ -287,6 +288,7 @@ export default function ProfilePage() {
             navigate={navigate}
             onOpenEdit={() => setIsEditModalOpen(true)}
             onOpenCreateOrg={() => setIsCreateOrgModalOpen(true)}
+            onOpenJoinOrg={() => setIsJoinOrgModalOpen(true)} // 🟢 ПЕРЕДАЛИ ФУНКЦІЮ ВІДКРИТТЯ З ПРOПСАМИ
           />
         </div>
 
@@ -371,6 +373,13 @@ export default function ProfilePage() {
         onSubmit={handleCreateOrganization}
         loadingAction={loadingAction}
       />
+
+      <JoinOrganizationModal
+        isOpen={isJoinOrgModalOpen}
+        onClose={() => setIsJoinOrgModalOpen(false)}
+        onRefreshProfile={() => initProfile()}
+      />
+
       <Footer />
     </div>
   );

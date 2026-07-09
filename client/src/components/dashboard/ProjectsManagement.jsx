@@ -7,6 +7,8 @@ import {
   Building2,
   User,
   Loader2,
+  Lock,
+  MessageSquare,
 } from "lucide-react";
 import UniversalFilters from "../UniversalFilters";
 import { Table } from "../ui/Table";
@@ -27,6 +29,7 @@ export const ProjectsManagement = ({ userRole }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("Всі статуси");
   const [filterDomain, setFilterDomain] = useState("Всі галузі");
+  const [filterAssessment, setFilterAssessment] = useState("Всі проєкти");
 
   const isSuperAdmin = userRole === "superadmin";
 
@@ -119,7 +122,22 @@ export const ProjectsManagement = ({ userRole }) => {
     setSearchTerm("");
     setFilterStatus("Всі статуси");
     setFilterDomain("Всі галузі");
+    setFilterAssessment("Всі проєкти");
   };
+
+  const filteredProjects = useMemo(() => {
+    if (filterAssessment === "Всі проєкти") return projects;
+
+    return projects.filter((project) => {
+      const canManage =
+        project.context?.canManageAssessment === true || isSuperAdmin;
+
+      if (filterAssessment === "Потребують оцінювання") return canManage;
+      if (filterAssessment === "Внутрішній моніторинг (Read-Only)")
+        return !canManage;
+      return true;
+    });
+  }, [projects, filterAssessment, isSuperAdmin]);
 
   const uniqueDomains = useMemo(() => {
     const domains = new Set();
@@ -129,20 +147,21 @@ export const ProjectsManagement = ({ userRole }) => {
     return ["Всі галузі", ...Array.from(domains)];
   }, [projects]);
 
+  // Изменили "Статус модерації" на комплексное отображение статуса
   const headers = isSuperAdmin
     ? [
         "Наукова праця / Творець",
         "Установа походження",
         "Програма / Напрямок",
         "Призначити рецензента",
-        "Статус модерації",
+        "Експертиза / Статус",
         "Модерація",
       ]
     : [
         "Наукова праця / Творець",
         "Програма / Напрямок",
         "Призначити рецензента",
-        "Статус модерації",
+        "Експертиза / Статус",
         "Модерація",
       ];
 
@@ -157,119 +176,174 @@ export const ProjectsManagement = ({ userRole }) => {
     }
   };
 
-  const renderRow = (item) => (
-    <tr
-      key={item._id}
-      className="border-b border-[var(--border-color)] text-xs font-semibold hover:bg-purple-600/[0.01] transition-colors"
-    >
-      <td className="px-6 py-4 max-w-xs text-left">
-        <div
-          className="font-black text-[var(--text-dark)] uppercase tracking-wide truncate"
-          title={item.title}
-        >
-          {item.title}
-        </div>
-        <div className="text-[10px] text-[var(--text-gray)] font-medium flex items-center gap-1 mt-1 truncate">
-          <User size={11} className="text-purple-500 shrink-0" />
-          Автор:{" "}
-          <span className="text-[var(--text-dark)] font-bold">
-            {item.authorId?.name || item.authors || "Невідомий"}
-          </span>
-        </div>
-      </td>
+  // Помощник стилей для новой рекомендации рецензента
+  const getRecommendationStyle = (rec) => {
+    if (rec === "Прийнято")
+      return "text-emerald-500 bg-emerald-500/5 border border-emerald-500/10";
+    if (rec === "Відхилено")
+      return "text-rose-500 bg-rose-500/5 border border-rose-500/10";
+    return "text-amber-500 bg-amber-500/5 border border-amber-500/10";
+  };
 
-      {isSuperAdmin && (
-        <td className="px-6 py-4 text-left">
-          {item.authorId?.organizationId?.name ? (
-            <div
-              className="flex items-center gap-1.5 max-w-[180px] text-[var(--text-dark)] font-bold"
-              title={item.authorId.organizationId.name}
-            >
-              <Building2 size={12} className="text-purple-500 shrink-0" />
-              <span className="truncate">
-                {item.authorId.organizationId.name}
-              </span>
-            </div>
-          ) : (
-            <span className="text-[10px] font-mono font-bold text-[var(--text-gray)] uppercase tracking-wider bg-[var(--bg-main)] px-2 py-0.5 rounded border border-[var(--border-color)]">
-              Вільний науковець
+  const renderRow = (item) => {
+    const canManageThisRow =
+      item.context?.canManageAssessment === true || isSuperAdmin;
+
+    return (
+      <tr
+        key={item._id}
+        className="border-b border-[var(--border-color)] text-xs font-semibold hover:bg-purple-600/[0.01] transition-colors"
+      >
+        <td className="px-6 py-4 max-w-xs text-left">
+          <div
+            className="font-black text-[var(--text-dark)] uppercase tracking-wide truncate"
+            title={item.title}
+          >
+            {item.title}
+          </div>
+          <div className="text-[10px] text-[var(--text-gray)] font-medium flex items-center gap-1 mt-1 truncate">
+            <User size={11} className="text-purple-500 shrink-0" />
+            Автор:{" "}
+            <span className="text-[var(--text-dark)] font-bold">
+              {item.authorId?.name || item.authors || "Невідомий"}
             </span>
+          </div>
+        </td>
+
+        {isSuperAdmin && (
+          <td className="px-6 py-4 text-left">
+            {item.authorId?.organizationId?.name ? (
+              <div
+                className="flex items-center gap-1.5 max-w-[180px] text-[var(--text-dark)] font-bold"
+                title={item.authorId.organizationId.name}
+              >
+                <Building2 size={12} className="text-purple-500 shrink-0" />
+                <span className="truncate">
+                  {item.authorId.organizationId.name}
+                </span>
+              </div>
+            ) : (
+              <span className="text-[10px] font-mono font-bold text-[var(--text-gray)] uppercase tracking-wider bg-[var(--bg-main)] px-2 py-0.5 rounded border border-[var(--border-color)]">
+                Вільний науковець
+              </span>
+            )}
+          </td>
+        )}
+
+        <td className="px-6 py-4 text-left">
+          <div className="font-bold text-[var(--text-dark)] truncate max-w-[140px]">
+            {item.programId?.title || "Глобальна сторінка"}
+          </div>
+          <div className="text-[9px] text-purple-600 font-black bg-purple-500/5 border border-purple-500/10 px-1.5 py-0.5 rounded-md mt-1 w-fit uppercase tracking-wide">
+            {item.domain || "Всі галузі"}
+          </div>
+        </td>
+
+        <td className="px-6 py-4 text-left">
+          {canManageThisRow ? (
+            <select
+              className="bg-[var(--bg-main)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 font-black uppercase tracking-wider text-[11px] text-[var(--text-dark)] cursor-pointer w-full max-w-[160px] outline-hidden focus:border-purple-500 transition-all disabled:opacity-50"
+              value={item.reviewerId?._id || item.reviewerId || ""}
+              onChange={(e) => handleAssignReviewer(item._id, e.target.value)}
+              disabled={loadingAction === `assign_${item._id}`}
+            >
+              <option value="">-- ОБЕРІТЬ ОЦІНЮВАЧА --</option>
+              {reviewers.map((r) => (
+                <option key={r._id} value={r._id}>
+                  {r.name?.toUpperCase()}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="flex items-center gap-1.5 text-[var(--text-gray)] font-mono text-[10px] uppercase font-bold bg-[var(--bg-main)] border border-[var(--border-color)] px-2 py-1.5 rounded-lg w-fit">
+              <Lock size={11} className="text-amber-500" /> Read-only
+            </div>
           )}
         </td>
-      )}
 
-      <td className="px-6 py-4 text-left">
-        <div className="font-bold text-[var(--text-dark)] truncate max-w-[140px]">
-          {item.programId?.title || "Глобальна сторінка"}
-        </div>
-        <div className="text-[9px] text-purple-600 font-black bg-purple-500/5 border border-purple-500/10 px-1.5 py-0.5 rounded-md mt-1 w-fit uppercase tracking-wide">
-          {item.domain || "Всі галузі"}
-        </div>
-      </td>
+        {/* 🟢 КЛЮЧОВИЙ АПГРЕЙД: Блок Експертизи та Рекомендацій */}
+        <td className="px-6 py-4 text-left space-y-1.5">
+          <div className="flex flex-col gap-1 w-fit">
+            {item.reviewStatus === "Завершено" &&
+            item.reviewerRecommendation &&
+            item.reviewerRecommendation !== "Немає" ? (
+              <div
+                className={`flex items-center gap-1 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide rounded-md ${getRecommendationStyle(item.reviewerRecommendation)} cursor-help`}
+                title={
+                  item.reviewerComments
+                    ? `Коментар експерта: "${item.reviewerComments}"`
+                    : "Рецензент не залишив розширеного коментаря"
+                }
+              >
+                <MessageSquare size={10} className="shrink-0" />
+                Експерт: {item.reviewerRecommendation}
+              </div>
+            ) : (
+              <div className="text-[9px] font-mono font-bold text-[var(--text-gray)] bg-[var(--bg-main)] border border-[var(--border-color)] px-2 py-0.5 rounded w-fit uppercase">
+                Рев'ю: {item.reviewStatus || "Не призначено"}
+              </div>
+            )}
+          </div>
 
-      <td className="px-6 py-4 text-left">
-        <select
-          className="bg-[var(--bg-main)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 font-black uppercase tracking-wider text-[11px] text-[var(--text-dark)] cursor-pointer w-full max-w-[160px] outline-hidden focus:border-purple-500 transition-all disabled:opacity-50"
-          value={item.reviewerId?._id || item.reviewerId || ""}
-          onChange={(e) => handleAssignReviewer(item._id, e.target.value)}
-          disabled={loadingAction === `assign_${item._id}`}
-        >
-          <option value="">-- ОБЕРІТЬ ОЦІНЮВАЧА --</option>
-          {reviewers.map((r) => (
-            <option key={r._id} value={r._id}>
-              {r.name?.toUpperCase()}
-            </option>
-          ))}
-        </select>
-      </td>
-
-      <td className="px-6 py-4 text-left">
-        <span
-          className={`px-2.5 py-0.5 border rounded-md text-[9px] font-black uppercase tracking-wider ${getStatusBadgeStyle(item.status)}`}
-        >
-          {item.status || "На розгляді"}
-        </span>
-      </td>
-
-      <td className="px-6 py-4 pr-6 text-right">
-        <div className="flex items-center justify-end gap-1">
-          <button
-            onClick={() => handleUpdateStatus(item._id, "Прийнято")}
-            disabled={
-              loadingAction === `status_${item._id}` ||
-              item.status === "Прийнято"
-            }
-            className="p-2 hover:bg-emerald-500/10 disabled:opacity-40 text-emerald-500 rounded-xl transition-all cursor-pointer"
-            title="Затвердити роботу"
-          >
-            <CheckCircle size={15} />
-          </button>
-          <button
-            onClick={() => handleUpdateStatus(item._id, "Відхилено")}
-            disabled={
-              loadingAction === `status_${item._id}` ||
-              item.status === "Відхилено"
-            }
-            className="p-2 hover:bg-red-500/10 disabled:opacity-40 text-red-500 rounded-xl transition-all cursor-pointer"
-            title="Відхилити роботу"
-          >
-            <XCircle size={15} />
-          </button>
-          {item.fileUrl && (
-            <a
-              href={item.fileUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="p-2 hover:bg-purple-500/10 text-[var(--text-dark)] hover:text-purple-600 rounded-xl transition-all"
-              title="Відкрити / Завантажити документ"
+          <div>
+            <span
+              className={`px-2.5 py-0.5 border rounded-md text-[9px] font-black uppercase tracking-wider ${getStatusBadgeStyle(item.status)}`}
             >
-              <FileDown size={15} />
-            </a>
-          )}
-        </div>
-      </td>
-    </tr>
-  );
+              {item.status || "На розгляді"}
+            </span>
+          </div>
+        </td>
+
+        <td className="px-6 py-4 pr-6 text-right">
+          <div className="flex items-center justify-end gap-1">
+            <button
+              onClick={() => handleUpdateStatus(item._id, "Прийнято")}
+              disabled={
+                loadingAction === `status_${item._id}` ||
+                item.status === "Прийнято" ||
+                !canManageThisRow
+              }
+              className="p-2 hover:bg-emerald-500/10 disabled:opacity-30 disabled:cursor-not-allowed text-emerald-500 rounded-xl transition-all cursor-pointer"
+              title={
+                canManageThisRow
+                  ? "Затвердити роботу"
+                  : "Немає доступу до керування"
+              }
+            >
+              <CheckCircle size={15} />
+            </button>
+            <button
+              onClick={() => handleUpdateStatus(item._id, "Відхилено")}
+              disabled={
+                loadingAction === `status_${item._id}` ||
+                item.status === "Відхилено" ||
+                !canManageThisRow
+              }
+              className="p-2 hover:bg-red-500/10 disabled:opacity-30 disabled:cursor-not-allowed text-red-500 rounded-xl transition-all cursor-pointer"
+              title={
+                canManageThisRow
+                  ? "Відхилити роботу"
+                  : "Немає доступу до керування"
+              }
+            >
+              <XCircle size={15} />
+            </button>
+            {item.fileUrl && (
+              <a
+                href={item.fileUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="p-2 hover:bg-purple-500/10 text-[var(--text-dark)] hover:text-purple-600 rounded-xl transition-all"
+                title="Відкрити / Завантажити документ"
+              >
+                <FileDown size={15} />
+              </a>
+            )}
+          </div>
+        </td>
+      </tr>
+    );
+  };
 
   return (
     <div className="space-y-4 text-left animate-[fadeIn_0.3s_ease-out]">
@@ -280,6 +354,19 @@ export const ProjectsManagement = ({ userRole }) => {
           searchPlaceholder="Пошук дослідження за назвою або ім'ям автора..."
           onReset={handleResetFilters}
           dropdowns={[
+            ...(!isSuperAdmin
+              ? [
+                  {
+                    value: filterAssessment,
+                    onChange: setFilterAssessment,
+                    options: [
+                      "Всі проєкти",
+                      "Потребують оцінювання",
+                      "Внутрішній моніторинг (Read-Only)",
+                    ],
+                  },
+                ]
+              : []),
             {
               value: filterStatus,
               onChange: setFilterStatus,
@@ -297,7 +384,7 @@ export const ProjectsManagement = ({ userRole }) => {
       <div className="w-full">
         <Table
           headers={headers}
-          data={projects}
+          data={filteredProjects}
           renderRow={renderRow}
           isLoading={loading}
         />

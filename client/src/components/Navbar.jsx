@@ -11,6 +11,9 @@ import {
   User,
   ArrowRight,
   Mail,
+  ShieldAlert,
+  FileCheck,
+  FileText,
 } from "lucide-react";
 import { useDarkMode } from "../hooks/useDarkMode";
 import { useAuth } from "../hooks/useAuth";
@@ -26,12 +29,6 @@ const Navbar = () => {
   const { user, logout } = useAuth();
 
   const closeMenu = () => setIsOpen(false);
-
-  const handleProtectedRedirect = () => {
-    setTimeout(() => {
-      closeMenu();
-    }, 50);
-  };
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "unset";
@@ -75,6 +72,7 @@ const Navbar = () => {
     >
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between relative z-[110]">
+          {/* Логотип */}
           <Link
             to="/"
             onClick={closeMenu}
@@ -134,11 +132,11 @@ const Navbar = () => {
             </Button>
 
             {user ? (
-              <div className="flex items-center gap-3">
+              <div className="hidden lg:flex items-center gap-2">
                 <Link
                   to="/profile"
                   onClick={closeMenu}
-                  className="hidden md:flex w-9 h-9 rounded-xl border border-[var(--border-color)] overflow-hidden bg-[var(--bg-card)] items-center justify-center transition-all hover:border-[#6d28d9]"
+                  className="w-9 h-9 rounded-xl border border-[var(--border-color)] overflow-hidden bg-[var(--bg-card)] flex items-center justify-center transition-all hover:border-[#6d28d9]"
                 >
                   {user.image ? (
                     <img
@@ -154,7 +152,7 @@ const Navbar = () => {
                 <Button
                   variant="secondary"
                   onClick={handleLogout}
-                  className="hidden lg:flex p-2.5 rounded-xl text-[var(--text-gray)] hover:text-rose-500 hover:bg-rose-500/5 transition-all duration-300"
+                  className="p-2.5 rounded-xl text-[var(--text-gray)] hover:text-rose-500 hover:bg-rose-500/5 transition-all duration-300"
                   title="Вийти з акаунту"
                 >
                   <LogOut size={16} />
@@ -182,18 +180,38 @@ const Navbar = () => {
         </div>
       </div>
 
+      {/* Спрощене та оптимізоване мобільне меню */}
       <div
-        className={`fixed inset-x-0 top-0 bottom-0 h-[100dvh] bg-[var(--bg-main)] bg-opacity-100 lg:hidden flex flex-col justify-between transition-all duration-500 ease-in-out ${
+        className={`fixed inset-0 h-[100dvh] bg-[var(--bg-main)] flex flex-col justify-between transition-all duration-500 ease-in-out ${
           isOpen
             ? "translate-y-0 opacity-100 visible z-[99999]"
             : "-translate-y-full opacity-0 invisible z-[-1]"
         }`}
       >
-        <div className="flex-1 overflow-y-auto pt-28 px-8 pb-6 space-y-8">
+        <div className="absolute top-0 left-0 right-0 h-20 px-6 flex items-center justify-between border-b border-[var(--border-color)]/40 bg-[var(--bg-main)] z-[100000]">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 border border-[var(--border-color)] rounded-lg flex items-center justify-center bg-[var(--bg-card)]">
+              <GraduationCap size={16} className="text-[#6d28d9]" />
+            </div>
+            <span className="text-xs font-black tracking-widest text-[var(--text-dark)] uppercase"></span>
+          </div>
+
+          <Button
+            variant="secondary"
+            onClick={closeMenu}
+            className="p-2.5 rounded-xl text-[var(--text-dark)] bg-[var(--bg-card)] border border-[var(--border-color)] hover:text-rose-500 transition-colors"
+            aria-label="Close menu"
+          >
+            <X size={20} />
+          </Button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto pt-24 px-8 pb-6 space-y-8">
           <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--text-gray)] border-b border-[var(--border-color)] pb-2">
             Навігація по екосистемі
           </p>
-          <div className="flex flex-col gap-6">
+
+          <div className="flex flex-col gap-5">
             {navLinks.map((link, idx) => {
               const isActive = location.pathname === link.path;
               return (
@@ -201,7 +219,7 @@ const Navbar = () => {
                   key={idx}
                   to={link.path}
                   onClick={closeMenu}
-                  className={`text-3xl font-black uppercase tracking-tighter flex justify-between items-center group py-1 transition-colors ${
+                  className={`text-2xl font-black uppercase tracking-tight flex justify-between items-center group py-0.5 transition-colors ${
                     isActive
                       ? "text-[#6d28d9] dark:text-[#a78bfa]"
                       : "text-[var(--text-dark)]"
@@ -209,78 +227,115 @@ const Navbar = () => {
                 >
                   <span>{link.label}</span>
                   <ArrowRight
-                    size={20}
-                    className={`opacity-40 group-hover:opacity-100 group-hover:translate-x-2 transition-all duration-300 ${isActive ? "text-[#6d28d9] opacity-100" : ""}`}
+                    size={18}
+                    className={`opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300 ${isActive ? "text-[#6d28d9] opacity-100" : ""}`}
                   />
                 </Link>
               );
             })}
           </div>
+
+          {user &&
+            (user.role === "superadmin" ||
+              user.role === "reviewer" ||
+              user.role === "content-manager") && (
+              <div className="pt-4 space-y-3">
+                <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--text-gray)] border-b border-[var(--border-color)] pb-2 mb-1">
+                  Термінали керування
+                </p>
+
+                {user.role === "superadmin" && (
+                  <button
+                    onClick={() => {
+                      closeMenu();
+                      navigate("/superadmin");
+                    }}
+                    className="w-full px-4 py-3 bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider italic transition-all active:scale-98 flex items-center gap-2.5 shadow-md shadow-amber-500/10"
+                  >
+                    <ShieldAlert size={14} /> SuperAdmin Панель
+                  </button>
+                )}
+
+                {(user.role === "superadmin" || user.role === "reviewer") && (
+                  <button
+                    onClick={() => {
+                      closeMenu();
+                      navigate("/reviewer");
+                    }}
+                    className="w-full px-4 py-3 bg-purple-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider italic transition-all active:scale-98 flex items-center gap-2.5 shadow-md shadow-purple-600/10"
+                  >
+                    <FileCheck size={14} /> Панель рецензента
+                  </button>
+                )}
+
+                {(user.role === "superadmin" ||
+                  user.role === "content-manager") && (
+                  <button
+                    onClick={() => {
+                      closeMenu();
+                      navigate("/content-panel");
+                    }}
+                    className="w-full px-4 py-3 bg-purple-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider italic transition-all active:scale-98 flex items-center gap-2.5 shadow-md shadow-purple-600/10"
+                  >
+                    <FileText size={14} /> Менеджер контенту
+                  </button>
+                )}
+              </div>
+            )}
         </div>
 
-        <div className="p-8 pb-12 border-t border-[var(--border-color)] bg-[var(--bg-main)] bg-opacity-100 shadow-[0_-10px_30px_rgba(0,0,0,0.03)] relative z-20">
+        <div className="p-8 pb-10 border-t border-[var(--border-color)] bg-[var(--bg-card)]/40 backdrop-blur-md">
           {user ? (
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl border border-[var(--border-color)] overflow-hidden bg-[var(--bg-card)] flex items-center justify-center shrink-0">
-                  {user.image ? (
-                    <img
-                      src={user.image}
-                      alt="Avatar"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <User size={20} className="text-[var(--text-dark)]" />
-                  )}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+              <Link
+                to="/profile"
+                onClick={closeMenu}
+                className="flex items-center gap-3 group min-w-0"
+              >
+                <div className="w-9 h-9 rounded-xl border border-[var(--border-color)] flex items-center justify-center bg-[var(--bg-main)] shrink-0 font-bold text-xs text-[var(--text-dark)] group-hover:border-[#6d28d9] transition-colors">
+                  <User size={14} />
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-[var(--text-gray)]">
-                    Авторизовано як
+                  <span className="text-[8px] font-black uppercase tracking-wider text-[var(--text-gray)]">
+                    Кабінет
                   </span>
-                  <span className="text-base font-bold text-[var(--text-dark)] truncate">
+                  <span className="text-sm font-bold text-[var(--text-dark)] truncate">
                     {user.name}
                   </span>
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <Link
-                  to="/profile"
-                  onClick={handleProtectedRedirect}
-                  className="py-3.5 bg-[var(--bg-card)] border border-[var(--border-color)] text-center text-[10px] font-black uppercase tracking-widest rounded-xl text-[var(--text-dark)] active:scale-98 transition-transform"
-                >
-                  Кабінет
-                </Link>
-                <Button
-                  variant="danger"
-                  onClick={handleLogout}
-                  className="w-full py-3.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all active:scale-98"
-                >
-                  Вийти
-                </Button>
-              </div>
+              </Link>
+
+              <Button
+                variant="danger"
+                onClick={handleLogout}
+                className="py-3 px-5 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2"
+              >
+                <LogOut size={12} /> Вийти з системи
+              </Button>
             </div>
           ) : (
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <Link
                 to="/login"
                 onClick={closeMenu}
-                className="flex-1 py-4 border border-[var(--border-color)] text-[var(--text-dark)] text-center text-[10px] font-black uppercase tracking-widest rounded-xl bg-[var(--bg-card)]"
+                className="py-3.5 border border-[var(--border-color)] text-[var(--text-dark)] text-center text-[9px] font-black uppercase tracking-widest rounded-xl bg-[var(--bg-main)] hover:border-[#6d28d9] transition-colors"
               >
                 Увійти
               </Link>
               <Link
                 to="/register"
                 onClick={closeMenu}
-                className="flex-1 py-4 bg-[#6d28d9] text-white text-center text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-purple-500/10"
+                className="py-3.5 bg-[#6d28d9] text-white text-center text-[9px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-purple-500/10"
               >
                 Реєстрація
               </Link>
             </div>
           )}
 
-          <div className="mt-6 pt-4 border-t border-[var(--border-color)]/60 flex justify-between items-center text-[9px] text-[var(--text-gray)] font-medium">
-            <span className="flex items-center gap-1.5">
-              <Mail size={12} /> support@scienceplatform.edu
+          <div className="mt-6 pt-4 border-t border-[var(--border-color)]/50 flex justify-between items-center text-[8px] text-[var(--text-gray)] font-bold tracking-wide">
+            <span className="flex items-center gap-1">
+              <Mail size={10} className="text-[#6d28d9]" />{" "}
+              support@scienceplatform.edu
             </span>
             <span>v2.0</span>
           </div>

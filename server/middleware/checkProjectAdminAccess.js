@@ -9,18 +9,19 @@ const checkProjectAdminAccess = async (req, res, next) => {
       const project = await Project.findById(req.params.id).populate(
         "programId",
       );
+
       if (!project) {
         return res.status(404).json({ error: "Проєкт не знайдено" });
       }
 
-      if (
-        !project.programId.organizationId ||
-        project.programId.organizationId.toString() !==
-          req.user.organizationId.toString()
-      ) {
-        return res
-          .status(403)
-          .json({ error: "Цей проєкт належить програмі іншої організації" });
+      const programOrgId = project.programId?.organizationId;
+      const userOrgId = req.user.organizationId;
+
+      if (!programOrgId || programOrgId.toString() !== userOrgId.toString()) {
+        return res.status(403).json({
+          error:
+            "Доступ заборонено: цей проєкт належить конкурсу іншої установи",
+        });
       }
 
       return next();
