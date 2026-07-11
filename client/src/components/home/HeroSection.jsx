@@ -1,26 +1,16 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect } from "react";
-import axiosInstance from "../../api/axios";
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
 import { Button } from "../ui/Button";
 import { ArrowUpRight, Shield, Search, Award, CheckCircle } from "lucide-react";
 
 const HeroSection = () => {
-  const [isAuth, setIsAuth] = useState(false);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const res = await axiosInstance.get("/users/me");
-        if (res.status === 200) setIsAuth(true);
-      } catch (err) {
-        setIsAuth(false);
-      }
-    };
-    checkAuth();
-  }, []);
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   const handleStart = () => {
-    window.location.href = isAuth ? "/profile" : "/register";
+    navigate(isAuthenticated ? "/profile" : "/register");
   };
 
   return (
@@ -30,26 +20,25 @@ const HeroSection = () => {
 
       <div className="max-w-7xl w-full mx-auto px-4 md:px-6 relative z-10">
         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-8">
+          {/* ЛІВА ЧАСТИНА */}
           <div className="w-full lg:w-1/2 flex flex-col space-y-6 text-left items-start">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-600/10 border border-purple-500/20 text-purple-600 rounded-full text-[10px] font-black uppercase tracking-widest animate-[pulse_3s_infinite]">
               <span className="flex h-1.5 w-1.5 rounded-full bg-purple-600" />
               Open Science Platform
             </div>
 
-            {/* Величний заголовок */}
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tight text-[var(--text-dark)] leading-[0.95]">
-              Знайдіть <br />
+              Простір <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-indigo-500 to-purple-600 bg-[size:200%] animate-[marquee_5s_linear_infinite]">
-                фінансування
+                відкритої науки
               </span>{" "}
-              <br />
-              для публікацій
+              <br />в Україні
             </h1>
 
-            <p className="text-xs md:text-sm font-medium text-[var(--text-gray)] leading-relaxed max-w-xl">
-              Єдиний відкритий агрегатор актуальних міжнародних грантів,
-              стипендій та провідних фахових видань, адаптований для української
-              наукової спільноти.
+            <p className="text-xs md:text-sm font-medium text-[var(--text-gray)] leading-relaxed max-w-xl text-left">
+              Єдиний цифровий хаб, що об'єднує наукові гранти, фахові видання,
+              профільні курси, відкриті датасети та міжнародні конференції в
+              єдину екосистему взаємодії.
             </p>
 
             <div className="flex flex-wrap gap-4 pt-2">
@@ -66,15 +55,12 @@ const HeroSection = () => {
               </Button>
 
               <Button
-                onClick={() => {
-                  const element = document.getElementById("explorer");
-                  element?.scrollIntoView({ behavior: "smooth" });
-                }}
+                onClick={() => navigate("/programs")}
                 variant="outline"
                 size="lg"
-                className="font-bold tracking-wider uppercase border-[var(--border-color)] text-[var(--text-dark)] hover:bg-[var(--border-color)]/20 rounded-xl"
+                className="font-bold tracking-wider uppercase..."
               >
-                Переглянути активні конкурси
+                Дослідити можливості
               </Button>
             </div>
 
@@ -156,8 +142,8 @@ const HeroSection = () => {
 
       <style>{`
         @keyframes marquee {
-          0% { bg-position: 0% 50%; }
-          100% { bg-position: 200% 50%; }
+          0% { background-position: 0% 50%; }
+          100% { background-position: 200% 50%; }
         }
       `}</style>
     </section>

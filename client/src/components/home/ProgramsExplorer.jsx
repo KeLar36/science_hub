@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useMemo } from "react";
 import { BookOpen, Loader2 } from "lucide-react";
-import axiosInstance from "../../api/axios"; // підкоригуй шлях, якщо потрібно
+import axiosInstance from "../../api/axios";
 import UniversalFilters from "../UniversalFilters";
 import UniversalCard from "../ui/UniversalCard";
 import { Pagination } from "../ui/Pagination";
@@ -22,7 +22,6 @@ const ProgramsExplorer = () => {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(searchTerm);
-      setPage(1);
     }, 400);
 
     return () => clearTimeout(handler);
@@ -30,26 +29,30 @@ const ProgramsExplorer = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [selectedDomain, selectedType]);
+  }, [debouncedSearch, selectedDomain, selectedType]);
 
-  const fetchPrograms = async (currentPage) => {
+  // 3. Ізольована функція запиту
+  const fetchPrograms = async (
+    currentPage,
+    currentSearch,
+    currentType,
+    currentDomain,
+  ) => {
     try {
       setLoading(true);
-
       let url = `/programs?page=${currentPage}&limit=9`;
 
-      if (debouncedSearch.trim()) {
-        url += `&search=${encodeURIComponent(debouncedSearch.trim())}`;
+      if (currentSearch.trim()) {
+        url += `&search=${encodeURIComponent(currentSearch.trim())}`;
       }
-      if (selectedType !== "Всі типи") {
-        url += `&type=${encodeURIComponent(selectedType)}`;
+      if (currentType !== "Всі типи") {
+        url += `&type=${encodeURIComponent(currentType)}`;
       }
-      if (selectedDomain !== "Всі галузі") {
-        url += `&domain=${encodeURIComponent(selectedDomain)}`;
+      if (currentDomain !== "Всі галузі") {
+        url += `&domain=${encodeURIComponent(currentDomain)}`;
       }
 
       const res = await axiosInstance.get(url);
-
       setItems(res.data.programs || []);
       setTotalPages(res.data.totalPages || 1);
     } catch (err) {
@@ -60,9 +63,10 @@ const ProgramsExplorer = () => {
   };
 
   useEffect(() => {
-    fetchPrograms(page);
-  }, [page, debouncedSearch, selectedDomain, selectedType]);
+    fetchPrograms(page, debouncedSearch, selectedType, selectedDomain);
+  }, [page, debouncedSearch, selectedType, selectedDomain]);
 
+  // Розрахунок терміновості програм
   const programsWithUrgency = useMemo(() => {
     const now = new Date();
     return items.map((prog) => {
@@ -98,9 +102,9 @@ const ProgramsExplorer = () => {
   };
 
   return (
-    <section className="max-w-7xl mx-auto px-4 md:px-6 py-16 flex flex-col gap-8">
+    <section className="max-w-7xl mx-auto px-4 md:px-6 py-16 flex flex-col gap-8 text-left">
       <div>
-        <h2 className="text-xl font-black uppercase tracking-tight text-[var(--text-dark)] text-left">
+        <h2 className="text-xl font-black uppercase tracking-tight text-[var(--text-dark)]">
           ⚡ Актуальні можливості
         </h2>
       </div>

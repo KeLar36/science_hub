@@ -1,34 +1,9 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect } from "react";
-import axiosInstance from "../../api/axios";
+import React from "react";
 
-const PartnersSection = () => {
-  const [partnerNames, setPartnerNames] = useState([]);
-
-  useEffect(() => {
-    const fetchApprovedOrgs = async () => {
-      try {
-        const response = await axiosInstance.get("/organizations/public/list");
-        const orgs = response.data || [];
-
-        if (Array.isArray(orgs) && orgs.length > 0) {
-          const names = orgs.map((org) => org.name);
-          setPartnerNames(names);
-        }
-      } catch (err) {
-        console.error(
-          "💥 Не вдалося завантажити реальних партнерів з бази:",
-          err,
-        );
-      }
-    };
-
-    fetchApprovedOrgs();
-  }, []);
-
+const PartnersSection = ({ organizations = [] }) => {
   const displayPartners =
-    partnerNames.length > 0
-      ? partnerNames
+    organizations.length > 0
+      ? organizations.map((org) => org.name)
       : [
           "МОН України",
           "НАН України",

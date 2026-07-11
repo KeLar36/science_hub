@@ -32,6 +32,7 @@ const RulesPage = lazy(() => import("./pages/RulesPage"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const ArchivePage = lazy(() => import("./pages/ArchivePage"));
+const ProgramsPage = lazy(() => import("./pages/ProgramsPage"));
 
 const PageLoader = () => (
   <div className="min-h-screen bg-[var(--bg-main)] flex items-center justify-center">
@@ -74,6 +75,7 @@ function AppContent() {
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/programs" element={<ProgramsPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />

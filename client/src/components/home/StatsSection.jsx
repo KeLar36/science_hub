@@ -1,59 +1,16 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect } from "react";
-import axiosInstance from "../../api/axios";
-import { BookOpen, Award, Globe, Loader2 } from "lucide-react";
+import React from "react";
+import { BookOpen, Award, Globe } from "lucide-react";
 
-const StatsSection = () => {
-  const [stats, setStats] = useState({
-    programsCount: 0,
-    orgsCount: 0,
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-
-        const [programsRes, orgsRes] = await Promise.all([
-          axiosInstance.get("/programs?page=1&limit=1"),
-          axiosInstance.get("/organizations/public/list"),
-        ]);
-
-        // Дістаємо total або count, залежно від структури респонсу твого беку
-        const totalPrograms =
-          programsRes.data?.totalItems ||
-          programsRes.data?.programs?.length ||
-          0;
-        const totalOrgs = Array.isArray(orgsRes.data) ? orgsRes.data.length : 0;
-
-        setStats({
-          programsCount: totalPrograms,
-          orgsCount: totalOrgs,
-        });
-      } catch (err) {
-        console.error("💥 Не вдалося завантажити статистику платформи:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, []);
-
+const StatsSection = ({ totalPrograms = 0, totalOrganizations = 0 }) => {
   return (
-    <section className="border-y border-[var(--border-color)] bg-[var(--bg-card)]/50 backdrop-blur-xs py-12">
-      <div className="max-w-7xl mx-auto px-4 md:px-6 grid grid-cols-1 sm:grid-cols-3 gap-8 text-center relative">
+    <section className="border-y border-[var(--border-color)] bg-[var(--bg-card)]/50 backdrop-blur-xs py-12 text-center">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 grid grid-cols-1 sm:grid-cols-3 gap-8 relative">
         <div className="space-y-1">
           <div className="flex justify-center text-purple-600 dark:text-purple-400 mb-2">
             <Award size={24} />
           </div>
           <div className="text-3xl font-black tracking-tight text-[var(--text-dark)] font-mono min-h-[36px] flex items-center justify-center">
-            {loading ? (
-              <Loader2 size={18} className="animate-spin text-purple-600/50" />
-            ) : (
-              `${stats.programsCount}+`
-            )}
+            {totalPrograms > 0 ? `${totalPrograms}+` : "12+"}
           </div>
           <div className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-gray)]">
             Активних можливостей
@@ -65,11 +22,7 @@ const StatsSection = () => {
             <BookOpen size={24} />
           </div>
           <div className="text-3xl font-black tracking-tight text-[var(--text-dark)] font-mono min-h-[36px] flex items-center justify-center">
-            {loading ? (
-              <Loader2 size={18} className="animate-spin text-purple-600/50" />
-            ) : (
-              `${stats.orgsCount || "5+"}`
-            )}
+            {totalOrganizations > 0 ? `${totalOrganizations}+` : "8+"}
           </div>
           <div className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-gray)]">
             Зареєстрованих ЗВО / НДІ

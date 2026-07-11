@@ -19,7 +19,6 @@ export default function ArchivePage() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDomain, setSelectedDomain] = useState("Всі галузі");
-  // 🟣 1. Новий стейт для фільтрації за типом матеріалу
   const [selectedType, setSelectedType] = useState("Всі типи");
 
   const fetchArchiveData = useCallback(async () => {
@@ -41,7 +40,7 @@ export default function ArchivePage() {
     } finally {
       setLoading(false);
     }
-  }, []); // Якщо архів має оновлюватися, додай сюди залежності, якщо вони є
+  }, []);
 
   useEffect(() => {
     fetchArchiveData();

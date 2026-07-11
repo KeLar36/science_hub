@@ -19,30 +19,38 @@ export const AuthProvider = ({ children }) => {
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const isChecking = useRef(false);
 
-  const checkAuth = useCallback(
-    async (force = false) => {
-      if (isChecking.current || (isAuthChecked && !force)) return;
-      isChecking.current = true;
+  const checkAuth = useCallback(async (force = false) => {
+    if (isChecking.current) return;
 
-      try {
-        const res = await axios.get("/users/me");
-
-        if (res.data && res.data.user) {
-          setUser(res.data.user);
-        } else {
-          setUser(null);
-        }
-      } catch (err) {
-        console.error("Помилка авторизації в контексті:", err);
-        setUser(null);
-      } finally {
-        setLoading(false);
-        setIsAuthChecked(true);
-        isChecking.current = false;
+    let shouldSkip = false;
+    setIsAuthChecked((prev) => {
+      if (prev && !force) {
+        shouldSkip = true;
       }
-    },
-    [isAuthChecked],
-  );
+      return prev;
+    });
+
+    if (shouldSkip) return;
+
+    isChecking.current = true;
+
+    try {
+      const res = await axios.get("/users/me");
+
+      if (res.data && res.data.user) {
+        setUser(res.data.user);
+      } else {
+        setUser(null);
+      }
+    } catch (err) {
+      console.error("Помилка авторизації в контексті:", err);
+      setUser(null);
+    } finally {
+      setLoading(false);
+      setIsAuthChecked(true);
+      isChecking.current = false;
+    }
+  }, []);
 
   useEffect(() => {
     checkAuth();
