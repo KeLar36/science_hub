@@ -21,20 +21,12 @@ export default function JoinOrganizationModal({
   const [submittingId, setSubmittingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchOrganizations();
-    }
-  }, [isOpen]);
-
   const fetchOrganizations = async () => {
     setLoading(true);
     try {
       const response = await axiosInstance.get("/organizations/public/list");
-      const approvedOrgs = (response.data || []).filter(
-        (org) => org.status === "approved",
-      );
-      setOrganizations(approvedOrgs);
+      const orgsList = response.data || [];
+      setOrganizations(orgsList);
     } catch (err) {
       toast.error(
         err.response?.data?.error ||
@@ -44,6 +36,12 @@ export default function JoinOrganizationModal({
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchOrganizations();
+    }
+  }, [isOpen]);
 
   const handleJoin = async (orgId) => {
     setSubmittingId(orgId);

@@ -23,6 +23,8 @@ class ProgramController {
       }
       if (req.query.status) {
         query.active = req.query.status === "active";
+      } else {
+        query.active = true;
       }
 
       if (req.user?.role === "admin") {
@@ -199,8 +201,36 @@ class ProgramController {
 
   async deletePermanent(req, res, next) {
     try {
-      await programService.deletePermanent(req.params.id);
-      res.json({ message: "Програму видалено назавжди" });
+      await programService.delete(req.params.id);
+      res.json({
+        message:
+          "Програму та всі пов'язані з нею документи успішно видалено назавжди",
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async handleDeadline(req, res, next) {
+    try {
+      const { id } = req.params;
+      await programService.handleDeadlineReached(id);
+      res.json({ message: "Прийом заявок зупинено, чернетки очищено." });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async forceCleanup(req, res, next) {
+    try {
+      const { id } = req.params;
+
+      await programService.finalCleanupAndClose(id);
+
+      res.json({
+        message:
+          "Програму остаточно закрито. Неприйняті файли видалено з Cloudinary.",
+      });
     } catch (err) {
       next(err);
     }

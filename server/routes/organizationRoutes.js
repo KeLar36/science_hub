@@ -2,16 +2,16 @@ const express = require("express");
 const router = express.Router();
 const organizationController = require("../controllers/organizationController");
 const { verifyToken, checkRole } = require("../middleware/auth");
+const upload = require("../middleware/upload");
 
-router.get("/public/list", organizationController.getPublicList);
-router.post("/create", verifyToken, organizationController.create);
-router.post("/join", verifyToken, organizationController.requestToJoin);
 router.get(
-  "/all",
-  verifyToken,
-  checkRole(["superadmin"]),
-  organizationController.getAll,
+  "/public/list",
+  upload.single("logo"),
+  organizationController.getPublicList,
 );
+router.post("/create", verifyToken, organizationController.create);
+router.post("/join", verifyToken, organizationController.joinRequest);
+router.post("/leave", verifyToken, organizationController.leave);
 
 router.get(
   "/requests/pending",
@@ -20,18 +20,25 @@ router.get(
   organizationController.getPendingRequests,
 );
 
+router.get(
+  "/all",
+  verifyToken,
+  checkRole(["superadmin"]),
+  organizationController.getAll,
+);
+
 router.post(
   "/requests/accept/:userId",
   verifyToken,
   checkRole(["admin", "superadmin"]),
-  organizationController.acceptJoinRequest,
+  organizationController.acceptRequest,
 );
 
 router.post(
   "/requests/reject/:userId",
   verifyToken,
   checkRole(["admin", "superadmin"]),
-  organizationController.rejectJoinRequest,
+  organizationController.rejectRequest,
 );
 
 router.get(
@@ -48,13 +55,27 @@ router.get(
   organizationController.getOrganizationPrograms,
 );
 
-router.get("/:id", verifyToken, organizationController.getById);
+router.post(
+  "/:id/kick",
+  verifyToken,
+  checkRole(["admin", "superadmin"]),
+  organizationController.kick,
+);
 
 router.patch(
   "/:id/status",
   verifyToken,
   checkRole(["superadmin"]),
   organizationController.updateStatus,
+);
+
+router.get("/:id", verifyToken, organizationController.getById);
+
+router.delete(
+  "/:id",
+  verifyToken,
+  checkRole(["superadmin", "admin"]),
+  organizationController.delete,
 );
 
 module.exports = router;

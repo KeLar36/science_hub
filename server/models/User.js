@@ -65,6 +65,7 @@ const UserSchema = new mongoose.Schema(
   {
     collection: "users",
     timestamps: true,
+    discriminatorKey: "role",
   },
 );
 
@@ -82,4 +83,28 @@ UserSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-module.exports = mongoose.model("User", UserSchema);
+const User = mongoose.model("User", UserSchema);
+
+const ReviewerDiscriminator = User.discriminator(
+  "reviewer",
+  new mongoose.Schema({
+    allowedDomains: {
+      type: [String],
+      default: [],
+    },
+    allowedTypes: {
+      type: [String],
+      default: [],
+      validate: {
+        validator: function (v) {
+          const Program = mongoose.model("Program");
+          const validTypes = Object.keys(Program.discriminators || {});
+          return v.every((type) => validTypes.includes(type));
+        },
+        message: "Обраний тип програми не існує в системній моделі програм!",
+      },
+    },
+  }),
+);
+
+module.exports = User;

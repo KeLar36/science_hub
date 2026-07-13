@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "../api/axios";
+import { useAuth } from "../hooks/useAuth";
 import toast, { Toaster } from "react-hot-toast";
 import {
   FileText,
@@ -13,45 +14,33 @@ import {
   User,
   ShieldCheck,
   Inbox,
+  Bookmark,
+  Layers,
 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
 const ReviewerPage = () => {
+  const { user } = useAuth();
   const [myProjects, setMyProjects] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [activeCommentId, setActiveCommentId] = useState(null);
   const [commentText, setCommentText] = useState("");
 
-  const userData = useMemo(() => {
-    try {
-      const savedUser = localStorage.getItem("user");
-      const token = localStorage.getItem("token");
-      const parsedUser = savedUser ? JSON.parse(savedUser) : null;
-
-      return {
-        user: parsedUser,
-        userId: parsedUser?._id || parsedUser?.id,
-        token,
-      };
-    } catch (e) {
-      console.error("Помилка парсингу користувача:", e);
-      return { user: null, userId: null, token: null };
-    }
-  }, []);
-
   const loadMyAssignments = async () => {
     try {
       setLoading(true);
-
       const res = await axios.get("/projects/reviewer/queue", {
         withCredentials: true,
       });
 
-      const activeProjects = res.data.filter(
+      // Безпечний мапінг респонсу
+      const data = Array.isArray(res.data) ? res.data : [];
+
+      const activeProjects = data.filter(
         (proj) =>
-          proj.status === "На розгляді" || proj.status === "На доопрацюванні",
+          proj?.status === "На розгляді" || proj?.status === "На доопрацюванні",
       );
       setMyProjects(activeProjects);
     } catch (err) {
@@ -60,7 +49,6 @@ const ReviewerPage = () => {
       if (err.response?.status !== 404) {
         const errorMessage =
           err.response?.data?.message || "Не вдалося завантажити чергу";
-
         toast.error(errorMessage);
       }
     } finally {
@@ -69,10 +57,12 @@ const ReviewerPage = () => {
   };
 
   useEffect(() => {
-    if (userData.userId) {
+    if (user?._id || user?.id) {
       loadMyAssignments();
+    } else if (user === null) {
+      setLoading(false);
     }
-  }, [userData.userId]);
+  }, [user]);
 
   const handleSubmitDecision = async (projectId, newStatus) => {
     if (
@@ -83,7 +73,7 @@ const ReviewerPage = () => {
       return;
     }
 
-    const { token } = userData;
+    const token = localStorage.getItem("token");
 
     const decisionPromise = axios.patch(
       `/projects/${projectId}/review`,
@@ -111,45 +101,103 @@ const ReviewerPage = () => {
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--bg-main)] transition-colors duration-500">
+    <div className="min-h-screen flex flex-col bg-[var(--bg-main)] transition-colors duration-500 text-left">
       <Toaster position="bottom-right" />
       <Navbar />
 
       <main className="flex-grow max-w-6xl mx-auto w-full py-12 px-6 mt-20">
-        <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-12 border-b border-[var(--border-color)] pb-10">
-          <div>
-            <div className="flex items-center gap-2 text-[var(--purple-main)] mb-2">
-              <ShieldCheck size={18} />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em]">
-                Expert Terminal v.2.0
-              </span>
+        <div className="flex flex-col gap-8 mb-12 border-b border-[var(--border-color)] pb-10">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 w-full">
+            <div>
+              <div className="flex items-center gap-2 text-purple-600 mb-2">
+                <ShieldCheck size={18} />
+                <span className="font-mono text-[10px] font-black uppercase tracking-[0.2em]">
+                  Expert Terminal v.2.2
+                </span>
+              </div>
+              <h1 className="text-4xl md:text-5xl font-black text-[var(--text-dark)] tracking-tight uppercase italic leading-none">
+                Рецензування<span className="text-purple-600">.</span>
+              </h1>
+              <p className="text-[var(--text-gray)] font-bold mt-3 max-w-sm text-sm">
+                Аналіз та верифікація наукових праць. Активних завдань:{" "}
+                <span className="text-[var(--text-dark)] font-black">
+                  {myProjects.length}
+                </span>
+                .
+              </p>
             </div>
-            <h1 className="text-4xl md:text-5xl font-black text-[var(--text-dark)] tracking-tight uppercase italic leading-none">
-              Рецензування<span className="text-[var(--purple-main)]">.</span>
-            </h1>
-            <p className="text-[var(--text-gray)] font-bold mt-3 max-w-sm text-sm">
-              Аналіз та верифікація наукових праць. Активних завдань:{" "}
-              {myProjects.length}.
-            </p>
+
+            <div className="relative w-full md:w-80 group">
+              <Search
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-gray)] group-focus-within:text-purple-600 transition-colors"
+                size={18}
+              />
+              <input
+                type="text"
+                placeholder="Пошук за назвою..."
+                className="w-full py-4 pl-12 pr-4 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl text-sm font-medium outline-none focus:border-purple-600 focus:ring-4 focus:ring-purple-500/5 transition-all shadow-sm"
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
           </div>
 
-          <div className="relative w-full md:w-80 group">
-            <Search
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-gray)] group-focus-within:text-[var(--purple-main)] transition-colors"
-              size={18}
-            />
-            <input
-              type="text"
-              placeholder="Пошук за назвою..."
-              className="w-full py-4 pl-12 pr-4 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl text-sm font-medium outline-none focus:border-[var(--purple-main)] focus:ring-4 focus:ring-purple-500/5 transition-all shadow-sm"
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+          {user?.role === "reviewer" && (
+            <div className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-3xl grid grid-cols-1 md:grid-cols-12 gap-6 items-start relative overflow-hidden animate-[fadeIn_0.3s_ease-out]">
+              {/* Дозволені типи програм (з дискримінатора) */}
+              <div className="md:col-span-4 space-y-2.5 text-left">
+                <div className="flex items-center gap-2 text-[var(--text-gray)] font-mono text-[9px] font-black uppercase tracking-wider">
+                  <Layers size={12} className="text-purple-600" />
+                  Акредитовані формати ({user.allowedTypes?.length || 0})
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {user.allowedTypes && user.allowedTypes.length > 0 ? (
+                    user.allowedTypes.map((type) => (
+                      <span
+                        key={type}
+                        className="px-2.5 py-1 bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-dark)] font-black uppercase text-[8px] tracking-wider rounded-lg shadow-xs"
+                      >
+                        {type}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-[var(--text-gray)] font-bold italic opacity-60">
+                      Формати не налаштовано адмініструванням
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="hidden md:block md:col-span-1 justify-self-center h-12 w-px bg-[var(--border-color)]" />
+
+              <div className="md:col-span-7 space-y-2.5 text-left">
+                <div className="flex items-center gap-2 text-[var(--text-gray)] font-mono text-[9px] font-black uppercase tracking-wider">
+                  <Bookmark size={12} className="text-purple-600" />
+                  Профільні наукові напрями ({user.allowedDomains?.length || 0})
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {user.allowedDomains && user.allowedDomains.length > 0 ? (
+                    user.allowedDomains.map((domain) => (
+                      <span
+                        key={domain}
+                        className="px-2.5 py-1 bg-purple-600/5 border border-purple-500/10 text-purple-600 font-bold text-[10px] rounded-lg"
+                      >
+                        {domain}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-[var(--text-gray)] font-bold italic opacity-60">
+                      Галузі знань не закріплено
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-32">
-            <div className="w-12 h-12 border-4 border-[var(--border-color)] border-t-[var(--purple-main)] rounded-full animate-spin"></div>
+            <div className="w-12 h-12 border-4 border-[var(--border-color)] border-t-purple-600 rounded-full animate-spin"></div>
             <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-[var(--text-gray)]">
               Синхронізація даних...
             </p>
@@ -184,16 +232,16 @@ const ReviewerPage = () => {
                         >
                           {proj.status}
                         </span>
-                        <span className="text-[var(--purple-main)] text-[10px] font-black uppercase tracking-widest bg-purple-50 px-3 py-1 rounded-lg">
+                        <span className="text-purple-600 text-[10px] font-black uppercase tracking-widest bg-purple-50 px-3 py-1 rounded-lg">
                           {proj.domain}
                         </span>
                       </div>
 
-                      <h3 className="text-2xl md:text-3xl font-black text-[var(--text-dark)] leading-tight tracking-tight uppercase italic group-hover:text-[var(--purple-main)] transition-colors">
+                      <h3 className="text-2xl md:text-3xl font-black text-[var(--text-dark)] leading-tight tracking-tight uppercase italic group-hover:text-purple-600 transition-colors">
                         {proj.title}
                       </h3>
 
-                      <div className="flex items-center gap-3 py-2 border-l-2 border-[var(--purple-main)] pl-4">
+                      <div className="flex items-center gap-3 py-2 border-l-2 border-purple-600 pl-4">
                         <div className="w-10 h-10 bg-[var(--bg-main)] rounded-xl flex items-center justify-center border border-[var(--border-color)]">
                           <User size={20} className="text-[var(--text-dark)]" />
                         </div>
@@ -220,7 +268,7 @@ const ReviewerPage = () => {
                         href={proj.fileUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex items-center justify-center gap-2 bg-[var(--text-dark)] text-white p-4 rounded-xl font-bold text-xs hover:bg-[var(--purple-main)] transition-all shadow-lg"
+                        className="flex items-center justify-center gap-2 bg-[var(--text-dark)] text-white p-4 rounded-xl font-bold text-xs hover:bg-purple-600 transition-all shadow-lg"
                       >
                         <FileDown size={16} /> Читати документ
                       </a>
@@ -235,7 +283,7 @@ const ReviewerPage = () => {
                         className={`flex items-center justify-center gap-2 p-4 rounded-xl font-bold text-xs border transition-all ${
                           activeCommentId === proj._id
                             ? "bg-rose-50 border-rose-200 text-rose-500"
-                            : "bg-white border-[var(--border-color)] text-[var(--text-dark)] hover:border-[var(--purple-main)]"
+                            : "bg-white border-[var(--border-color)] text-[var(--text-dark)] hover:border-purple-600"
                         }`}
                       >
                         {activeCommentId === proj._id ? (
@@ -253,12 +301,12 @@ const ReviewerPage = () => {
                   {activeCommentId === proj._id && (
                     <div className="mt-10 pt-10 border-t border-[var(--border-color)] animate-in fade-in slide-in-from-top-4 duration-500">
                       <div className="max-w-3xl">
-                        <label className="text-[10px] font-black text-[var(--purple-main)] uppercase tracking-[0.2em] mb-4 block">
+                        <label className="text-[10px] font-black text-purple-600 uppercase tracking-[0.2em] mb-4 block">
                           Експертний висновок (обов'язково для
                           відхилення/доопрацювання)
                         </label>
                         <textarea
-                          className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-2xl p-6 text-sm font-bold outline-none focus:border-[var(--purple-main)] transition-all min-h-[150px] placeholder:opacity-30"
+                          className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-2xl p-6 text-sm font-bold outline-none focus:border-purple-600 transition-all min-h-[150px] placeholder:opacity-30"
                           placeholder="Напишіть ваші зауваження до роботи..."
                           value={commentText}
                           onChange={(e) => setCommentText(e.target.value)}
@@ -277,7 +325,7 @@ const ReviewerPage = () => {
                             onClick={() =>
                               handleSubmitDecision(proj._id, "На доопрацюванні")
                             }
-                            className="flex items-center justify-center gap-2 bg-amber-500 text-white py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-amber-600 transition-all"
+                            className="flex items-center justify-center gap-2 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-500 hover:text-white transition-all duration-300 cursor-pointer shadow-xs"
                           >
                             <Clock size={14} /> Доопрацювання
                           </button>

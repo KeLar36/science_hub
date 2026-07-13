@@ -1,7 +1,26 @@
 const User = require("../models/User");
 const Post = require("../models/Post");
+const cloudinary = require("cloudinary").v2;
 
 class PostService {
+  async #deleteImageFromCloudinary(imageUrl) {
+    if (!imageUrl || !imageUrl.includes("cloudinary.com")) return;
+    try {
+      const parts = imageUrl.split("/upload/");
+      if (parts.length < 2) return;
+
+      const publicIdWithExtension = parts[1].replace(/^v\d+\//, "");
+      const publicId = publicIdWithExtension.substring(
+        0,
+        publicIdWithExtension.lastIndexOf("."),
+      );
+
+      await cloudinary.uploader.destroy(publicId);
+    } catch (err) {
+      console.error("💥 Помилка видалення обкладинки з Cloudinary:", err);
+    }
+  }
+
   async getAll(category, page = 1, limit = 8) {
     let query = { status: "published" };
     if (category && category !== "Всі") {
@@ -65,6 +84,10 @@ class PostService {
     };
 
     if (filePath) {
+      const currentPost = await Post.findById(id).select("coverImage");
+      if (currentPost && currentPost.coverImage) {
+        await this.#deleteImageFromCloudinary(currentPost.coverImage);
+      }
       updateData.coverImage = filePath;
     }
 
@@ -84,12 +107,19 @@ class PostService {
   }
 
   async delete(id) {
-    const deletedPost = await Post.findByIdAndDelete(id);
-    if (!deletedPost) {
+    const post = await Post.findById(id).select("coverImage");
+    if (!post) {
       const error = new Error("Пост не знайдено");
       error.statusCode = 404;
       throw error;
     }
+
+    if (post.coverImage) {
+      await this.#deleteImageFromCloudinary(post.coverImage);
+    }
+
+    // Тільки тепер видаляємо сам документ з MongoDB
+    await Post.findByIdAndDelete(id);
   }
 
   async addComment(id, userId, text) {

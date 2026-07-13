@@ -9,6 +9,7 @@ import {
   Users,
   FileText,
   Building2,
+  Zap,
 } from "lucide-react";
 
 import Navbar from "../../components/Navbar";
@@ -18,6 +19,7 @@ import { UsersManagement } from "../../components/dashboard/UsersManagement";
 import { OrganizationsManagement } from "../../components/dashboard/OrganizationsManagement";
 import { ProjectsManagement } from "../../components/dashboard/ProjectsManagement";
 import { ProgramsManagement } from "../../components/dashboard/ProgramsManagement";
+import SuperAdminPrograms from "../../components/dashboard/SuperAdminPrograms";
 import { useAuth } from "../../context/AuthContext";
 
 export default function SuperAdminPage() {
@@ -58,6 +60,7 @@ export default function SuperAdminPage() {
     { id: "organizations", label: "Установи", icon: Building2 },
     { id: "projects", label: "Наукові роботи", icon: FileText },
     { id: "programs", label: "Програми платформи", icon: ShieldCheck },
+    { id: "free-tier-control", label: "Оптимізація Free Tier", icon: Zap },
   ];
 
   return (
@@ -66,7 +69,6 @@ export default function SuperAdminPage() {
       <Navbar />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-20 space-y-6">
-        {/* Шапка адмінки */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-3xl text-left">
           <div>
             <h1 className="text-xl font-black uppercase tracking-wider text-purple-600 dark:text-purple-400">
@@ -79,8 +81,18 @@ export default function SuperAdminPage() {
           </div>
           {currentUser && (
             <div className="flex items-center gap-3 bg-[var(--bg-main)] border border-[var(--border-color)] px-4 py-2.5 rounded-2xl w-fit">
-              <div className="w-8 h-8 rounded-xl bg-purple-600/10 text-purple-600 font-black text-xs flex items-center justify-center border border-purple-600/10">
-                {currentUser.name ? currentUser.name[0].toUpperCase() : "A"}
+              <div className="w-8 h-8 rounded-xl overflow-hidden shrink-0 border border-purple-600/10 flex items-center justify-center bg-purple-600/10 text-purple-600">
+                {currentUser.image ? (
+                  <img
+                    src={currentUser.image}
+                    alt={currentUser.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="font-black text-xs uppercase">
+                    {currentUser.name ? currentUser.name[0].toUpperCase() : "A"}
+                  </span>
+                )}
               </div>
               <div className="text-left">
                 <p className="text-xs font-black uppercase tracking-wide leading-none">
@@ -94,7 +106,6 @@ export default function SuperAdminPage() {
           )}
         </div>
 
-        {/* Навігація по табах */}
         <div className="flex flex-wrap gap-2 border-b border-[var(--border-color)] pb-2">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -139,6 +150,8 @@ export default function SuperAdminPage() {
               organizationName="Платформа"
             />
           )}
+
+          {activeTab === "free-tier-control" && <SuperAdminPrograms />}
         </div>
       </main>
       <Footer />

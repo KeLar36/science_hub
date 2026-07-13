@@ -102,31 +102,32 @@ class ProjectController {
 
   async create(req, res, next) {
     try {
-      const {
-        title,
-        description,
-        programId,
-        fileUrl,
-        fileName,
-        authorComment,
-        domain,
-      } = req.body;
+      const { title, description, programId, domain, authorComment } = req.body;
 
-      if (!title || !description || !programId || !fileUrl) {
+      if (!req.file) {
         return res.status(400).json({
-          error: "Заповніть обов'язкові поля: назва, опис, програма та файл",
+          error: "Будь ласка, завантажте документ або кошторис проєкту",
         });
       }
 
+      if (!title || !description || !programId) {
+        return res.status(400).json({
+          error: "Заповніть обов'язкові поля: назва, опис та програма",
+        });
+      }
+
+      const fileUrl = req.file.path;
+      const fileName = req.file.originalname;
+
       const newProject = await projectService.create({
-        title,
-        description,
-        domain,
+        title: title.trim(),
+        description: description.trim(),
+        domain: domain || "Інше",
         programId,
         authorId: req.user.id,
         fileUrl,
         fileName,
-        authorComment,
+        authorComment: authorComment || "Перша версія",
       });
 
       res.status(201).json(newProject);
@@ -137,12 +138,12 @@ class ProjectController {
 
   async uploadNewVersion(req, res, next) {
     try {
-      const { fileUrl, fileName, authorComment } = req.body;
+      const { authorComment } = req.body;
 
-      if (!fileUrl) {
+      if (!req.file) {
         return res
           .status(400)
-          .json({ error: "Посилання на файл є обов'язковим" });
+          .json({ error: "Файл нової версії не завантажено" });
       }
 
       const project = await projectService.getById(req.params.id);
@@ -152,10 +153,13 @@ class ProjectController {
           .json({ error: "Ви можете оновлювати тільки власні проєкти" });
       }
 
+      const fileUrl = req.file.path;
+      const fileName = req.file.originalname;
+
       const updatedProject = await projectService.appendVersion(req.params.id, {
         fileUrl,
         fileName,
-        authorComment,
+        authorComment: authorComment || "Оновлена версія матеріалів",
       });
 
       res.json(updatedProject);
@@ -278,10 +282,25 @@ class ProjectController {
   async getReviewerQueue(req, res, next) {
     try {
       const reviewerId = req.user.id;
-
       const projects = await projectService.getReviewerQueue(reviewerId);
-
       res.json(projects);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async updateStatus(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+
+      if (!status) {
+        return res.status(400).json({ error: "Статус обов'язковий" });
+      }
+
+      const updatedProject = await projectService.updateReview(id, { status });
+
+      res.json(updatedProject);
     } catch (err) {
       next(err);
     }

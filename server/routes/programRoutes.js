@@ -4,9 +4,8 @@ const programController = require("../controllers/programController");
 const { verifyToken, optionalToken, checkRole } = require("../middleware/auth");
 const checkOrgAccess = require("../middleware/checkOrgAccess");
 
-router.get("/", programController.getAll);
+router.get("/", optionalToken, programController.getAll);
 router.get("/public", programController.getPublicPrograms);
-router.get("/admin/all", verifyToken, programController.getAll);
 router.get(
   "/archive",
   verifyToken,
@@ -14,6 +13,7 @@ router.get(
   checkOrgAccess,
   programController.getArchive,
 );
+
 router.post(
   "/",
   verifyToken,
@@ -21,6 +21,21 @@ router.post(
   checkOrgAccess,
   programController.create,
 );
+
+router.post(
+  "/:id/deadline",
+  verifyToken,
+  checkRole(["superadmin"]),
+  programController.handleDeadline,
+);
+
+router.post(
+  "/:id/final-cleanup",
+  verifyToken,
+  checkRole(["superadmin"]),
+  programController.forceCleanup,
+);
+
 router.put(
   "/:id",
   verifyToken,
@@ -28,6 +43,7 @@ router.put(
   checkOrgAccess,
   programController.update,
 );
+
 router.patch(
   "/:id/toggle-status",
   verifyToken,
@@ -35,13 +51,15 @@ router.patch(
   checkOrgAccess,
   programController.toggleStatus,
 );
+
 router.delete(
-  "/:id/permanent",
+  "/:id",
   verifyToken,
   checkRole(["admin", "superadmin"]),
   checkOrgAccess,
   programController.deletePermanent,
 );
+
 router.get("/:id", programController.getById);
 
 module.exports = router;

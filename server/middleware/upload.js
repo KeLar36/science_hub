@@ -17,12 +17,31 @@ const storage = new CloudinaryStorage({
       .split(".")[0]
       .replace(/[^a-zA-Z0-9_-]/g, "_");
 
+    let targetFolder = "science_hub/general";
+    const currentRoute = req.baseUrl + req.path;
+
+    if (currentRoute.includes("/users") || currentRoute.includes("/profile")) {
+      targetFolder = "science_hub/avatars";
+    } else if (
+      currentRoute.includes("/blogs") ||
+      currentRoute.includes("/posts")
+    ) {
+      targetFolder = "science_hub/blog_images";
+    } else if (
+      currentRoute.includes("/programs") ||
+      currentRoute.includes("/applications")
+    ) {
+      targetFolder = isImage
+        ? "science_hub/program_attachments/images"
+        : "science_hub/program_attachments/docs";
+    } else if (currentRoute.includes("/organizations")) {
+      targetFolder = "science_hub/organization_logos";
+    }
+
     return {
-      folder: isImage ? "science_hub/covers" : "science_hub/articles",
-      resource_type: isImage ? "image" : "raw",
-
+      folder: targetFolder,
+      resource_type: isImage ? "image" : "auto",
       public_id: `${Date.now()}-${cleanFileName}`,
-
       format: isImage ? undefined : file.originalname.split(".").pop(),
     };
   },
@@ -30,10 +49,30 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 50 * 1024 * 1024 },
-
+  limits: {
+    fileSize: (file) => {
+      return file.mimetype.startsWith("image/")
+        ? 5 * 1024 * 1024
+        : 25 * 1024 * 1024;
+    },
+  },
   fileFilter: (req, file, cb) => {
-    cb(null, true);
+    const isImage = file.mimetype.startsWith("image/");
+    const isAllowedDoc = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ].includes(file.mimetype);
+
+    if (isImage || isAllowedDoc) {
+      cb(null, true);
+    } else {
+      const error = new Error(
+        "Непідтримуваний формат файлу! Дозволено зображення та PDF/Word документи.",
+      );
+      error.statusCode = 400;
+      cb(error, false);
+    }
   },
 });
 

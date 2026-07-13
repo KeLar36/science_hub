@@ -24,13 +24,21 @@ class PostController {
 
   async create(req, res, next) {
     try {
-      const { title, content, category } = req.body;
+      const { title, content, category, status } = req.body;
       if (!title || !content || !category) {
         return res.status(400).json({ error: "Заповніть обов'язкові поля" });
       }
 
       const filePath = req.file ? req.file.path : null;
-      const newPost = await postService.create(req.user.id, req.body, filePath);
+
+      const postData = {
+        title: title.trim(),
+        content: content.trim(),
+        category,
+        status: status || "published",
+      };
+
+      const newPost = await postService.create(req.user.id, postData, filePath);
       res.status(201).json(newPost);
     } catch (err) {
       next(err);
@@ -39,7 +47,12 @@ class PostController {
 
   async update(req, res, next) {
     try {
-      const filePath = req.file ? req.file.path : null;
+      let filePath = req.file ? req.file.path : null;
+
+      if (!filePath && req.body.coverImage) {
+        filePath = req.body.coverImage;
+      }
+
       const updatedPost = await postService.update(
         req.params.id,
         req.body,

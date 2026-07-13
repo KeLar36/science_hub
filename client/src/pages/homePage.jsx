@@ -34,7 +34,7 @@ const HomePage = () => {
     <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-dark)]">
       <Navbar />
       <HeroSection />
-      <PartnersSection /> {/* Партнерів можна кинути вище, під Hero */}
+      <PartnersSection />
       <StatsSection
         totalPrograms={totalPrograms}
         totalOrganizations={totalOrgs}

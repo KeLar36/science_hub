@@ -3,7 +3,15 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import axiosInstance from "../../api/axios";
 import toast, { Toaster } from "react-hot-toast";
-import { ShieldCheck, Users, FileText, Loader2, UserPlus } from "lucide-react";
+import {
+  ShieldCheck,
+  Users,
+  FileText,
+  Loader2,
+  UserPlus,
+  UserCheck,
+  BookOpen,
+} from "lucide-react";
 
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
@@ -38,9 +46,7 @@ export default function OrgAdminPage() {
 
         const orgRes = await axiosInstance.get(
           `/organizations/${targetOrgId}`,
-          {
-            signal,
-          },
+          { signal },
         );
         setOrganization(orgRes.data);
       } catch (err) {
@@ -75,7 +81,7 @@ export default function OrgAdminPage() {
   }, [authLoading, initOrgAdmin, authUser, targetOrgId]);
 
   const tabs = [
-    { id: "users", label: "Співробітники", icon: Users },
+    { id: "users", label: "Команда & Ролі", icon: UserCheck }, // 👈 Зміна акценту
     { id: "requests", label: "Заявки на вступ 🟣", icon: UserPlus },
     { id: "projects", label: "Модерація робіт", icon: FileText },
     { id: "programs", label: "Конкурси установи", icon: ShieldCheck },
@@ -106,10 +112,10 @@ export default function OrgAdminPage() {
           </button>
         </div>
 
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 mt-4 text-left">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8 mt-4 text-left">
           <div>
             <span className="text-[10px] font-mono font-black uppercase tracking-widest text-purple-600">
-              Кабінет Установи
+              Глобальне управління установою
             </span>
             <h1 className="text-2xl font-black uppercase tracking-tight mt-1">
               {organization?.name}
@@ -127,7 +133,7 @@ export default function OrgAdminPage() {
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase transition-all shrink-0 cursor-pointer ${
                     isActive
                       ? "bg-purple-600 text-white shadow-lg shadow-purple-600/10"
-                      : "text-[var(--text-gray)] hover:text-[var(--text-dark)]"
+                      : "text-[var(--text-gray)] hover:text-[var(--text-dark)] hover:bg-[var(--bg-main)]/50"
                   }`}
                 >
                   <Icon size={14} /> {tab.label}
@@ -143,6 +149,7 @@ export default function OrgAdminPage() {
               currentUser={authUser}
               userRole="admin"
               orgId={targetOrgId}
+              enableRoleManagement={true}
             />
           )}
 

@@ -239,18 +239,60 @@ export const UniversalCard = ({
       );
     }
     if (variant === "profileArticle") {
+      const programDeadline = item.programId?.deadline || item.deadline;
+      const isDeadlinePassed = programDeadline
+        ? new Date(programDeadline) <= new Date()
+        : false;
+
       return (
-        <div className="w-full flex flex-col gap-3 normal-case font-medium text-[var(--text-gray)]">
-          <div className="flex items-center justify-between text-xs">
-            <span>
-              {item.createdAt
-                ? new Date(item.createdAt).toLocaleDateString("uk-UA")
-                : "—"}
-            </span>
-            <span className="text-[10px] opacity-60 font-mono">
-              Версія: {item.versions?.length || 1}.0
+        <div className="w-full flex flex-col gap-3.5 normal-case font-medium text-[var(--text-gray)]">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-color)]/60 pb-2 text-[11px]">
+            {item.programId?.type && (
+              <span className="font-black uppercase tracking-wider text-purple-600 dark:text-purple-400">
+                📁 {item.programId.type}
+              </span>
+            )}
+            {item.programId?.organizer && (
+              <span
+                className="font-bold truncate max-w-[150px]"
+                title={item.programId.organizer}
+              >
+                🏢 {item.programId.organizer}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between text-xs font-semibold">
+            <div className="flex items-center gap-1.5">
+              <Calendar
+                size={12}
+                className={
+                  isDeadlinePassed ? "text-red-500" : "text-purple-500"
+                }
+              />
+              {programDeadline ? (
+                <div className="text-left">
+                  <span className="text-[9px] block opacity-50 uppercase font-bold leading-none mb-0.5">
+                    {isDeadlinePassed
+                      ? "Конкурс завершено"
+                      : "Дедлайн програми"}
+                  </span>
+                  <span
+                    className={`font-mono font-black ${isDeadlinePassed ? "text-red-500 line-through/30" : "text-[var(--text-dark)]"}`}
+                  >
+                    {new Date(programDeadline).toLocaleDateString("uk-UA")}
+                  </span>
+                </div>
+              ) : (
+                <span className="opacity-50">Дедлайн відсутній</span>
+              )}
+            </div>
+
+            <span className="text-[10px] opacity-70 font-mono font-bold bg-[var(--bg-main)] px-2 py-0.5 rounded-md border border-[var(--border-color)]">
+              v{item.versions?.length || 1}.0
             </span>
           </div>
+
           {item.status === "На доопрацюванні" && onActionClick && (
             <Button
               variant="primary"
@@ -260,7 +302,7 @@ export const UniversalCard = ({
                 e.stopPropagation();
                 onActionClick(e, item);
               }}
-              className="w-full gap-1.5 mt-1 bg-amber-500 hover:bg-amber-600 shadow-md shadow-amber-500/10"
+              className="w-full gap-1.5 mt-1 bg-amber-500 hover:bg-amber-600 shadow-md shadow-amber-500/10 text-[10px] font-black uppercase tracking-wider py-2.5 rounded-xl cursor-pointer"
             >
               <FileUp size={13} /> Переподати роботу
             </Button>
@@ -312,6 +354,11 @@ export const UniversalCard = ({
 
   const CardWrapper = ({ children }) => {
     const classes = `h-full ${variant === "homeProgram" ? "min-h-[460px]" : variant === "profileArticle" ? "min-h-[270px]" : variant === "profileBookmark" ? "min-h-[240px]" : ""}`;
+
+    if (variant === "profileArticle") {
+      return <div className={classes}>{children}</div>;
+    }
+
     if (onClick) {
       return (
         <div onClick={onClick} className={classes}>

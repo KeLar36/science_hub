@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const User = require("../models/User");
+const ProjectService = require("./ProjectService");
 
 class ProgramService {
   getProgramModel() {
@@ -10,14 +11,16 @@ class ProgramService {
     const ProgramModel = this.getProgramModel();
     const skip = (page - 1) * limit;
 
-    if (queryFilters.organizationId) {
-      const totalDocs = await ProgramModel.countDocuments({
-        organizationId: queryFilters.organizationId,
-      });
-      if (totalDocs === 0) {
-        return { programs: [], totalPages: 1, currentPage: page };
-      }
-    }
+    const programs = await ProgramModel.find(queryFilters)
+      .populate("organizationId", "name logo")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await ProgramModel.countDocuments(queryFilters);
+    const totalPages = Math.ceil(total / limit);
+
+    return { programs, totalPages, currentPage: page };
   }
 
   async getArchive(queryFilters, page = 1, limit = 8) {
@@ -56,7 +59,7 @@ class ProgramService {
     let { type, ...baseData } = data;
 
     if (type === "Грантова програма" || type === "Конкурс проєктів") {
-      type = "Грант";
+      type = "Ggant";
     }
 
     const TargetModel =
@@ -87,7 +90,7 @@ class ProgramService {
 
     const newProgram = new TargetModel({
       ...baseData,
-      type, // Записуємо вже очищений тип "Грант" у базу
+      type,
       ...extraData,
     });
 
@@ -138,14 +141,71 @@ class ProgramService {
 
   async delete(id) {
     const ProgramModel = this.getProgramModel();
-    const program = await ProgramModel.findByIdAndDelete(id);
+    const program = await ProgramModel.findById(id);
 
     if (!program) {
       const error = new Error("Програму не знайдено");
       error.statusCode = 404;
       throw error;
     }
+
+    const Project = mongoose.model("Project");
+    const linkedProjects = await Project.find({ programId: id }).select("_id");
+
+    if (linkedProjects.length > 0) {
+      for (const proj of linkedProjects) {
+        await ProjectService.delete(proj._id);
+      }
+    }
+
+    await ProgramModel.findByIdAndDelete(id);
     return program;
+  }
+
+  async handleDeadlineReached(programId) {
+    const ProgramModel = this.getProgramModel();
+    const program = await ProgramModel.findById(programId);
+
+    if (!program) return;
+
+    program.active = false;
+    await program.save();
+
+    const Project = mongoose.model("Project");
+
+    const trashProjects = await Project.find({
+      programId: programId,
+      status: { $in: ["Відхилено", "На доопрацюванні"] },
+    }).select("_id");
+
+    if (trashProjects.length > 0) {
+      for (const proj of trashProjects) {
+        await ProjectService.delete(proj._id);
+      }
+    }
+
+    console.log(
+      `⏰ Дедлайн програми ${programId}. Видалено відхилені роботи та ті, що на доопрацюванні. Проєкти "На розгляді" збережено для рецензентів.`,
+    );
+  }
+
+  async finalCleanupAndClose(programId) {
+    const Project = mongoose.model("Project");
+
+    const nonApprovedProjects = await Project.find({
+      programId: programId,
+      status: { $ne: "Прийнято" },
+    }).select("_id");
+
+    if (nonApprovedProjects.length > 0) {
+      for (const proj of nonApprovedProjects) {
+        await ProjectService.delete(proj._id);
+      }
+    }
+
+    console.log(
+      `♻️ Фінальна оптимізація сховища для програми ${programId} завершена. Залишено тільки статус "Прийнято".`,
+    );
   }
 }
 

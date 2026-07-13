@@ -1,8 +1,35 @@
 const Project = require("../models/Project");
+const cloudinary = require("cloudinary").v2;
 
 class ProjectService {
+  async #deleteFileFromCloudinary(fileUrl) {
+    if (!fileUrl || !fileUrl.includes("cloudinary.com")) return;
+    try {
+      const parts = fileUrl.split("/upload/");
+      if (parts.length < 2) return;
+
+      const publicIdWithExtension = parts[1].replace(/^v\d+\//, "");
+      const publicId = publicIdWithExtension.substring(
+        0,
+        publicIdWithExtension.lastIndexOf("."),
+      );
+
+      await cloudinary.uploader
+        .destroy(publicId, { resource_type: "raw" })
+        .catch(() => {});
+      await cloudinary.uploader
+        .destroy(publicId, { resource_type: "image" })
+        .catch(() => {});
+    } catch (err) {
+      console.error("💥 Помилка видалення файлу проєкту з Cloudinary:", err);
+    }
+  }
+
   async getAll(queryFilters, page = 1, limit = 8) {
     const skip = (page - 1) * limit;
+
+    const ProjectModel = Project;
+
     const projects = await Project.find(queryFilters)
       .populate("authorId", "name email")
       .populate("programId", "title type")
@@ -94,13 +121,24 @@ class ProjectService {
 
     return await project.save();
   }
+
   async delete(id) {
-    const project = await Project.findByIdAndDelete(id);
+    const project = await Project.findById(id);
     if (!project) {
       const error = new Error("Проєкт не знайдено");
       error.statusCode = 404;
       throw error;
     }
+
+    if (project.versions && project.versions.length > 0) {
+      for (const version of project.versions) {
+        if (version.fileUrl) {
+          await this.#deleteFileFromCloudinary(version.fileUrl);
+        }
+      }
+    }
+
+    await Project.findByIdAndDelete(id);
   }
 
   async getPublicArchive() {
@@ -118,15 +156,14 @@ class ProjectService {
       return allowedPublicTypes.includes(programType);
     });
   }
+
   async getReviewerQueue(reviewerId) {
-    const projects = await Project.find({
+    return await Project.find({
       reviewerId: reviewerId,
       reviewStatus: { $ne: "Завершено" },
     })
       .populate("authorId", "name email")
       .populate("programId", "title");
-
-    return projects;
   }
 }
 

@@ -44,8 +44,9 @@ const HeroSection = () => {
             <div className="flex flex-wrap gap-4 pt-2">
               <Button
                 onClick={handleStart}
+                variant="primary"
                 size="lg"
-                className="font-bold tracking-wider uppercase group bg-purple-600 hover:bg-purple-700 text-white rounded-xl shadow-md shadow-purple-600/10"
+                className="font-black tracking-wider uppercase group rounded-xl"
               >
                 <span>Почати шлях</span>
                 <ArrowUpRight
@@ -58,7 +59,7 @@ const HeroSection = () => {
                 onClick={() => navigate("/programs")}
                 variant="outline"
                 size="lg"
-                className="font-bold tracking-wider uppercase..."
+                className="font-black tracking-wider uppercase rounded-xl border-[var(--border-color)] hover:border-purple-500/50 hover:bg-purple-600/[0.02] text-[var(--text-dark)]"
               >
                 Дослідити можливості
               </Button>

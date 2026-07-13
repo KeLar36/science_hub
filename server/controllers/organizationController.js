@@ -8,7 +8,7 @@ const mongoose = require("mongoose");
 class OrganizationController {
   async getOrganizationUsers(req, res, next) {
     try {
-      const { id } = req.params;
+      const id = req.params.id || req.params.orgId;
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 8;
       const skip = (page - 1) * limit;
@@ -37,25 +37,17 @@ class OrganizationController {
         userFilter.$or = [{ name: searchRegex }, { email: searchRegex }];
       }
 
-      if (req.query.role && req.query.role !== "Всі ролі") {
-        userFilter.role = req.query.role;
-      }
-
-      if (req.query.isBanned) {
-        userFilter.isBanned = req.query.isBanned === "true";
-      }
-
-      const filteredUsers = await User.find(userFilter)
-        .select("name email role city socials isBanned")
-        .skip(skip)
-        .limit(limit)
-        .sort({ name: 1 });
-
       const totalItems = await User.countDocuments(userFilter);
       const totalPages = Math.ceil(totalItems / limit);
 
+      const items = await User.find(userFilter)
+        .select("name email role city socials isBanned")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
       res.json({
-        items: filteredUsers,
+        items,
         currentPage: page,
         totalPages: totalPages || 1,
         totalItems,
@@ -70,58 +62,13 @@ class OrganizationController {
       const { id } = req.params;
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 8;
-      const skip = (page - 1) * limit;
 
-      const isSuperAdmin = req.user.role === "superadmin";
-
-      const isOrgAdmin = req.user.role === "admin";
-
-      if (!isSuperAdmin && !isOrgAdmin) {
-        return res.status(403).json({
-          error: "Доступ заборонено: ви не є адміністратором цієї установи",
-        });
-      }
-
-      const programFilter = { organizationId: id };
-
-      if (req.query.search) {
-        const searchRegex = { $regex: req.query.search.trim(), $options: "i" };
-        programFilter.$or = [
-          { title: searchRegex },
-          { description: searchRegex },
-        ];
-      }
-
-      if (
-        req.query.type &&
-        req.query.type !== "Всі типу" &&
-        req.query.type !== "Всі типи"
-      ) {
-        programFilter.type = req.query.type;
-      }
-
-      if (req.query.domain && req.query.domain !== "Всі галузі") {
-        programFilter.domain = req.query.domain;
-      }
-
-      if (req.query.status) {
-        programFilter.active = req.query.status === "active";
-      }
-
-      const totalItems = await Program.countDocuments(programFilter);
-      const totalPages = Math.ceil(totalItems / limit);
-
-      const programs = await Program.find(programFilter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit);
-
-      res.json({
-        items: programs,
-        currentPage: page,
-        totalPages: totalPages || 1,
-        totalItems,
-      });
+      const result = await organizationService.getOrganizationPrograms(
+        id,
+        page,
+        limit,
+      );
+      res.json(result);
     } catch (err) {
       next(err);
     }
@@ -131,16 +78,13 @@ class OrganizationController {
     try {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 8;
-
       const query = {};
-
-      if (req.query.search) {
-        const searchRegex = { $regex: req.query.search.trim(), $options: "i" };
-        query.$or = [{ name: searchRegex }, { edrpou: searchRegex }];
-      }
 
       if (req.query.status) {
         query.status = req.query.status;
+      }
+      if (req.query.search) {
+        query.name = { $regex: req.query.search.trim(), $options: "i" };
       }
 
       const result = await organizationService.getAll(query, page, limit);
@@ -161,99 +105,8 @@ class OrganizationController {
 
   async getById(req, res, next) {
     try {
-      const { id } = req.params;
-
-      if (req.user.role !== "superadmin" && req.user.role !== "admin") {
-        return res.status(403).json({ error: "Доступ заборонено" });
-      }
-
-      if (req.user.role === "admin") {
-        const freshUser = await User.findById(req.user.id).select(
-          "organizationId",
-        );
-        if (
-          !freshUser ||
-          String(freshUser.organizationId?._id || freshUser.organizationId) !==
-            String(id)
-        ) {
-          return res
-            .status(403)
-            .json({ error: "Ви не маєте доступу до цієї організації" });
-        }
-      }
-
-      const org = await organizationService.getById(id);
+      const org = await organizationService.getById(req.params.id);
       res.json(org);
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async updateStatus(req, res, next) {
-    try {
-      if (req.user.role !== "superadmin") {
-        return res.status(403).json({
-          error:
-            "Тільки суперадміністратор платформи може змінювати статус установи",
-        });
-      }
-
-      const { id } = req.params;
-      const { status } = req.body;
-
-      if (!status || !["pending", "approved", "rejected"].includes(status)) {
-        return res.status(400).json({ error: "Некоректний статус" });
-      }
-
-      const updated = await organizationService.updateStatus(id, status);
-      res.json({
-        message: `Статус організації успешно змінено на ${status}`,
-        organization: updated,
-      });
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async requestToJoin(req, res, next) {
-    try {
-      const { organizationId } = req.body;
-      if (!organizationId) {
-        return res.status(400).json({ error: "ID організації є обов'язковим" });
-      }
-
-      await organizationService.requestToJoin(organizationId, req.user.id);
-      res.json({ message: "Заявку на вступ успішно надіслано!" });
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async acceptJoinRequest(req, res, next) {
-    try {
-      const { userId } = req.params;
-      let orgId =
-        req.user.role === "superadmin" && req.body.orgId
-          ? req.body.orgId
-          : req.user.organizationId;
-
-      await organizationService.acceptJoinRequest(orgId, userId);
-      res.json({ message: "Користувача успішно прийнято до організації" });
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async rejectJoinRequest(req, res, next) {
-    try {
-      const { userId } = req.params;
-      let orgId =
-        req.user.role === "superadmin" && req.body.orgId
-          ? req.body.orgId
-          : req.user.organizationId;
-
-      await organizationService.rejectJoinRequest(orgId, userId);
-      res.json({ message: "Заявку на вступ успішно відхилено" });
     } catch (err) {
       next(err);
     }
@@ -261,58 +114,251 @@ class OrganizationController {
 
   async create(req, res, next) {
     try {
-      const { name, edrpou } = req.body;
+      const {
+        name,
+        edrpou,
+        description,
+        website,
+        email,
+        type,
+        legalForm,
+        city,
+      } = req.body;
+
       if (!name || !edrpou) {
         return res
           .status(400)
-          .json({ error: "Назва та код ЄДРПОУ є обов'язковими полями" });
+          .json({ error: "Назва установи та код ЄДРПОУ є обов'язковими" });
       }
 
-      const newOrganization = await organizationService.create(
+      let scientificDomains = [];
+      if (req.body.scientificDomains) {
+        try {
+          scientificDomains =
+            typeof req.body.scientificDomains === "string"
+              ? JSON.parse(req.body.scientificDomains)
+              : req.body.scientificDomains;
+        } catch (e) {
+          scientificDomains = req.body.scientificDomains;
+        }
+      }
+
+      const logoUrl = req.file ? req.file.path : null;
+
+      const organizationData = {
+        name,
+        edrpou,
+        description,
+        website,
+        email,
+        type,
+        legalForm,
+        city,
+        scientificDomains,
+        logo: logoUrl,
+      };
+
+      const newOrg = await organizationService.create(
         req.user.id,
-        req.body,
+        organizationData,
       );
-      res.status(201).json({
-        message:
-          "Заявку на реєстрацію організації створено! Очікуйте на підтвердження.",
-        organization: newOrganization,
-      });
+      res.status(201).json(newOrg);
     } catch (err) {
       next(err);
     }
   }
+
+  async updateStatus(req, res, next) {
+    try {
+      const { status } = req.body;
+      if (!["approved", "rejected"].includes(status)) {
+        return res.status(400).json({ error: "Невалідний статус модерації" });
+      }
+
+      const updatedOrg = await organizationService.updateStatus(
+        req.params.id,
+        status,
+      );
+      res.json(updatedOrg);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async joinRequest(req, res, next) {
+    try {
+      const { organizationId } = req.body;
+      if (!organizationId) {
+        return res.status(400).json({ error: "ID установи не передано" });
+      }
+      await organizationService.requestToJoin(organizationId, req.user.id);
+      res.json({ message: "Запит на вступ успішно надіслано" });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async acceptRequest(req, res, next) {
+    try {
+      const { userId } = req.params;
+
+      if (!userId) {
+        return res.status(400).json({ error: "ID користувача є обов'язковим" });
+      }
+
+      let adminOrgId = null;
+
+      if (req.user.role === "superadmin") {
+        adminOrgId = req.body.organizationId || req.query.organizationId;
+      } else {
+        const User = mongoose.model("User");
+        const freshUser = await User.findById(req.user.id).select(
+          "organizationId",
+        );
+
+        if (!freshUser || !freshUser.organizationId) {
+          return res.status(403).json({
+            error: "Ви не маєте прав адміністратора для жодної установи",
+          });
+        }
+
+        adminOrgId = freshUser.organizationId;
+      }
+
+      console.log(`🚀 Приймаємо юзера ${userId} в установу ${adminOrgId}`);
+
+      await organizationService.acceptJoinRequest(adminOrgId, userId);
+      res.json({ message: "Користувача успішно зараховано до установи" });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async rejectRequest(req, res, next) {
+    try {
+      const { userId } = req.params;
+
+      if (!userId) {
+        return res.status(400).json({ error: "ID користувача є обов'язковим" });
+      }
+
+      let adminOrgId = null;
+
+      if (req.user.role === "superadmin") {
+        adminOrgId =
+          req.body.organizationId || req.query.organizationId || req.params.id;
+      } else {
+        const User = mongoose.model("User");
+        const freshUser = await User.findById(req.user.id).select(
+          "organizationId",
+        );
+
+        if (!freshUser || !freshUser.organizationId) {
+          return res.status(403).json({
+            error: "Ви не маєте прав адміністратора для жодної установи",
+          });
+        }
+
+        adminOrgId = freshUser.organizationId;
+      }
+
+      console.log(
+        `❌ Відхиляємо запит юзера ${userId} в установу ${adminOrgId}`,
+      );
+
+      await organizationService.rejectJoinRequest(adminOrgId, userId);
+      res.json({ message: "Запит на вступ відхилено" });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async getPendingRequests(req, res, next) {
     try {
+      const { id: orgId } = req.params;
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 8;
       const search = req.query.search || "";
 
-      let orgId = req.query.orgId;
+      let adminOrgId = null;
 
-      if (req.user.role !== "superadmin") {
+      if (req.user.role === "superadmin") {
+        adminOrgId = orgId;
+      } else {
         const User = mongoose.model("User");
-        const freshUser = await User.findById(req.user.id);
-        orgId = freshUser?.organizationId;
+        const freshUser = await User.findById(req.user.id).select(
+          "organizationId",
+        );
+
+        if (!freshUser || !freshUser.organizationId) {
+          return res
+            .status(403)
+            .json({ error: "Ви не належите до жодної установи" });
+        }
+
+        adminOrgId = freshUser.organizationId;
       }
 
-      if (!orgId) {
-        return res
-          .status(403)
-          .json({ error: "Ви не прив'язані до жодної організації" });
-      }
+      const result = await organizationService.getPagedPendingRequests(
+        adminOrgId,
+        { page, limit, search },
+      );
 
-      const result = await organizationService.getPagedPendingRequests(orgId, {
-        page,
-        limit,
-        search,
-      });
-
-      return res.status(200).json({
+      res.json({
         items: result.items,
         currentPage: result.currentPage,
         totalPages: result.totalPages,
         totalItems: result.totalItems,
       });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async leave(req, res, next) {
+    try {
+      await organizationService.leaveOrganization(req.user.id);
+      res.json({ message: "Ви успішно вийшли зі складу наукової установи" });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async kick(req, res, next) {
+    try {
+      const { id: orgId } = req.params;
+      const { targetUserId } = req.body;
+
+      if (!targetUserId) {
+        return res
+          .status(400)
+          .json({ error: "ID цільового користувача є обов'язковим" });
+      }
+
+      let adminOrgId = req.user.organizationId;
+      if (req.user.role === "superadmin") {
+        adminOrgId = orgId;
+      }
+
+      await organizationService.kickMember(
+        adminOrgId,
+        req.user.id,
+        targetUserId,
+      );
+      res.json({ message: "Користувача успішно виключено з організації" });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async delete(req, res, next) {
+    try {
+      await organizationService.deleteOrganization(
+        req.params.id,
+        req.user.id,
+        req.user.role,
+      );
+      res.json({ message: "Організацію успішно видалено" });
     } catch (err) {
       next(err);
     }

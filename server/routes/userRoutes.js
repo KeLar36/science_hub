@@ -2,11 +2,17 @@ const express = require("express");
 const router = express.Router();
 const userController = require("../controllers/userController");
 const { verifyToken, checkRole, canManageUser } = require("../middleware/auth");
+const upload = require("../middleware/upload");
 
 const adminAccess = checkRole(["admin", "superadmin"]);
 
 router.get("/me", verifyToken, userController.getMe);
-router.patch("/update-profile", verifyToken, userController.updateProfile);
+router.patch(
+  "/update-profile",
+  verifyToken,
+  upload.single("image"),
+  userController.updateProfile,
+);
 
 router.get("/bookmarks/all", verifyToken, userController.getBookmarks);
 router.get("/bookmarks/check/:id", verifyToken, userController.checkBookmark);

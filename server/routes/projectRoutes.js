@@ -3,11 +3,12 @@ const router = express.Router();
 const projectController = require("../controllers/projectController");
 const { verifyToken, checkRole } = require("../middleware/auth");
 const checkProjectAdminAccess = require("../middleware/checkProjectAdminAccess");
+const upload = require("../middleware/upload");
 
 router.get("/archive", projectController.getArchive);
 router.get("/", verifyToken, projectController.getAll);
 router.get("/my", verifyToken, projectController.getMyProjects);
-router.post("/", verifyToken, checkRole(["user"]), projectController.create);
+router.post("/", verifyToken, upload.single("file"), projectController.create);
 router.get(
   "/reviewer/queue",
   verifyToken,
@@ -35,6 +36,15 @@ router.patch(
   checkRole(["reviewer", "admin", "superadmin"]),
   projectController.submitReview,
 );
+
+router.patch(
+  "/:id/status",
+  verifyToken,
+  checkRole(["admin", "superadmin"]),
+  checkProjectAdminAccess,
+  projectController.updateStatus,
+);
+
 router.delete("/:id", verifyToken, projectController.delete);
 
 module.exports = router;

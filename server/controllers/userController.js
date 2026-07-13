@@ -13,9 +13,49 @@ class UserController {
 
   async updateProfile(req, res, next) {
     try {
+      const body = req.body || {};
+
+      let socials = {};
+      if (body.socials) {
+        try {
+          socials =
+            typeof body.socials === "string"
+              ? JSON.parse(body.socials)
+              : body.socials;
+        } catch (e) {
+          console.error("Помилка парсингу socials у контролері:", e);
+        }
+      }
+
+      let topics = [];
+      if (body.topics) {
+        try {
+          topics =
+            typeof body.topics === "string"
+              ? JSON.parse(body.topics)
+              : body.topics;
+        } catch (e) {
+          topics = body.topics;
+        }
+      }
+
+      const profileData = {
+        name: body.name,
+        bio: body.bio,
+        city: body.city,
+        topics: topics,
+        socials: socials,
+      };
+
+      if (req.file && req.file.path) {
+        profileData.image = req.file.path;
+      } else if (body.image) {
+        profileData.image = body.image;
+      }
+
       const updatedUser = await userService.updateProfile(
         req.user.id,
-        req.body,
+        profileData,
       );
       res.json(updatedUser);
     } catch (err) {
@@ -144,7 +184,7 @@ class UserController {
 
   async updateRole(req, res, next) {
     try {
-      const { role } = req.body;
+      const { role, allowedDomains, allowedTypes } = req.body;
 
       if (req.params.id === req.user.id) {
         return res.status(400).json({ error: "Не можна змінити власну роль" });
@@ -156,7 +196,11 @@ class UserController {
           .json({ error: "Тільки суперадмін може призначати роль superadmin" });
       }
 
-      const updatedUser = await userService.updateRole(req.params.id, role);
+      const updatedUser = await userService.updateRole(req.params.id, role, {
+        allowedDomains,
+        allowedTypes,
+      });
+
       res.json(updatedUser);
     } catch (err) {
       next(err);
@@ -192,7 +236,7 @@ class UserController {
       }
 
       await userService.delete(req.params.id);
-      res.json({ message: "Користувача успішно видалено" });
+      res.json({ message: "Користувача успешно видалено" });
     } catch (err) {
       next(err);
     }

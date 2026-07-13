@@ -11,7 +11,7 @@ router.post(
   verifyToken,
   checkBanStatus,
   checkRole(["admin", "content-manager", "superadmin"]),
-  upload.single("image"),
+  upload.single("coverImage"),
   postController.create,
 );
 
@@ -22,7 +22,7 @@ router.put(
   verifyToken,
   checkBanStatus,
   checkRole(["admin", "content-manager", "superadmin"]),
-  upload.single("image"),
+  upload.single("coverImage"),
   postController.update,
 );
 router.delete(

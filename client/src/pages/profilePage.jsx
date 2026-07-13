@@ -179,7 +179,12 @@ export default function ProfilePage() {
       );
     }
     return myProjects.map((project) => (
-      <UniversalCard key={project._id} item={project} isAdminMode={false} />
+      <UniversalCard
+        key={project._id}
+        item={project}
+        variant="profileArticle"
+        isAdminMode={false}
+      />
     ));
   }, [myProjects]);
 
@@ -201,14 +206,45 @@ export default function ProfilePage() {
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     try {
-      const res = await axiosInstance.patch("/users/update-profile", editForm);
+      const formData = new FormData();
+
+      formData.append("name", editForm.name || "");
+      formData.append("city", editForm.city || "");
+      formData.append("bio", editForm.bio || "");
+
+      formData.append("socials", JSON.stringify(editForm.socials || {}));
+
+      if (editForm.topics) {
+        formData.append("topics", JSON.stringify(editForm.topics));
+      }
+
+      if (editForm.image instanceof File) {
+        formData.append("image", editForm.image);
+      } else if (
+        typeof editForm.image === "string" &&
+        editForm.image.trim() !== ""
+      ) {
+        formData.append("image", editForm.image);
+      } else {
+        formData.append("image", "");
+      }
+
+      const res = await axiosInstance.patch("/users/update-profile", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
       const updatedUser = res.data.user || res.data;
       setUserData(updatedUser);
       updateUserState(updatedUser);
       setIsEditModalOpen(false);
-      toast.success("Профіль успішно оновлено!");
-    } catch {
-      toast.error("Помилка оновлення профілю");
+      toast.success("Профіль успішно оновлено! 🟣");
+    } catch (error) {
+      console.error("💥 Помилка оновлення профілю:", error);
+      const serverError =
+        error.response?.data?.error || "Помилка оновлення профілю";
+      toast.error(serverError);
     }
   };
 

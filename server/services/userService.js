@@ -1,7 +1,26 @@
 const User = require("../models/User");
 const Post = require("../models/Post");
+const cloudinary = require("cloudinary").v2;
 
 class UserService {
+  async #deleteImageFromCloudinary(imageUrl) {
+    if (!imageUrl || !imageUrl.includes("cloudinary.com")) return;
+    try {
+      const parts = imageUrl.split("/upload/");
+      if (parts.length < 2) return;
+
+      const publicIdWithExtension = parts[1].replace(/^v\d+\//, "");
+      const publicId = publicIdWithExtension.substring(
+        0,
+        publicIdWithExtension.lastIndexOf("."),
+      );
+
+      await cloudinary.uploader.destroy(publicId);
+    } catch (err) {
+      console.error("Помилка видалення файлу з Cloudinary:", err);
+    }
+  }
+
   async getById(id) {
     const user = await User.findById(id).select("-password");
     if (!user) {
@@ -13,6 +32,17 @@ class UserService {
   }
 
   async updateProfile(id, profileData) {
+    const currentUser = await User.findById(id).select("image");
+
+    if (
+      profileData.image &&
+      currentUser &&
+      currentUser.image &&
+      currentUser.image !== profileData.image
+    ) {
+      await this.#deleteImageFromCloudinary(currentUser.image);
+    }
+
     return await User.findByIdAndUpdate(
       id,
       {
@@ -22,7 +52,7 @@ class UserService {
           topics: profileData.topics,
           city: profileData.city,
           socials: profileData.socials,
-          image: profileData.image,
+          image: profileData.image, // Автоматично перезапише нове посилання
         },
       },
       { new: true, runValidators: true },
@@ -112,7 +142,7 @@ class UserService {
     return await User.countDocuments(queryFilters);
   }
 
-  async updateRole(id, role) {
+  async updateRole(id, role, extraData = {}) {
     const targetUser = await User.findById(id);
     if (!targetUser) {
       const error = new Error("Користувача не знайдено");
@@ -120,8 +150,31 @@ class UserService {
       throw error;
     }
 
-    targetUser.role = role;
-    return await targetUser.save();
+    let updateQuery = {};
+
+    if (role === "reviewer") {
+      updateQuery = {
+        $set: {
+          role: role,
+          allowedDomains: extraData.allowedDomains || [],
+          allowedTypes: extraData.allowedTypes || [],
+        },
+      };
+    } else {
+      updateQuery = {
+        $set: { role: role },
+        $unset: {
+          allowedDomains: 1,
+          allowedTypes: 1,
+        },
+      };
+    }
+
+    return await User.findByIdAndUpdate(id, updateQuery, {
+      new: true,
+      runValidators: true,
+      overwriteDiscriminatorKey: true,
+    });
   }
 
   async updateBanStatus(id, isBanned) {
@@ -131,6 +184,10 @@ class UserService {
   }
 
   async delete(id) {
+    const user = await User.findById(id).select("image");
+    if (user && user.image) {
+      await this.#deleteImageFromCloudinary(user.image);
+    }
     await User.findByIdAndDelete(id);
   }
 }
