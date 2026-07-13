@@ -1,5 +1,5 @@
-const User = require("../models/User");
 const Post = require("../models/Post");
+const Comment = require("../models/Comment");
 const cloudinary = require("cloudinary").v2;
 
 class PostService {
@@ -17,18 +17,36 @@ class PostService {
 
       await cloudinary.uploader.destroy(publicId);
     } catch (err) {
-      console.error("💥 Помилка видалення обкладинки з Cloudinary:", err);
+      console.error("💥 Помилка видалення зображення з Cloudinary:", err);
     }
   }
 
-  async getAll(category, page = 1, limit = 8) {
-    let query = { status: "published" };
-    if (category && category !== "Всі") {
-      query.category = category;
+  async getAll(filters = {}, page = 1, limit = 8) {
+    let query = {};
+
+    if (filters.status) {
+      query.status = filters.status;
+    } else {
+      query.status = "published";
+    }
+
+    if (filters.category && filters.category !== "Всі") {
+      query.category = filters.category;
+    }
+
+    if (filters.search) {
+      query.title = { $regex: filters.search.trim(), $options: "i" };
+    }
+
+    if (filters.organizationId) {
+      query.organizationId = filters.organizationId;
     }
 
     const skip = (page - 1) * limit;
+
     const posts = await Post.find(query)
+      .populate("authorId", "name role image")
+      .populate("organizationId", "name logo")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -36,16 +54,16 @@ class PostService {
     const total = await Post.countDocuments(query);
     const totalPages = Math.ceil(total / limit);
 
-    return { posts, totalPages, currentPage: page };
+    return { posts, totalPages, currentPage: page, totalItems: total };
   }
 
   async getById(id) {
     const post = await Post.findById(id)
       .populate("authorId", "name role image")
-      .populate("comments.user", "name role image");
+      .populate("organizationId", "name logo");
 
     if (!post) {
-      const error = new Error("Пост не знайдено");
+      const error = new Error("Публікацію не знайдено");
       error.statusCode = 404;
       throw error;
     }
@@ -60,113 +78,87 @@ class PostService {
       });
     }
 
-    return post;
+    const totalComments = await Comment.countDocuments({ postId: id });
+
+    const postWithCount = post.toObject();
+    postWithCount.commentsCount = totalComments;
+
+    return postWithCount;
   }
 
-  async create(authorId, postData, filePath) {
+  async create(authorId, postData, uploadedImages = []) {
     const newPost = new Post({
-      title: postData.title,
+      title: postData.title.trim(),
       content: postData.content,
       category: postData.category,
       status: postData.status || "published",
       authorId,
-      coverImage: filePath || null,
+      organizationId: postData.organizationId || null,
+      images: uploadedImages,
     });
+
     return await newPost.save();
   }
 
-  async update(id, postData, filePath) {
+  async update(id, postData, newUploadedImages = []) {
+    const currentPost = await Post.findById(id);
+    if (!currentPost) {
+      const error = new Error("Публікацію не знайдено");
+      error.statusCode = 404;
+      throw error;
+    }
+
     let updateData = {
-      title: postData.title,
+      title: postData.title.trim(),
       content: postData.content,
       category: postData.category,
       status: postData.status,
+      organizationId: postData.organizationId || currentPost.organizationId,
     };
 
-    if (filePath) {
-      const currentPost = await Post.findById(id).select("coverImage");
-      if (currentPost && currentPost.coverImage) {
-        await this.#deleteImageFromCloudinary(currentPost.coverImage);
+    if (newUploadedImages && newUploadedImages.length > 0) {
+      if (currentPost.images && currentPost.images.length > 0) {
+        for (const img of currentPost.images) {
+          if (img.url) await this.#deleteImageFromCloudinary(img.url);
+        }
       }
-      updateData.coverImage = filePath;
+      updateData.images = newUploadedImages;
     }
 
     const updatedPost = await Post.findByIdAndUpdate(
       id,
       { $set: updateData },
       { new: true },
-    ).populate("authorId", "name role");
-
-    if (!updatedPost) {
-      const error = new Error("Пост не знайдено");
-      error.statusCode = 404;
-      throw error;
-    }
+    )
+      .populate("authorId", "name role")
+      .populate("organizationId", "name logo");
 
     return updatedPost;
   }
 
   async delete(id) {
-    const post = await Post.findById(id).select("coverImage");
+    const post = await Post.findById(id).select("images");
     if (!post) {
-      const error = new Error("Пост не знайдено");
+      const error = new Error("Публікацію не знайдено");
       error.statusCode = 404;
       throw error;
     }
 
-    if (post.coverImage) {
-      await this.#deleteImageFromCloudinary(post.coverImage);
+    if (post.images && post.images.length > 0) {
+      for (const img of post.images) {
+        if (img.url) {
+          await this.#deleteImageFromCloudinary(img.url);
+        }
+      }
     }
 
-    // Тільки тепер видаляємо сам документ з MongoDB
     await Post.findByIdAndDelete(id);
-  }
-
-  async addComment(id, userId, text) {
-    const post = await Post.findByIdAndUpdate(
-      id,
-      {
-        $push: {
-          comments: {
-            user: userId,
-            text: text.trim(),
-          },
-        },
-      },
-      { new: true },
-    ).populate("comments.user", "name role image");
-
-    if (!post) {
-      const error = new Error("Пост не знайдено");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    return post.comments[post.comments.length - 1];
-  }
-
-  async deleteComment(postId, commentId) {
-    const post = await Post.findById(postId).populate("comments.user", "role");
-    if (!post) {
-      const error = new Error("Пост не знайдено");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    const comment = post.comments.id(commentId);
-    if (!comment) {
-      const error = new Error("Коментар не знайдено");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    return { post, comment };
   }
 
   async toggleReaction(id, userId, type) {
     const post = await Post.findById(id);
     if (!post) {
-      const error = new Error("Пост не знайдено");
+      const error = new Error("Публікацію не знайдено");
       error.statusCode = 404;
       throw error;
     }

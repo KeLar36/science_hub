@@ -1,17 +1,19 @@
 const express = require("express");
 const router = express.Router();
 const postController = require("../controllers/postController");
+const commentController = require("../controllers/commentController");
 const { verifyToken, checkRole } = require("../middleware/auth");
 const checkBanStatus = require("../middleware/checkBanStatus");
 const upload = require("../middleware/upload");
 
 router.get("/", postController.getAll);
+
 router.post(
   "/create",
   verifyToken,
   checkBanStatus,
   checkRole(["admin", "content-manager", "superadmin"]),
-  upload.single("coverImage"),
+  upload.array("coverImage", 5),
   postController.create,
 );
 
@@ -22,9 +24,10 @@ router.put(
   verifyToken,
   checkBanStatus,
   checkRole(["admin", "content-manager", "superadmin"]),
-  upload.single("coverImage"),
+  upload.array("coverImage", 5),
   postController.update,
 );
+
 router.delete(
   "/:id",
   verifyToken,
@@ -34,22 +37,26 @@ router.delete(
 );
 
 router.post(
-  "/:id/comment",
-  verifyToken,
-  checkBanStatus,
-  postController.addComment,
-);
-router.delete(
-  "/:postId/comment/:commentId",
-  verifyToken,
-  checkBanStatus,
-  postController.deleteComment,
-);
-router.post(
   "/:id/react",
   verifyToken,
   checkBanStatus,
   postController.toggleReaction,
+);
+
+router.get("/:id/comments", commentController.getByPostId);
+
+router.post(
+  "/:id/comment",
+  verifyToken,
+  checkBanStatus,
+  commentController.create,
+);
+
+router.delete(
+  "/comment/:commentId",
+  verifyToken,
+  checkBanStatus,
+  commentController.delete,
 );
 
 module.exports = router;

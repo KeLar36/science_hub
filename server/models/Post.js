@@ -1,36 +1,34 @@
 const mongoose = require("mongoose");
 
-const CommentSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true,
-  },
-  text: {
-    type: String,
-    required: true,
-    trim: true,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
-
 const PostSchema = new mongoose.Schema({
-  title: { type: String, required: true },
+  title: { type: String, required: true, trim: true },
   content: { type: String, required: true },
   category: { type: String, required: true },
+  domain: { type: String, index: true },
+
   authorId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,
     index: true,
   },
-  coverImage: { type: String },
+  organizationId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Organization",
+    index: true,
+  },
+
+  images: [
+    {
+      url: String,
+      publicId: String,
+      isHero: { type: Boolean, default: false },
+    },
+  ],
+
   status: {
     type: String,
-    enum: ["draft", "published"],
+    enum: ["draft", "pending", "published"],
     default: "draft",
   },
   views: { type: Number, default: 0 },
@@ -42,15 +40,19 @@ const PostSchema = new mongoose.Schema({
     idea: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   },
 
-  comments: [CommentSchema],
   createdAt: {
     type: Date,
     default: Date.now,
   },
 });
 
-PostSchema.virtual("commentsCount").get(function () {
-  return this.comments.length;
+PostSchema.virtual("totalReactions").get(function () {
+  return (
+    this.reactions.fire.length +
+    this.reactions.heart.length +
+    this.reactions.clap.length +
+    this.reactions.idea.length
+  );
 });
 
 module.exports = mongoose.model("Post", PostSchema);

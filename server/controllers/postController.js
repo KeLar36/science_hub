@@ -6,7 +6,20 @@ class PostController {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 8;
 
-      const result = await postService.getAll(req.query.category, page, limit);
+      const filters = {
+        category: req.query.category,
+        search: req.query.search,
+        status: req.query.status,
+        organizationId: req.query.organizationId,
+      };
+
+      if (req.user && ["admin", "superadmin"].includes(req.user.role)) {
+        if (req.query.status) filters.status = req.query.status;
+      } else {
+        filters.status = "published";
+      }
+
+      const result = await postService.getAll(filters, page, limit);
       res.json(result);
     } catch (err) {
       next(err);
@@ -26,19 +39,36 @@ class PostController {
     try {
       const { title, content, category, status } = req.body;
       if (!title || !content || !category) {
-        return res.status(400).json({ error: "Заповніть обов'язкові поля" });
+        return res.status(400).json({
+          error: "Заповніть обов'язкові поля: назва, вміст та категорія",
+        });
       }
 
-      const filePath = req.file ? req.file.path : null;
+      let uploadedImages = [];
+      if (req.files && req.files.length > 0) {
+        uploadedImages = req.files.map((file, idx) => ({
+          url: file.path,
+          publicId: file.filename || `img_${Date.now()}_${idx}`,
+          isHero: idx === 0, // за замовчуванням перше зображення стає головним банером
+        }));
+      }
 
       const postData = {
         title: title.trim(),
         content: content.trim(),
         category,
         status: status || "published",
+        organizationId:
+          req.user.role === "admin"
+            ? req.user.organizationId
+            : req.body.organizationId || null,
       };
 
-      const newPost = await postService.create(req.user.id, postData, filePath);
+      const newPost = await postService.create(
+        req.user.id,
+        postData,
+        uploadedImages,
+      );
       res.status(201).json(newPost);
     } catch (err) {
       next(err);
@@ -47,16 +77,30 @@ class PostController {
 
   async update(req, res, next) {
     try {
-      let filePath = req.file ? req.file.path : null;
+      const { title, content, category, status } = req.body;
 
-      if (!filePath && req.body.coverImage) {
-        filePath = req.body.coverImage;
+      // Обробляємо нову пачку зображень, якщо вони прилетіли
+      let newUploadedImages = [];
+      if (req.files && req.files.length > 0) {
+        newUploadedImages = req.files.map((file, idx) => ({
+          url: file.path,
+          publicId: file.filename || `img_${Date.now()}_${idx}`,
+          isHero: idx === 0,
+        }));
       }
+
+      const postData = {
+        title: title ? title.trim() : undefined,
+        content: content ? content.trim() : undefined,
+        category,
+        status,
+        organizationId: req.body.organizationId,
+      };
 
       const updatedPost = await postService.update(
         req.params.id,
-        req.body,
-        filePath,
+        postData,
+        newUploadedImages,
       );
       res.json(updatedPost);
     } catch (err) {
@@ -67,63 +111,9 @@ class PostController {
   async delete(req, res, next) {
     try {
       await postService.delete(req.params.id);
-      res.json({ message: "Пост успішно видалено" });
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async addComment(req, res, next) {
-    try {
-      const { text } = req.body;
-      if (!text || text.trim() === "") {
-        return res.status(400).json({ error: "Текст не може бути порожнім" });
-      }
-
-      const newComment = await postService.addComment(
-        req.params.id,
-        req.user.id,
-        text,
-      );
-      res.status(201).json(newComment);
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async deleteComment(req, res, next) {
-    try {
-      const { postId, commentId } = req.params;
-      const { post, comment } = await postService.deleteComment(
-        postId,
-        commentId,
-      );
-
-      const currentUserRole = req.user.role;
-      const currentUserId = req.user.id;
-      const commentAuthorId = comment.user?._id?.toString() || null;
-      const commentAuthorRole = comment.user?.role || "user";
-
-      const isOwner = commentAuthorId === currentUserId;
-      const isSuper = currentUserRole === "superadmin";
-      const isAdmin = currentUserRole === "admin";
-      const isTargetHigherRole =
-        commentAuthorRole === "admin" || commentAuthorRole === "superadmin";
-
-      if (
-        isOwner ||
-        isSuper ||
-        (isAdmin && !isTargetHigherRole) ||
-        !commentAuthorId
-      ) {
-        post.comments.pull(commentId);
-        await post.save();
-        return res.json({ message: "Коментар видалено" });
-      }
-
-      return res
-        .status(403)
-        .json({ error: "Недостатньо прав для видалення цього коментаря" });
+      res.json({
+        message: "Публікацію та її медіа-файли успішно видалено з системи",
+      });
     } catch (err) {
       next(err);
     }
