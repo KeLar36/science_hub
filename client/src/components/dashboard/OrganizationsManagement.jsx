@@ -12,6 +12,8 @@ import {
   Layers,
   Scale,
   MapPin,
+  Bookmark,
+  Trash2,
 } from "lucide-react";
 import UniversalFilters from "../UniversalFilters";
 import { Pagination } from "../ui/Pagination";
@@ -108,6 +110,31 @@ export const OrganizationsManagement = ({ onViewCabinet }) => {
     }
   };
 
+  const handleDeleteOrganization = async (id, orgName) => {
+    const isConfirmed = window.confirm(
+      `🚨 УВАГА! Ви дійсно хочете ПОВНІСТЮ видалити організацію "${orgName}"?\n\nЦе дія каскадно виключить усіх учасників з установи та скине статус її засновника. Скасувати цю дію буде НЕМОЖЛИВО.`,
+    );
+
+    if (!isConfirmed) return;
+
+    try {
+      setLoadingAction(id);
+      await axiosInstance.delete(`/organizations/${id}`);
+      toast.success(
+        `Установу "${orgName}" та всі її зв'язки успішно ліквідовано 🟣`,
+      );
+
+      fetchOrganizations(currentPage);
+    } catch (err) {
+      console.error("💥 Помилка каскадного видалення установи:", err);
+      toast.error(
+        err.response?.data?.error || "Не вдалося видалити організацію",
+      );
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
   const handleResetFilters = () => {
     setSearchTerm("");
     setFilterStatus("Всі статуси");
@@ -117,19 +144,19 @@ export const OrganizationsManagement = ({ onViewCabinet }) => {
     switch (status) {
       case "approved":
         return (
-          <div className="flex items-center gap-1 text-emerald-500 bg-emerald-500/5 px-2 py-1 rounded-lg border border-emerald-500/10 font-black text-[9px] uppercase tracking-wide w-fit">
+          <div className="flex items-center gap-1 text-emerald-500 bg-emerald-500/5 px-2 py-1 rounded-lg border border-emerald-500/10 font-black text-[9px] uppercase tracking-wide w-fit shrink-0">
             <CheckCircle size={11} /> Верифікована
           </div>
         );
       case "rejected":
         return (
-          <div className="flex items-center gap-1 text-red-500 bg-red-500/5 px-2 py-1 rounded-lg border border-red-500/10 font-black text-[9px] uppercase tracking-wide w-fit">
+          <div className="flex items-center gap-1 text-red-500 bg-red-500/5 px-2 py-1 rounded-lg border border-red-500/10 font-black text-[9px] uppercase tracking-wide w-fit shrink-0">
             <XCircle size={11} /> Відхилена
           </div>
         );
       default:
         return (
-          <div className="flex items-center gap-1 text-amber-500 bg-amber-500/5 px-2 py-1 rounded-lg border border-amber-500/10 font-black text-[9px] uppercase tracking-wide w-fit">
+          <div className="flex items-center gap-1 text-amber-500 bg-amber-500/5 px-2 py-1 rounded-lg border border-amber-500/10 font-black text-[9px] uppercase tracking-wide w-fit shrink-0">
             <Clock size={11} /> Очікує апруву
           </div>
         );
@@ -175,24 +202,25 @@ export const OrganizationsManagement = ({ onViewCabinet }) => {
           {organizations.map((org) => (
             <div
               key={org._id}
-              className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-3xl shadow-xs flex flex-col justify-between gap-4 transition-all hover:border-purple-500/20 relative"
+              className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-3xl shadow-xs flex flex-col justify-between gap-5 transition-all hover:border-purple-500/20 relative"
             >
-              <div className="space-y-2.5">
+              <div className="space-y-3.5">
+                {/* Ряд 1: Логотип, Назва, Локація та Статус */}
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-2xl bg-purple-600/10 text-purple-600 font-black flex items-center justify-center shrink-0 border border-purple-600/10">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-11 h-11 rounded-2xl bg-purple-600/10 text-purple-600 font-black flex items-center justify-center shrink-0 border border-purple-600/10 overflow-hidden">
                       {org.logo ? (
                         <img
                           src={org.logo}
                           alt={org.name}
-                          className="w-full h-full object-cover rounded-2xl"
+                          className="w-full h-full object-cover"
                         />
                       ) : (
                         <Building2 size={20} />
                       )}
                     </div>
                     <div className="min-w-0 text-left">
-                      <h4 className="font-black text-base text-[var(--text-dark)] leading-tight truncate max-w-[180px] sm:max-w-[240px] uppercase tracking-wide">
+                      <h4 className="font-black text-base text-[var(--text-dark)] leading-tight truncate uppercase tracking-wide">
                         {org.name}
                       </h4>
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-bold text-[var(--text-gray)] mt-0.5">
@@ -210,7 +238,8 @@ export const OrganizationsManagement = ({ onViewCabinet }) => {
                   {getStatusBadge(org.status)}
                 </div>
 
-                <div className="flex flex-wrap gap-1.5 pt-1">
+                {/* Ряд 2: Базові теги профілю та Юр.форми */}
+                <div className="flex flex-wrap gap-1.5">
                   <div className="flex items-center gap-1 bg-purple-600/5 border border-purple-600/10 text-purple-600 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide">
                     <Layers size={10} /> {org.type || "Університет"}
                   </div>
@@ -219,29 +248,61 @@ export const OrganizationsManagement = ({ onViewCabinet }) => {
                   </div>
                 </div>
 
+                {org.scientificDomains && org.scientificDomains.length > 0 && (
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center gap-1 text-[9px] font-mono font-black uppercase tracking-wider text-[var(--text-gray)]">
+                      <Bookmark size={11} className="text-purple-500" />{" "}
+                      Профільні напрями діяльності
+                    </div>
+                    <div className="flex flex-wrap gap-1 max-h-[72px] overflow-y-auto pr-1 custom-scrollbar">
+                      {org.scientificDomains.map((domain) => (
+                        <span
+                          key={domain}
+                          className="px-2 py-0.5 bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-dark)] opacity-90 font-semibold text-[9px] rounded"
+                        >
+                          {domain}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <p className="text-xs text-[var(--text-gray)] font-medium leading-relaxed line-clamp-2 text-left pt-1">
                   {org.description || "Опис діяльності установи не надано."}
                 </p>
 
-                <div className="pt-2 border-t border-[var(--border-color)] space-y-1.5 text-[11px] font-semibold text-[var(--text-gray)] text-left">
+                <div className="pt-2.5 border-t border-[var(--border-color)] space-y-1.5 text-[11px] font-semibold text-[var(--text-gray)] text-left">
                   <div className="flex items-center gap-1">
                     👑 Заявник:{" "}
                     <span className="text-[var(--text-dark)] font-bold">
                       {org.creatorId?.name || "Система"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Mail size={12} className="text-purple-500" /> Email:{" "}
-                    <span className="text-[var(--text-dark)] font-mono">
-                      {org.creatorId?.email || "—"}
-                    </span>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-1.5">
+                    {org.email && (
+                      <div className="flex items-center gap-1">
+                        <Mail size={12} className="text-purple-500" /> Установа:{" "}
+                        <span className="text-[var(--text-dark)] font-mono font-bold">
+                          {org.email}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1 opacity-80">
+                      <Mail size={12} className="text-[var(--text-gray)]" />{" "}
+                      Акаунт:{" "}
+                      <span className="text-[var(--text-dark)] font-mono">
+                        {org.creatorId?.email || "—"}
+                      </span>
+                    </div>
                   </div>
+
                   {org.website && (
                     <a
                       href={org.website}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex items-center gap-1 text-purple-600 hover:underline w-fit"
+                      className="flex items-center gap-1 text-purple-600 hover:underline w-fit pt-0.5"
                     >
                       <Link2 size={12} /> Офіційний сайт установи
                     </a>
@@ -250,62 +311,77 @@ export const OrganizationsManagement = ({ onViewCabinet }) => {
               </div>
 
               <div className="flex items-center gap-2 pt-3 border-t border-[var(--border-color)]">
-                {org.status === "pending" && (
-                  <>
-                    <Button
-                      variant="success"
-                      size="sm"
-                      onClick={() => handleUpdateStatus(org._id, "approved")}
-                      disabled={loadingAction === org._id}
-                      className="flex-1 uppercase text-[10px] tracking-wider rounded-xl font-black"
-                    >
-                      Підтвердити
-                    </Button>
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={() => handleUpdateStatus(org._id, "rejected")}
-                      disabled={loadingAction === org._id}
-                      className="flex-1 uppercase text-[10px] tracking-wider rounded-xl font-black"
-                    >
-                      Відхилити
-                    </Button>
-                  </>
-                )}
+                <div className="flex-1 flex items-center gap-2">
+                  {org.status === "pending" && (
+                    <>
+                      <Button
+                        variant="success"
+                        size="sm"
+                        onClick={() => handleUpdateStatus(org._id, "approved")}
+                        disabled={loadingAction === org._id}
+                        className="flex-1 uppercase text-[10px] tracking-wider rounded-xl font-black"
+                      >
+                        Підтвердити
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => handleUpdateStatus(org._id, "rejected")}
+                        disabled={loadingAction === org._id}
+                        className="flex-1 uppercase text-[10px] tracking-wider rounded-xl font-black"
+                      >
+                        Відхилити
+                      </Button>
+                    </>
+                  )}
 
-                {org.status === "approved" && (
-                  <>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => onViewCabinet(org._id)}
-                      className="flex-1 text-[10px] tracking-wider uppercase rounded-xl font-black flex items-center justify-center gap-1"
-                    >
-                      <ExternalLink size={12} /> Керувати кабінетом
-                    </Button>
+                  {org.status === "approved" && (
+                    <>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => onViewCabinet(org._id)}
+                        className="flex-1 text-[10px] tracking-wider uppercase rounded-xl font-black flex items-center justify-center gap-1"
+                      >
+                        <ExternalLink size={12} /> Керувати кабінетом
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleUpdateStatus(org._id, "rejected")}
+                        disabled={loadingAction === org._id}
+                        className="px-3 border-[var(--border-color)] text-[var(--text-gray)] hover:text-red-500 hover:border-red-500/20 text-[10px] uppercase font-black rounded-xl"
+                      >
+                        Блок
+                      </Button>
+                    </>
+                  )}
+
+                  {org.status === "rejected" && (
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleUpdateStatus(org._id, "rejected")}
+                      onClick={() => handleUpdateStatus(org._id, "approved")}
                       disabled={loadingAction === org._id}
-                      className="px-3 border-[var(--border-color)] text-[var(--text-gray)] hover:text-red-500 hover:border-red-500/20 text-[10px] uppercase font-black rounded-xl"
+                      className="w-full text-[10px] tracking-wider uppercase rounded-xl font-black"
                     >
-                      Блок
+                      Повернути в систему
                     </Button>
-                  </>
-                )}
-
-                {org.status === "rejected" && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleUpdateStatus(org._id, "approved")}
-                    disabled={loadingAction === org._id}
-                    className="w-full text-[10px] tracking-wider uppercase rounded-xl font-black"
-                  >
-                    Повернути в систему
-                  </Button>
-                )}
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteOrganization(org._id, org.name)}
+                  disabled={loadingAction === org._id}
+                  className="p-3 bg-rose-500/5 text-rose-500 border border-rose-500/10 hover:bg-rose-500 hover:text-white disabled:opacity-50 disabled:hover:bg-rose-500/5 disabled:hover:text-rose-500 rounded-xl transition-all shrink-0 cursor-pointer shadow-xs"
+                  title="Повне каскадне видалення організації з бази даних"
+                >
+                  {loadingAction === org._id ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Trash2 size={14} />
+                  )}
+                </button>
               </div>
             </div>
           ))}

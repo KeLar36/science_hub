@@ -91,7 +91,7 @@ export const ProjectsManagement = ({ userRole }) => {
   const handleAssignReviewer = async (projectId, reviewerId) => {
     try {
       setLoadingAction(`assign_${projectId}`);
-      await axiosInstance.patch(`/projects/assign/${projectId}`, {
+      await axiosInstance.patch(`/projects/${projectId}/assign`, {
         reviewerId,
       });
       toast.success("Рецензента успішно призначено для роботи");
@@ -106,7 +106,7 @@ export const ProjectsManagement = ({ userRole }) => {
   const handleUpdateStatus = async (projectId, newStatus) => {
     try {
       setLoadingAction(`status_${projectId}`);
-      await axiosInstance.patch(`/projects/status/${projectId}`, {
+      await axiosInstance.patch(`/projects/${projectId}/status`, {
         status: newStatus,
       });
       toast.success(`Статус наукової праці оновлено на "${newStatus}"`);

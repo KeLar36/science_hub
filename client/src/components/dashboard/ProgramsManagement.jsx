@@ -4,7 +4,7 @@ import UniversalFilters from "../UniversalFilters";
 import { UniversalCard } from "../ui/UniversalCard";
 import { Pagination } from "../ui/Pagination";
 import ProgramForm from "../ProgramForm";
-import EditProgramModal from "./EditProgramModal";
+import { EditProgramModal } from "./EditProgramModal";
 import { Loader2, ShieldCheck, Plus } from "lucide-react";
 import axiosInstance from "../../api/axios";
 import toast from "react-hot-toast";
@@ -48,7 +48,7 @@ export const ProgramsManagement = ({
         url =
           subTab === "closed"
             ? `/programs/archive?page=${pageNumber}&limit=8`
-            : `/programs?page=${pageNumber}&limit=8`;
+            : `/programs?page=${pageNumber}&limit=8&status=active`;
       }
 
       if (searchTerm.trim()) {
