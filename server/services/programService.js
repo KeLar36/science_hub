@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const User = require("../models/User");
-const ProjectService = require("./ProjectService");
+const projectService = require("./ProjectService");
 
 class ProgramService {
   getProgramModel() {
