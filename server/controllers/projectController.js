@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 const projectService = require("../services/projectService");
 const Program = require("../models/Program");
-const Project = require("../models/Project");
 
 class ProjectController {
   async getAll(req, res, next) {
@@ -9,7 +8,6 @@ class ProjectController {
       let query = {};
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 8;
-      const skip = (page - 1) * limit;
 
       if (req.query.search) {
         query.title = { $regex: req.query.search.trim(), $options: "i" };
@@ -31,53 +29,30 @@ class ProjectController {
         if (!currentOrgId) {
           query = { _id: null };
         } else {
-          const programs = await Program.find({
-            organizationId: currentOrgId,
-          }).select("_id");
-          const programIds = programs.map((p) => String(p._id));
-
-          const roleFilters = { programId: { $in: programIds } };
-
-          query = { $and: [query, roleFilters] };
+          const programs = await Program.find({ organizationId: currentOrgId });
+          const programIds = programs.map((p) => p._id);
+          query.programId = { $in: programIds };
         }
       }
 
-      const totalItems = await Project.countDocuments(query);
-      const totalPages = Math.ceil(totalItems / limit);
+      const result = await projectService.getAll(query, page, limit);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
 
-      const rawProjects = await Project.find(query)
-        .populate("authorId", "name email organizationId")
-        .populate("programId", "title type organizationId")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit);
+  async getMyProjects(req, res, next) {
+    try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 8;
 
-      const isSuperAdmin = req.user.role === "superadmin";
-      const userOrgId = String(req.user.organizationId || "");
-
-      const processedItems = rawProjects.map((project) => {
-        const pObj = project.toObject();
-
-        const programOrgId = String(
-          pObj.programId?.organizationId || pObj.programId || "",
-        );
-        const isOurProgram = userOrgId && programOrgId === userOrgId;
-
-        pObj.context = {
-          isOurTargetProgram: isOurProgram,
-          canManageAssessment: isOurProgram || isSuperAdmin,
-        };
-
-        return pObj;
-      });
-
-      return res.status(200).json({
-        items: processedItems,
-        projects: processedItems,
-        currentPage: page,
-        totalPages: totalPages || 1,
-        totalItems,
-      });
+      const result = await projectService.getAll(
+        { authorId: req.user.id },
+        page,
+        limit,
+      );
+      res.json(result);
     } catch (err) {
       next(err);
     }
@@ -86,14 +61,9 @@ class ProjectController {
   async getById(req, res, next) {
     try {
       const project = await projectService.getById(req.params.id);
-
-      if (
-        req.user.role === "user" &&
-        project.authorId._id.toString() !== req.user.id
-      ) {
-        return res.status(403).json({ error: "Доступ заборонено" });
+      if (!project) {
+        return res.status(404).json({ message: "Проєкт не знайдено" });
       }
-
       res.json(project);
     } catch (err) {
       next(err);
@@ -102,35 +72,53 @@ class ProjectController {
 
   async create(req, res, next) {
     try {
-      const { title, description, programId, domain, authorComment } = req.body;
-
-      if (!req.file) {
-        return res.status(400).json({
-          error: "Будь ласка, завантажте документ або кошторис проєкту",
-        });
-      }
+      const { title, description, domain, programId, authorComment } = req.body;
 
       if (!title || !description || !programId) {
         return res.status(400).json({
-          error: "Заповніть обов'язкові поля: назва, опис та програма",
+          message: "Заповніть обов'язкові поля: назва, опис та програма",
         });
       }
 
-      const fileUrl = req.file.path;
-      const fileName = req.file.originalname;
+      if (!req.file) {
+        return res
+          .status(400)
+          .json({ message: "Будь ласка, завантажте файл роботи (PDF/Docx)" });
+      }
 
-      const newProject = await projectService.create({
+      const initialVersion = {
+        fileUrl: req.file.path,
+        fileName: req.file.originalname || "document",
+        authorComment: authorComment || "Перша версія роботи",
+        createdAt: new Date(),
+      };
+
+      const projectData = {
         title: title.trim(),
         description: description.trim(),
         domain: domain || "Інше",
-        programId,
         authorId: req.user.id,
-        fileUrl,
-        fileName,
-        authorComment: authorComment || "Перша версія",
-      });
+        programId,
+        versions: [initialVersion],
+      };
 
+      const newProject = await projectService.create(projectData);
       res.status(201).json(newProject);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async update(req, res, next) {
+    try {
+      const updatedProject = await projectService.update(
+        req.params.id,
+        req.body,
+      );
+      if (!updatedProject) {
+        return res.status(404).json({ message: "Проєкт не знайдено" });
+      }
+      res.json(updatedProject);
     } catch (err) {
       next(err);
     }
@@ -141,26 +129,22 @@ class ProjectController {
       const { authorComment } = req.body;
 
       if (!req.file) {
-        return res
-          .status(400)
-          .json({ error: "Файл нової версії не завантажено" });
+        return res.status(400).json({ message: "Файл не завантажено" });
       }
 
-      const project = await projectService.getById(req.params.id);
-      if (project.authorId._id.toString() !== req.user.id) {
-        return res
-          .status(403)
-          .json({ error: "Ви можете оновлювати тільки власні проєкти" });
-      }
+      const fileData = {
+        fileUrl: req.file.path,
+        fileName: req.file.originalname,
+        authorComment: authorComment || "",
+        createdAt: new Date(),
+      };
 
-      const fileUrl = req.file.path;
-      const fileName = req.file.originalname;
+      const updatedProject = await projectService.addVersion(
+        req.params.id,
+        fileData,
+      );
 
-      const updatedProject = await projectService.appendVersion(req.params.id, {
-        fileUrl,
-        fileName,
-        authorComment: authorComment || "Оновлена версія матеріалів",
-      });
+      await projectService.update(req.params.id, { reviewStatus: "В процесі" });
 
       res.json(updatedProject);
     } catch (err) {
@@ -172,10 +156,10 @@ class ProjectController {
     try {
       const { reviewerId } = req.body;
       if (!reviewerId) {
-        return res.status(400).json({ error: "Вкажіть ID рецензента" });
+        return res.status(400).json({ message: "Не вказано ID рецензента" });
       }
 
-      const updatedProject = await projectService.updateReview(req.params.id, {
+      const updatedProject = await projectService.update(req.params.id, {
         reviewerId,
         reviewStatus: "В процесі",
       });
@@ -186,53 +170,16 @@ class ProjectController {
     }
   }
 
-  async submitReview(req, res, next) {
+  async updateStatus(req, res, next) {
     try {
-      const { reviewerComments, status } = req.body;
-
-      if (!status || !reviewerComments || !reviewerComments.trim()) {
-        return res.status(400).json({
-          error: "Вкажіть статус рішення та заповніть експертний висновок",
-        });
+      const { status } = req.body;
+      if (!status) {
+        return res.status(400).json({ message: "Не вказано статус проєкту" });
       }
 
-      const project = await projectService.getById(req.params.id);
-      if (!project) {
-        return res.status(404).json({ error: "Проєкт не знайдено" });
-      }
-
-      const assignedReviewerId = project.reviewerId?._id || project.reviewerId;
-      if (
-        req.user.role === "reviewer" &&
-        String(assignedReviewerId || "") !== req.user.id
-      ) {
-        return res
-          .status(403)
-          .json({ error: "Ви не є призначеним рецензентом для цього проєкту" });
-      }
-
-      const updateData = {
-        reviewerComments: reviewerComments.trim(),
-        reviewStatus:
-          status === "На доопрацюванні" ? "На доопрацюванні" : "Завершено",
-      };
-
-      if (status === "На доопрацюванні") {
-        updateData.status = "На доопрацюванні";
-        updateData.reviewerRecommendation = "Немає";
-      } else if (["Прийнято", "Відхилено"].includes(status)) {
-        updateData.reviewerRecommendation = status;
-      } else {
-        return res
-          .status(400)
-          .json({ error: "Передано некоректний статус рішення" });
-      }
-
-      const updatedProject = await projectService.updateReview(
-        req.params.id,
-        updateData,
-      );
-
+      const updatedProject = await projectService.update(req.params.id, {
+        status,
+      });
       res.json(updatedProject);
     } catch (err) {
       next(err);
@@ -242,17 +189,21 @@ class ProjectController {
   async delete(req, res, next) {
     try {
       const project = await projectService.getById(req.params.id);
+      if (!project) {
+        return res.status(404).json({ message: "Проєкт не знайдено" });
+      }
+
       if (
         req.user.role !== "superadmin" &&
-        project.authorId._id.toString() !== req.user.id
+        project.authorId._id.toString() !== req.user.id.toString()
       ) {
         return res
           .status(403)
-          .json({ error: "Ви не маєте прав на видалення цього проєкту" });
+          .json({ message: "Ви не маєте прав на видалення цього проєкту!" });
       }
 
       await projectService.delete(req.params.id);
-      res.json({ message: "Проєкт успішно видалено" });
+      res.json({ message: "Проєкт та всі його версії успішно видалено" });
     } catch (err) {
       next(err);
     }
@@ -270,15 +221,6 @@ class ProjectController {
     }
   }
 
-  async getMyProjects(req, res) {
-    try {
-      const projects = await projectService.getMyProjects(req.user.id);
-      res.status(200).json(projects);
-    } catch (error) {
-      res.status(500).json({ message: "Помилка сервера" });
-    }
-  }
-
   async getReviewerQueue(req, res, next) {
     try {
       const reviewerId = req.user.id;
@@ -289,16 +231,22 @@ class ProjectController {
     }
   }
 
-  async updateStatus(req, res, next) {
+  async submitReview(req, res, next) {
     try {
-      const { id } = req.params;
-      const { status } = req.body;
+      const { reviewerComments, reviewStatus, status, reviewerRecommendation } =
+        req.body;
+      const reviewerId = req.user.id;
 
-      if (!status) {
-        return res.status(400).json({ error: "Статус обов'язковий" });
-      }
-
-      const updatedProject = await projectService.updateReview(id, { status });
+      const updatedProject = await projectService.submitReview(
+        req.params.id,
+        reviewerId,
+        {
+          reviewerComments,
+          reviewStatus,
+          status,
+          reviewerRecommendation,
+        },
+      );
 
       res.json(updatedProject);
     } catch (err) {

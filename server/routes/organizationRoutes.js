@@ -69,6 +69,12 @@ router.patch(
   organizationController.updateStatus,
 );
 
+router.patch(
+  "/:id/transfer-ownership",
+  verifyToken,
+  organizationController.transferOrgOwnership,
+);
+
 router.get("/:id", verifyToken, organizationController.getById);
 
 router.delete(

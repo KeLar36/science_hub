@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const Post = require("../models/Post");
 const cloudinary = require("cloudinary").v2;
+const mongoose = require("mongoose");
 
 class UserService {
   async #deleteImageFromCloudinary(imageUrl) {
@@ -17,7 +18,7 @@ class UserService {
 
       await cloudinary.uploader.destroy(publicId);
     } catch (err) {
-      console.error("Помилка видалення файлу з Cloudinary:", err);
+      console.error("💥 Помилка видалення файлу з Cloudinary:", err);
     }
   }
 
@@ -45,89 +46,16 @@ class UserService {
 
     return await User.findByIdAndUpdate(
       id,
-      {
-        $set: {
-          name: profileData.name,
-          bio: profileData.bio,
-          topics: profileData.topics,
-          city: profileData.city,
-          socials: profileData.socials,
-          image: profileData.image, // Автоматично перезапише нове посилання
-        },
-      },
+      { $set: profileData },
       { new: true, runValidators: true },
     ).select("-password");
   }
 
-  async getBookmarks(userId) {
-    const user = await User.findById(userId);
-    if (!user) {
-      const error = new Error("Користувача не знайдено");
-      error.statusCode = 404;
-      throw error;
-    }
-    return await Post.find({ _id: { $in: user.bookmarks } }).sort({
-      createdAt: -1,
-    });
-  }
-
-  async checkBookmark(userId, postId) {
-    const user = await User.findById(userId);
-    if (!user) {
-      const error = new Error("Користувача не знайдено");
-      error.statusCode = 404;
-      throw error;
-    }
-    return user.bookmarks ? user.bookmarks.includes(postId) : false;
-  }
-
-  async getSavedPosts(userId) {
-    const user = await User.findById(userId).populate({
-      path: "bookmarks",
-      model: "Post",
-    });
-
-    if (!user) {
-      const error = new Error("Користувача не знайдено");
-      error.statusCode = 404;
-      throw error;
-    }
-    return user.bookmarks || [];
-  }
-
-  async toggleBookmark(userId, postId) {
-    const user = await User.findById(userId);
-    if (!user) {
-      const error = new Error("Користувача не знайдено");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    if (!user.bookmarks) user.bookmarks = [];
-
-    const index = user.bookmarks.indexOf(postId);
-    if (index === -1) {
-      user.bookmarks.push(postId);
-    } else {
-      user.bookmarks.splice(index, 1);
-    }
-
-    await user.save();
-    return index === -1;
-  }
-
-  async getCommunity() {
-    return await User.find(
-      { isBanned: false },
-      "name role image bio topics city socials status organizationId createdAt",
-    ).sort({ status: 1, createdAt: -1 });
-  }
-
-  async getUsers(queryFilters, page = 1, limit = 8) {
+  async getPagedUsers(queryFilters, page = 1, limit = 8) {
     const skip = (page - 1) * limit;
+
     const users = await User.find(queryFilters)
       .select("-password")
-      .populate("organizationId", "name")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -183,12 +111,80 @@ class UserService {
     );
   }
 
-  async delete(id) {
-    const user = await User.findById(id).select("image");
-    if (user && user.image) {
+  async anonymizeUser(userId) {
+    const user = await User.findById(userId);
+    if (!user) {
+      const error = new Error("Користувача не знайдено");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const Organization = mongoose.model("Organization");
+
+    // =========================================================================
+    // 🛡️ КРОК 1: Перевірка на засновника активної організації
+    // =========================================================================
+    const ownedOrg = await Organization.findOne({ creatorId: userId });
+    if (ownedOrg) {
+      // Якщо він єдиний член і творець — змушуємо спочатку видалити установу
+      if (ownedOrg.members.length <= 1) {
+        const error = new Error(
+          "Ви є єдиним членом та засновником установи. Будь ласка, видаліть установу перед анонімізацією профілю.",
+        );
+        error.statusCode = 400;
+        throw error;
+      }
+
+      const error = new Error(
+        "Ви є засновником організації. Передайте права власності іншому учаснику перед анонімізацією.",
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // =========================================================================
+    // 🛡️ КРОК 2: Видалення з членів усіх організацій
+    // =========================================================================
+    await Organization.updateMany(
+      { members: userId },
+      { $pull: { members: userId } },
+    );
+
+    // =========================================================================
+    // 🛡️ КРОК 3: Очищення медіа та файлів профілю з Cloudinary
+    // =========================================================================
+    if (user.image) {
       await this.#deleteImageFromCloudinary(user.image);
     }
-    await User.findByIdAndDelete(id);
+
+    // =========================================================================
+    // 🛡️ КРОК 4: Анонімізація персональних даних у БД (GDPR-friendly)
+    // =========================================================================
+    const anonymizedEmail = `deleted_${userId}_${Date.now()}@scienceplatform.com`;
+
+    user.name = "Анонімний дослідник";
+    user.email = anonymizedEmail;
+    user.password = `anonymized_${Date.now()}_${Math.random().toString(36).substring(2)}`; // Перезаписуємо випадковим паролем
+    user.image = null;
+    user.bio =
+      "Цей акаунт було видалено користувачем за власним бажанням відповідно до політики GDPR.";
+    user.topics = [];
+    user.city = "";
+    user.socials = { github: "", twitter: "", linkedIn: "" };
+    user.bookmarks = [];
+    user.organizationId = null;
+    user.pendingOrganizationId = undefined;
+
+    user.role = "user";
+
+    if (user.allowedDomains) user.allowedDomains = [];
+    if (user.allowedTypes) user.allowedTypes = [];
+
+    await user.save();
+    console.log(
+      `🧼 Користувача ${userId} успішно анонімізовано за стандартами GDPR.`,
+    );
+    return user;
   }
 }
 

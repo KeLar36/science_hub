@@ -109,7 +109,7 @@ export default function ProfilePage() {
     if (view === "bookmarks") {
       setTabLoading(true);
       axiosInstance
-        .get("/users/bookmarks/all", { signal: controller.signal })
+        .get("/users/saved-posts", { signal: controller.signal })
         .then((res) => setBookmarks(res.data || []))
         .catch(() => toast.error("Помилка завантаження закладок"))
         .finally(() => setTabLoading(false));
@@ -164,21 +164,30 @@ export default function ProfilePage() {
   }, [targetProgram, activePrograms]);
 
   const stats = useMemo(() => {
+    const projectsArray = Array.isArray(myProjects)
+      ? myProjects
+      : myProjects?.projects || [];
+
     return {
-      total: myProjects.length,
-      approved: myProjects.filter((p) => p.status === "Прийнято").length,
+      total: projectsArray.length,
+      approved: projectsArray.filter((p) => p.status === "Прийнято").length,
     };
   }, [myProjects]);
 
   const renderedProjects = useMemo(() => {
-    if (myProjects.length === 0) {
+    const projectsArray = Array.isArray(myProjects)
+      ? myProjects
+      : myProjects?.projects || [];
+
+    if (projectsArray.length === 0) {
       return (
         <div className="col-span-full bg-[var(--bg-card)] border border-[var(--border-color)] p-12 text-center rounded-3xl text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider">
           📁 Ви ще не подали жодної наукової праці.
         </div>
       );
     }
-    return myProjects.map((project) => (
+
+    return projectsArray.map((project) => (
       <UniversalCard
         key={project._id}
         item={project}
@@ -189,14 +198,19 @@ export default function ProfilePage() {
   }, [myProjects]);
 
   const renderedBookmarks = useMemo(() => {
-    if (bookmarks.length === 0) {
+    const bookmarksArray = Array.isArray(bookmarks)
+      ? bookmarks
+      : bookmarks?.bookmarks || [];
+
+    if (bookmarksArray.length === 0) {
       return (
         <div className="col-span-full bg-[var(--bg-card)] border border-[var(--border-color)] p-12 text-center rounded-3xl text-xs font-bold text-[var(--text-gray)] uppercase tracking-wider">
           🔖 Списку закладок немає або він порожній.
         </div>
       );
     }
-    return bookmarks.map((post) =>
+
+    return bookmarksArray.map((post) =>
       post && post.title ? (
         <UniversalCard key={post._id} item={post} variant="profileBookmark" />
       ) : null,

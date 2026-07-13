@@ -3,21 +3,15 @@ const Comment = require("../models/Comment");
 const cloudinary = require("cloudinary").v2;
 
 class PostService {
-  async #deleteImageFromCloudinary(imageUrl) {
-    if (!imageUrl || !imageUrl.includes("cloudinary.com")) return;
+  async #deleteImageFromCloudinary(publicId) {
+    if (!publicId) return;
     try {
-      const parts = imageUrl.split("/upload/");
-      if (parts.length < 2) return;
-
-      const publicIdWithExtension = parts[1].replace(/^v\d+\//, "");
-      const publicId = publicIdWithExtension.substring(
-        0,
-        publicIdWithExtension.lastIndexOf("."),
-      );
-
       await cloudinary.uploader.destroy(publicId);
     } catch (err) {
-      console.error("💥 Помилка видалення зображення з Cloudinary:", err);
+      console.error(
+        `💥 Помилка видалення ресурсу ${publicId} з Cloudinary:`,
+        err,
+      );
     }
   }
 
@@ -87,11 +81,14 @@ class PostService {
   }
 
   async create(authorId, postData, uploadedImages = []) {
+    const finalStatus = postData.status || "published";
+
     const newPost = new Post({
       title: postData.title.trim(),
       content: postData.content,
       category: postData.category,
-      status: postData.status || "published",
+      domain: postData.domain || null,
+      status: finalStatus,
       authorId,
       organizationId: postData.organizationId || null,
       images: uploadedImages,
@@ -112,14 +109,17 @@ class PostService {
       title: postData.title.trim(),
       content: postData.content,
       category: postData.category,
-      status: postData.status,
+      domain: postData.domain || currentPost.domain,
+      status: postData.status || currentPost.status,
       organizationId: postData.organizationId || currentPost.organizationId,
     };
 
     if (newUploadedImages && newUploadedImages.length > 0) {
       if (currentPost.images && currentPost.images.length > 0) {
         for (const img of currentPost.images) {
-          if (img.url) await this.#deleteImageFromCloudinary(img.url);
+          if (img.publicId) {
+            await this.#deleteImageFromCloudinary(img.publicId);
+          }
         }
       }
       updateData.images = newUploadedImages;
@@ -146,11 +146,13 @@ class PostService {
 
     if (post.images && post.images.length > 0) {
       for (const img of post.images) {
-        if (img.url) {
-          await this.#deleteImageFromCloudinary(img.url);
+        if (img.publicId) {
+          await this.#deleteImageFromCloudinary(img.publicId);
         }
       }
     }
+
+    await Comment.deleteMany({ postId: id });
 
     await Post.findByIdAndDelete(id);
   }

@@ -1,5 +1,6 @@
 const userService = require("../services/userService");
 const User = require("../models/User");
+const Post = require("../models/Post"); // Потрібно для saved-posts
 
 class UserController {
   async getMe(req, res, next) {
@@ -47,71 +48,25 @@ class UserController {
         socials: socials,
       };
 
-      if (req.file && req.file.path) {
+      if (req.file) {
         profileData.image = req.file.path;
-      } else if (body.image) {
-        profileData.image = body.image;
       }
 
       const updatedUser = await userService.updateProfile(
         req.user.id,
         profileData,
       );
+
       res.json(updatedUser);
     } catch (err) {
       next(err);
     }
   }
 
-  async getBookmarks(req, res, next) {
+  async getById(req, res, next) {
     try {
-      const bookmarkedPosts = await userService.getBookmarks(req.user.id);
-      res.json(bookmarkedPosts);
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async checkBookmark(req, res, next) {
-    try {
-      const isBookmarked = await userService.checkBookmark(
-        req.user.id,
-        req.params.id,
-      );
-      res.json({ isBookmarked });
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async getSavedPosts(req, res, next) {
-    try {
-      const savedPosts = await userService.getSavedPosts(req.user.id);
-      res.json(savedPosts);
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async toggleBookmark(req, res, next) {
-    try {
-      const isBookmarked = await userService.toggleBookmark(
-        req.user.id,
-        req.params.id,
-      );
-      res.json({
-        isBookmarked,
-        message: isBookmarked ? "Додано до закладок" : "Видалено з закладок",
-      });
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async getCommunity(req, res, next) {
-    try {
-      const users = await userService.getCommunity();
-      res.json(users);
+      const user = await userService.getById(req.params.id);
+      res.json(user);
     } catch (err) {
       next(err);
     }
@@ -119,64 +74,19 @@ class UserController {
 
   async getAll(req, res, next) {
     try {
-      let query = {};
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 8;
-
-      if (req.user.role === "admin") {
-        const freshUser = await User.findById(req.user.id).select(
-          "organizationId",
-        );
-        if (!freshUser || !freshUser.organizationId) {
-          return res.json({ users: [], totalPages: 0, currentPage: page });
-        }
-        query.organizationId = freshUser.organizationId;
-      } else if (req.user.role === "superadmin") {
-        if (req.query.orgId) {
-          query.organizationId = req.query.orgId;
-        }
-      }
+      const queryFilters = {};
 
       if (req.query.search) {
-        const searchRegex = { $regex: req.query.search.trim(), $options: "i" };
-        query.$or = [{ name: searchRegex }, { email: searchRegex }];
+        queryFilters.name = { $regex: req.query.search.trim(), $options: "i" };
+      }
+      if (req.query.role && req.query.role !== "Всі ролі") {
+        queryFilters.role = req.query.role;
       }
 
-      if (req.query.role) {
-        query.role = req.query.role;
-      }
-
-      if (req.query.isBanned) {
-        query.isBanned = req.query.isBanned === "true";
-      }
-
-      const result = await userService.getUsers(query, page, limit);
+      const result = await userService.getPagedUsers(queryFilters, page, limit);
       res.json(result);
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async getCount(req, res, next) {
-    try {
-      let query = {};
-
-      if (req.user.role === "admin") {
-        const freshUser = await User.findById(req.user.id).select(
-          "organizationId",
-        );
-        if (!freshUser || !freshUser.organizationId) {
-          return res.json({ count: 0 });
-        }
-        query.organizationId = freshUser.organizationId;
-      } else if (req.user.role === "superadmin") {
-        if (req.query.orgId) {
-          query.organizationId = req.query.orgId;
-        }
-      }
-
-      const count = await userService.countUsers(query);
-      res.json({ count });
     } catch (err) {
       next(err);
     }
@@ -227,16 +137,149 @@ class UserController {
     }
   }
 
-  async deleteUser(req, res, next) {
+  async getBookmarks(req, res, next) {
     try {
-      if (req.params.id === req.user.id) {
-        return res
-          .status(400)
-          .json({ error: "Не можна видалити власний акаунт" });
+      const user = await User.findById(req.user.id).select("bookmarks");
+      if (!user) {
+        return res.status(404).json({ error: "Користувача не знайдено" });
+      }
+      res.json({ bookmarks: user.bookmarks || [] });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async checkBookmark(req, res, next) {
+    try {
+      const user = await User.findById(req.user.id).select("bookmarks");
+      if (!user) {
+        return res.status(404).json({ error: "Користувача не знайдено" });
+      }
+      const isBookmarked = user.bookmarks.includes(req.params.id);
+      res.json({ isBookmarked });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getSavedPosts(req, res, next) {
+    try {
+      const user = await User.findById(req.user.id).select("bookmarks");
+      if (!user) {
+        return res.status(404).json({ error: "Користувача не знайдено" });
       }
 
-      await userService.delete(req.params.id);
-      res.json({ message: "Користувача успешно видалено" });
+      const posts = await Post.find({ _id: { $in: user.bookmarks } })
+        .populate("authorId", "name image")
+        .populate("organizationId", "name logo")
+        .sort({ createdAt: -1 });
+
+      res.json(posts);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async toggleBookmark(req, res, next) {
+    try {
+      const user = await User.findById(req.user.id);
+      if (!user) {
+        return res.status(404).json({ error: "Користувача не знайдено" });
+      }
+
+      const postId = req.params.id;
+      const index = user.bookmarks.indexOf(postId);
+
+      if (index === -1) {
+        // Якщо немає в закладках - додаємо
+        user.bookmarks.push(postId);
+      } else {
+        // Якщо є - видаляємо
+        user.bookmarks.splice(index, 1);
+      }
+
+      await user.save();
+      res.json({
+        bookmarks: user.bookmarks,
+        message: "Закладки успішно оновлено",
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getCommunity(req, res, next) {
+    try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 12;
+      const skip = (page - 1) * limit;
+
+      const queryFilters = { isBanned: false };
+
+      if (req.query.search) {
+        queryFilters.name = { $regex: req.query.search.trim(), $options: "i" };
+      }
+
+      const users = await User.find(queryFilters)
+        .select("name email image role city topics bio")
+        .populate("organizationId", "name logo")
+        .skip(skip)
+        .limit(limit);
+
+      const total = await User.countDocuments(queryFilters);
+      const totalPages = Math.ceil(total / limit);
+
+      res.json({ users, totalPages, currentPage: page });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getCount(req, res, next) {
+    try {
+      const count = await userService.countUsers({});
+      res.json({ count });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  // =========================================================================
+  // 🟢 GDPR АНОНІМІЗАЦІЯ ПРОФІЛЮ КОРИСТУВАЧА
+  // =========================================================================
+
+  async deleteSelf(req, res, next) {
+    try {
+      const userId = req.user.id;
+
+      await userService.anonymizeUser(userId);
+
+      res.json({
+        message:
+          "Ваш профіль та персональні дані успішно анонімізовано та видалено з системи згідно з GDPR",
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async deleteUser(req, res, next) {
+    try {
+      const targetUserId = req.params.id;
+
+      const targetUser = await userService.getById(targetUserId);
+      if (targetUser.role === "superadmin") {
+        return res
+          .status(403)
+          .json({ error: "Не можна видалити суперадміністратора системи" });
+      }
+
+      await userService.anonymizeUser(targetUserId);
+
+      res.json({
+        message:
+          "Профіль користувача успішно анонімізовано та очищено згідно з GDPR",
+      });
     } catch (err) {
       next(err);
     }

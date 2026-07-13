@@ -42,6 +42,9 @@ router.patch(
   canManageUser,
   userController.banUser,
 );
+
+router.delete("/profile", verifyToken, userController.deleteSelf);
+
 router.delete(
   "/:id",
   verifyToken,

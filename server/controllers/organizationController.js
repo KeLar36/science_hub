@@ -1,8 +1,6 @@
 const organizationService = require("../services/organizationService");
 const User = require("../models/User");
 const Organization = require("../models/Organization");
-const Project = require("../models/Project");
-const Program = require("../models/Program");
 const mongoose = require("mongoose");
 
 class OrganizationController {
@@ -11,7 +9,6 @@ class OrganizationController {
       const id = req.params.id || req.params.orgId;
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 8;
-      const skip = (page - 1) * limit;
 
       const isSuperAdmin = req.user.role === "superadmin";
       const isOrgAdmin =
@@ -25,33 +22,12 @@ class OrganizationController {
         });
       }
 
-      const org = await Organization.findById(id).select("members");
-      if (!org) {
-        return res.status(404).json({ error: "Організацію не знайдено" });
-      }
-
-      const userFilter = { _id: { $in: org.members || [] } };
-
-      if (req.query.search) {
-        const searchRegex = { $regex: req.query.search.trim(), $options: "i" };
-        userFilter.$or = [{ name: searchRegex }, { email: searchRegex }];
-      }
-
-      const totalItems = await User.countDocuments(userFilter);
-      const totalPages = Math.ceil(totalItems / limit);
-
-      const items = await User.find(userFilter)
-        .select("name email role city socials isBanned")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit);
-
-      res.json({
-        items,
-        currentPage: page,
-        totalPages: totalPages || 1,
-        totalItems,
-      });
+      const result = await organizationService.getOrganizationUsers(
+        id,
+        page,
+        limit,
+      );
+      res.json(result);
     } catch (err) {
       next(err);
     }
@@ -346,6 +322,29 @@ class OrganizationController {
         targetUserId,
       );
       res.json({ message: "Користувача успішно виключено з організації" });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async transferOrgOwnership(req, res, next) {
+    try {
+      const { id: orgId } = req.params;
+      const { newOwnerId } = req.body;
+
+      if (!newOwnerId) {
+        return res
+          .status(400)
+          .json({ error: "ID нового власника є обов'язковим" });
+      }
+
+      await organizationService.transferOwnership(
+        orgId,
+        req.user.id,
+        newOwnerId,
+      );
+
+      res.json({ message: "Права власності на установу успішно передано!" });
     } catch (err) {
       next(err);
     }

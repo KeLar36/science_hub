@@ -32,7 +32,7 @@ router.delete(
   "/:id",
   verifyToken,
   checkBanStatus,
-  checkRole(["admin", "superadmin"]),
+  checkRole(["admin", "superadmin", "content-manager"]),
   postController.delete,
 );
 

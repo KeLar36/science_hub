@@ -1,7 +1,8 @@
 const Organization = require("../models/Organization");
 const User = require("../models/User");
-const Project = require("../models/Project");
 const Program = require("../models/Program");
+const Post = require("../models/Post");
+const Comment = require("../models/Comment");
 const mongoose = require("mongoose");
 const cloudinary = require("cloudinary").v2;
 
@@ -156,7 +157,6 @@ class OrganizationService {
 
     await newOrg.save();
 
-    const User = mongoose.model("User");
     await User.findByIdAndUpdate(userId, {
       pendingOrganizationId: newOrg._id,
     });
@@ -187,8 +187,6 @@ class OrganizationService {
         ? org.creatorId._id
         : org.creatorId;
 
-      const User = mongoose.model("User");
-
       const updatedUser = await User.findByIdAndUpdate(
         creatorUserId,
         {
@@ -200,16 +198,16 @@ class OrganizationService {
             pendingOrganizationId: 1,
           },
         },
-        { new: true, runValidators: false },
+        {
+          new: true,
+          runValidators: false,
+          overwriteDiscriminatorKey: true,
+        },
       );
 
       if (updatedUser) {
         console.log(
-          `🎯 Роль користувача успішно змінено на ${updatedUser.role} у базі даних!`,
-        );
-      } else {
-        console.error(
-          `❌ Не вдалося знайти та оновити користувача з ID ${creatorUserId}`,
+          `🎯 Роль засновника успішно змінено на ${updatedUser.role}!`,
         );
       }
     }
@@ -219,7 +217,6 @@ class OrganizationService {
       org.edrpou = `${org.edrpou}-rejected-${Date.now()}`;
       org.name = `${org.name} (Відхилено)`;
 
-      const User = mongoose.model("User");
       await User.findByIdAndUpdate(org.creatorId, {
         $unset: { pendingOrganizationId: 1 },
       });
@@ -324,9 +321,7 @@ class OrganizationService {
 
     const basePipeline = [
       { $match: { _id: new mongoose.Types.ObjectId(cleanOrgId) } },
-
       { $unwind: { path: "$joinRequests", preserveNullAndEmptyArrays: true } },
-
       {
         $lookup: {
           from: "users",
@@ -403,6 +398,9 @@ class OrganizationService {
       $pull: { members: userId },
     });
 
+    if (["admin", "content-manager"].includes(user.role)) {
+      user.role = "user";
+    }
     user.organizationId = null;
     await user.save();
   }
@@ -432,11 +430,69 @@ class OrganizationService {
     );
     await org.save();
 
-    await User.findByIdAndUpdate(targetUserId, { organizationId: null });
+    const user = await User.findById(targetUserId);
+    if (user) {
+      if (["admin", "content-manager"].includes(user.role)) {
+        user.role = "user";
+      }
+      user.organizationId = null;
+      await user.save();
+    }
+  }
+
+  async transferOwnership(orgId, currentOwnerId, newOwnerId) {
+    const org = await Organization.findById(orgId);
+    if (!org) {
+      const error = new Error("Організацію не знайдено");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (org.creatorId.toString() !== currentOwnerId.toString()) {
+      const error = new Error(
+        "Тільки засновник організації може передати права власності!",
+      );
+      error.statusCode = 403;
+      throw error;
+    }
+
+    if (!org.members.includes(newOwnerId)) {
+      const error = new Error(
+        "Новий власник повинен бути членом цієї організації!",
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    org.creatorId = newOwnerId;
+    await org.save();
+
+    await User.findByIdAndUpdate(
+      newOwnerId,
+      {
+        role: "admin",
+        organizationId: orgId,
+      },
+      { overwriteDiscriminatorKey: true },
+    );
+
+    await User.findByIdAndUpdate(
+      currentOwnerId,
+      {
+        role: "user",
+      },
+      { overwriteDiscriminatorKey: true },
+    );
+
+    console.log(
+      `👑 Права власності на організацію "${org.name}" успішно передано від ${currentOwnerId} до ${newOwnerId}`,
+    );
   }
 
   async deleteOrganization(orgId, requestUserId, userRole) {
-    const org = await Organization.findById(orgId).select("creatorId logo");
+    const org = await Organization.findById(orgId).select(
+      "creatorId logo members",
+    );
     if (!org) {
       const error = new Error("Установу не знайдено");
       error.statusCode = 404;
@@ -452,23 +508,123 @@ class OrganizationService {
       throw error;
     }
 
-    await User.updateMany(
-      { organizationId: orgId },
-      { $set: { organizationId: null } },
+    console.log(
+      `🧹 Початок глобального каскадного видалення установи ${orgId}...`,
     );
 
-    await User.findByIdAndUpdate(
-      org.creatorId,
-      {
-        $set: { role: "user", organizationId: null },
-        $unset: { pendingOrganizationId: 1 },
-      },
-      {
-        overwriteDiscriminatorKey: true,
-        runValidators: true,
-      },
-    );
+    // =========================================================================
+    // 📦 КРОК 1: Очищення медіа-блогу установи (Пости + Коментарі + Cloudinary)
+    // =========================================================================
+    try {
+      const posts = await Post.find({ organizationId: orgId });
+      let deletedPostsCount = 0;
 
+      for (const post of posts) {
+        if (post.images && post.images.length > 0) {
+          for (const img of post.images) {
+            if (img.publicId) {
+              await cloudinary.uploader.destroy(img.publicId);
+            }
+          }
+        }
+        await Comment.deleteMany({ postId: post._id });
+        await Post.findByIdAndDelete(post._id);
+        deletedPostsCount++;
+      }
+      console.log(
+        `  ↳ 🟢 Медіа-блог зачищено: видалено ${deletedPostsCount} постів разом з їхніми коментарями.`,
+      );
+    } catch (err) {
+      console.error("💥 Помилка при видаленні медіа-блогу установи:", err);
+    }
+
+    // =========================================================================
+    // 📦 КРОК 2: Гібридне каскадне видалення програм та проєктів (Soft/Hard Delete)
+    // =========================================================================
+    try {
+      const programs = await Program.find({ organizationId: orgId }).select(
+        "_id",
+      );
+      const programIds = programs.map((p) => p._id);
+
+      if (programIds.length > 0) {
+        await projectService.handleProgramDeletion(programIds);
+
+        const Project = mongoose.model("Project");
+        await Project.updateMany(
+          {
+            programId: { $in: programIds },
+            status: { $in: ["На розгляді", "Прийнято"] },
+          },
+          {
+            $set: {
+              programId: null,
+              reviewerId: null,
+              reviewStatus: "Не призначено",
+            },
+          },
+        );
+
+        await Program.deleteMany({ organizationId: orgId });
+
+        console.log(
+          `  ↳ 🟢 Наукові програми (${programIds.length} од.) успішно ліквідовано.`,
+        );
+      }
+    } catch (err) {
+      console.error(
+        "💥 Помилка при каскадному видаленні наукових програм/проєктів:",
+        err,
+      );
+    }
+
+    // =========================================================================
+    // 📦 КРОК 3: Робота з членами організації (Зміна ролей та лінків)
+    // =========================================================================
+    try {
+      // Для всіх звичайних членів організації зануляємо зв'язок
+      await User.updateMany(
+        {
+          organizationId: orgId,
+          _id: { $ne: org.creatorId },
+          role: { $ne: "content-manager" }, // менеджерів обробимо окремо нижче
+        },
+        { $set: { organizationId: null } },
+      );
+
+      // 2. Локальних менеджерів контенту ми прицільно скидаємо на "user"
+      const managers = await User.find({
+        organizationId: orgId,
+        role: "content-manager",
+      });
+      for (const manager of managers) {
+        manager.role = "user";
+        manager.organizationId = null;
+        await manager.save();
+      }
+
+      // 3. Засновника скидаємо на "user"
+      await User.findByIdAndUpdate(
+        org.creatorId,
+        {
+          $set: { role: "user", organizationId: null },
+          $unset: { pendingOrganizationId: 1 },
+        },
+        {
+          overwriteDiscriminatorKey: true,
+          runValidators: true,
+        },
+      );
+      console.log(
+        "  ↳ 🟢 Усіх членів установи звільнено, роль засновника скинуто на 'user'.",
+      );
+    } catch (err) {
+      console.error("💥 Помилка при скиданні зв'язків користувачів:", err);
+    }
+
+    // =========================================================================
+    // 📦 КРОК 4: Видалення системних файлів установи та самої сутності
+    // =========================================================================
     this.publicListCache = null;
 
     if (org.logo) {
@@ -476,6 +632,9 @@ class OrganizationService {
     }
 
     await Organization.findByIdAndDelete(orgId);
+    console.log(
+      `🏆 Установу ${orgId} повністю та безповоротно видалено з системи!`,
+    );
   }
 }
 

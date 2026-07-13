@@ -13,7 +13,10 @@ class PostController {
         organizationId: req.query.organizationId,
       };
 
-      if (req.user && ["admin", "superadmin"].includes(req.user.role)) {
+      if (
+        req.user &&
+        ["admin", "superadmin", "content-manager"].includes(req.user.role)
+      ) {
         if (req.query.status) filters.status = req.query.status;
       } else {
         filters.status = "published";
@@ -49,19 +52,20 @@ class PostController {
         uploadedImages = req.files.map((file, idx) => ({
           url: file.path,
           publicId: file.filename || `img_${Date.now()}_${idx}`,
-          isHero: idx === 0, // за замовчуванням перше зображення стає головним банером
+          isHero: idx === 0,
         }));
       }
+
+      const userHasOrg = req.user.organizationId;
 
       const postData = {
         title: title.trim(),
         content: content.trim(),
         category,
         status: status || "published",
-        organizationId:
-          req.user.role === "admin"
-            ? req.user.organizationId
-            : req.body.organizationId || null,
+        organizationId: userHasOrg
+          ? req.user.organizationId
+          : req.body.organizationId || null,
       };
 
       const newPost = await postService.create(
@@ -79,7 +83,34 @@ class PostController {
     try {
       const { title, content, category, status } = req.body;
 
-      // Обробляємо нову пачку зображень, якщо вони прилетіли
+      const post = await postService.getById(req.params.id);
+
+      if (req.user.role !== "superadmin") {
+        if (req.user.organizationId) {
+          if (
+            !post.organizationId ||
+            post.organizationId._id.toString() !==
+              req.user.organizationId.toString()
+          ) {
+            return res
+              .status(403)
+              .json({
+                error:
+                  "Доступ заборонено! Ви можете редагувати контент лише своєї установи.",
+              });
+          }
+        } else {
+          if (post.organizationId) {
+            return res
+              .status(403)
+              .json({
+                error:
+                  "Доступ заборонено! Глобальний менеджер не може редагувати пости установ.",
+              });
+          }
+        }
+      }
+
       let newUploadedImages = [];
       if (req.files && req.files.length > 0) {
         newUploadedImages = req.files.map((file, idx) => ({
@@ -94,7 +125,10 @@ class PostController {
         content: content ? content.trim() : undefined,
         category,
         status,
-        organizationId: req.body.organizationId,
+        organizationId:
+          req.user.role === "superadmin"
+            ? req.body.organizationId
+            : req.user.organizationId,
       };
 
       const updatedPost = await postService.update(
@@ -110,6 +144,34 @@ class PostController {
 
   async delete(req, res, next) {
     try {
+      const post = await postService.getById(req.params.id);
+
+      if (req.user.role !== "superadmin") {
+        if (req.user.organizationId) {
+          if (
+            !post.organizationId ||
+            post.organizationId._id.toString() !==
+              req.user.organizationId.toString()
+          ) {
+            return res
+              .status(403)
+              .json({
+                error:
+                  "Ви не маєте прав на видалення публікацій сторонніх організацій!",
+              });
+          }
+        } else {
+          if (post.organizationId) {
+            return res
+              .status(403)
+              .json({
+                error:
+                  "Глобальний контент-менеджер не може видаляти публікації офіційних установ!",
+              });
+          }
+        }
+      }
+
       await postService.delete(req.params.id);
       res.json({
         message: "Публікацію та її медіа-файли успішно видалено з системи",

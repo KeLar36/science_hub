@@ -1,4 +1,6 @@
 const Project = require("../models/Project");
+const User = require("../models/User");
+const Program = require("../models/Program");
 const cloudinary = require("cloudinary").v2;
 
 class ProjectService {
@@ -28,8 +30,6 @@ class ProjectService {
   async getAll(queryFilters, page = 1, limit = 8) {
     const skip = (page - 1) * limit;
 
-    const ProjectModel = Project;
-
     const projects = await Project.find(queryFilters)
       .populate("authorId", "name email")
       .populate("programId", "title type")
@@ -40,49 +40,75 @@ class ProjectService {
     const total = await Project.countDocuments(queryFilters);
     const totalPages = Math.ceil(total / limit);
 
-    return { projects, totalPages, currentPage: page };
-  }
-
-  async getMyProjects(userId) {
-    return await Project.find({ authorId: userId })
-      .populate("programId", "title type")
-      .sort({ updatedAt: -1 });
+    return { projects, totalPages, currentPage: page, totalItems: total };
   }
 
   async getById(id) {
-    const project = await Project.findById(id)
-      .populate("authorId", "name email organizationId")
-      .populate("programId", "title type organizationId")
-      .populate("reviewerId", "name email");
-
-    if (!project) {
-      const error = new Error("Проєкт не знайдено");
-      error.statusCode = 404;
-      throw error;
-    }
-    return project;
+    return await Project.findById(id)
+      .populate("authorId", "name email")
+      .populate("programId", "title type description")
+      .populate("reviewerId", "name email allowedDomains");
   }
 
-  async create(data) {
-    const project = new Project({
-      title: data.title,
-      description: data.description,
-      domain: data.domain || "Інше",
-      authorId: data.authorId,
-      programId: data.programId,
-      fileUrl: data.fileUrl,
-      versions: [
-        {
-          fileUrl: data.fileUrl,
-          fileName: data.fileName,
-          authorComment: data.authorComment || "Перша версія",
-        },
-      ],
+  async create(projectData) {
+    const newProject = new Project({
+      title: projectData.title,
+      description: projectData.description,
+      domain: projectData.domain || "Інше",
+      authorId: projectData.authorId,
+      programId: projectData.programId,
+      versions: projectData.versions || [],
     });
-    return await project.save();
+
+    try {
+      const program = await Program.findById(projectData.programId);
+
+      if (program) {
+        const programType = program.type;
+
+        const matchedReviewer = await User.findOne({
+          role: "reviewer",
+          isBanned: false,
+          allowedDomains: newProject.domain,
+          allowedTypes: programType,
+        });
+
+        if (matchedReviewer) {
+          newProject.reviewerId = matchedReviewer._id;
+          newProject.reviewStatus = "В процесі";
+          console.log(
+            `🤖 Проєкт "${newProject.title}" автоматично закріплено за рецензентом: ${matchedReviewer.name}`,
+          );
+        } else {
+          console.log(
+            `⚠️ Рецензента для галузі "${newProject.domain}" та типу "${programType}" не знайдено.`,
+          );
+        }
+      }
+    } catch (err) {
+      console.error("💥 Помилка автоматичного підбору рецензента:", err);
+    }
+
+    return await newProject.save();
   }
 
-  async appendVersion(id, versionData) {
+  async update(id, updateData) {
+    return await Project.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true },
+    );
+  }
+
+  async addVersion(id, fileData) {
+    return await Project.findByIdAndUpdate(
+      id,
+      { $push: { versions: fileData } },
+      { new: true },
+    );
+  }
+
+  async submitReview(id, reviewerId, reviewData) {
     const project = await Project.findById(id);
     if (!project) {
       const error = new Error("Проєкт не знайдено");
@@ -90,27 +116,14 @@ class ProjectService {
       throw error;
     }
 
-    project.versions.push(versionData);
-
-    if (versionData.fileUrl) {
-      project.fileUrl = versionData.fileUrl;
-    }
-
-    project.status = "На розгляді";
-    project.reviewStatus = "Не призначено";
-    return await project.save();
-  }
-
-  async updateReview(id, reviewData) {
-    const project = await Project.findById(id);
-    if (!project) {
-      const error = new Error("Проєкт не знайдено");
-      error.statusCode = 404;
+    if (project.reviewerId?.toString() !== reviewerId.toString()) {
+      const error = new Error(
+        "Ви не є призначеним рецензентом для цього проєкту",
+      );
+      error.statusCode = 403;
       throw error;
     }
 
-    if (reviewData.reviewerId !== undefined)
-      project.reviewerId = reviewData.reviewerId;
     if (reviewData.reviewerComments !== undefined)
       project.reviewerComments = reviewData.reviewerComments;
     if (reviewData.reviewStatus !== undefined)
@@ -141,6 +154,30 @@ class ProjectService {
     await Project.findByIdAndDelete(id);
   }
 
+  async handleProgramDeletion(programIds) {
+    if (!Array.isArray(programIds) || programIds.length === 0) return;
+
+    const trashProjects = await Project.find({
+      programId: { $in: programIds },
+      status: "Відхилено",
+    });
+
+    for (const proj of trashProjects) {
+      await this.clearRejectedProjectFiles(proj._id);
+    }
+
+    await Project.updateMany(
+      {
+        programId: { $in: programIds },
+        status: { $in: ["На розгляді", "Прийнято", "На доопрацюванні"] },
+      },
+      { $set: { programId: null } },
+    );
+    console.log(
+      `🔀 Успішно відв'язано активні та прийняті наукові праці, відхилені роботи очищено від файлів.`,
+    );
+  }
+
   async getPublicArchive() {
     const projects = await Project.find({ status: "Прийнято" })
       .populate("authorId", "name")
@@ -159,11 +196,37 @@ class ProjectService {
 
   async getReviewerQueue(reviewerId) {
     return await Project.find({
-      reviewerId: reviewerId,
-      reviewStatus: { $ne: "Завершено" },
+      reviewerId,
+      reviewStatus: { $in: ["Не призначено", "В процесі", "На доопрацюванні"] },
     })
       .populate("authorId", "name email")
-      .populate("programId", "title");
+      .populate("programId", "title type");
+  }
+
+  async clearRejectedProjectFiles(id) {
+    const project = await Project.findById(id);
+    if (!project) return;
+
+    if (project.versions && project.versions.length > 0) {
+      for (const version of project.versions) {
+        if (version.fileUrl) {
+          await this.#deleteFileFromCloudinary(version.fileUrl);
+        }
+      }
+    }
+
+    project.versions = project.versions.map((v) => {
+      const versionObj = v.toObject ? v.toObject() : v;
+      return {
+        ...versionObj,
+        fileUrl: null,
+      };
+    });
+
+    await project.save();
+    console.log(
+      `🧼 Файли відхиленого проєкту "${project.title}" (${id}) видалено з Cloudinary. Картку збережено в базі.`,
+    );
   }
 }
 
