@@ -7,9 +7,9 @@ import { ChevronLeft } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import toast, { Toaster } from "react-hot-toast";
-import PostContent from "../components/blog/detail/PostContent";
-import PostActions from "../components/blog/detail/PostActions";
-import CommentsDrawer from "../components/blog/detail/CommentsDrawer";
+import PostContent from "../components/Blog/Detail/PostContent";
+import PostActions from "../components/Blog/Detail/PostActions";
+import CommentsDrawer from "../components/Blog/Detail/CommentsDrawer";
 
 const PostDetail = () => {
   const { id } = useParams();
