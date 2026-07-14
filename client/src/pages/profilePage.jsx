@@ -48,6 +48,8 @@ export default function ProfilePage() {
     name: "",
     city: "",
     bio: "",
+    role: "",
+    isReviewerActive: true,
     socials: { linkedin: "", github: "" },
   });
 
@@ -77,6 +79,11 @@ export default function ProfilePage() {
         name: currentSubUser.name || "",
         city: currentSubUser.city || "",
         bio: currentSubUser.bio || "",
+        role: currentSubUser.role || "",
+        isReviewerActive:
+          currentSubUser.isReviewerActive !== undefined
+            ? currentSubUser.isReviewerActive
+            : true,
         socials: {
           linkedin: currentSubUser.socials?.linkedin || "",
           github: currentSubUser.socials?.github || "",
@@ -227,6 +234,10 @@ export default function ProfilePage() {
       formData.append("bio", editForm.bio || "");
 
       formData.append("socials", JSON.stringify(editForm.socials || {}));
+
+      if (editForm.role === "reviewer") {
+        formData.append("isReviewerActive", String(editForm.isReviewerActive));
+      }
 
       if (editForm.topics) {
         formData.append("topics", JSON.stringify(editForm.topics));

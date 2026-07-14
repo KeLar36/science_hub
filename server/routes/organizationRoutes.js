@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const organizationController = require("../controllers/organizationController");
 const { verifyToken, checkRole } = require("../middleware/auth");
+const checkOrgAccess = require("../middleware/checkOrgAccess");
 const upload = require("../middleware/upload");
 
 router.get(
@@ -45,6 +46,7 @@ router.get(
   "/:id/users",
   verifyToken,
   checkRole(["admin", "superadmin"]),
+  checkOrgAccess,
   organizationController.getOrganizationUsers,
 );
 

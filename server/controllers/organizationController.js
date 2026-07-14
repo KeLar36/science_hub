@@ -1,6 +1,7 @@
 const organizationService = require("../services/organizationService");
 const User = require("../models/User");
 const Organization = require("../models/Organization");
+const checkOrgAccess = require("../middleware/checkOrgAccess");
 const mongoose = require("mongoose");
 
 class OrganizationController {
@@ -11,10 +12,21 @@ class OrganizationController {
       const limit = parseInt(req.query.limit) || 8;
 
       const isSuperAdmin = req.user.role === "superadmin";
+
+      let userOrgId = req.user.organizationId;
+
+      if (!userOrgId && req.user.id) {
+        const User = mongoose.model("User");
+        const dbUser = await User.findById(req.user.id).select(
+          "organizationId",
+        );
+        userOrgId = dbUser?.organizationId;
+      }
+
       const isOrgAdmin =
         req.user.role === "admin" &&
-        String(req.user.organizationId?._id || req.user.organizationId) ===
-          String(id);
+        userOrgId &&
+        String(userOrgId._id || userOrgId) === String(id);
 
       if (!isSuperAdmin && !isOrgAdmin) {
         return res.status(403).json({

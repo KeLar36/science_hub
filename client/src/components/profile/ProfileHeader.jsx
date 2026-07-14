@@ -5,12 +5,11 @@ import {
   Settings,
   UserCheck,
   ShieldAlert,
-  FileText,
-  FileCheck,
   Building2,
   Linkedin,
   Github,
   Twitter,
+  LayoutDashboard,
 } from "lucide-react";
 
 export default function ProfileHeader({
@@ -21,167 +20,170 @@ export default function ProfileHeader({
   onOpenJoinOrg,
 }) {
   const { user } = useAuth();
+
   const hasNoOrganization =
     !userData?.organizationId || userData?.organizationId === "null";
 
   if (!userData) {
     return (
-      <div className="bento-card p-8 flex items-center justify-center bg-[var(--bg-card)] border border-[var(--border-color)] rounded-3xl h-48 animate-pulse">
+      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-8 flex items-center justify-center rounded-3xl h-48 animate-pulse">
         <div className="w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
+  const getAdminRoute = () => {
+    const userRole = userData?.role || user?.role;
+
+    if (userRole === "superadmin") return "/dashboard/superadmin";
+    if (userRole === "admin") return "/dashboard/org-admin";
+    if (userRole === "reviewer") return "/dashboard/reviewer";
+    if (userRole === "content-manager") return "/dashboard/content-panel";
+    return "/profile";
+  };
+
+  const hasAccessToAdminDashboard = [
+    "admin",
+    "superadmin",
+    "reviewer",
+    "content-manager",
+  ].includes(userData?.role || user?.role);
+
+  const firstLetter = userData?.name
+    ? userData.name.charAt(0).toUpperCase()
+    : "?";
+
   return (
     <div className="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-3xl flex flex-col gap-5 relative overflow-hidden transition-all text-left hover:border-purple-500/10">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-purple-600/[0.03] blur-3xl rounded-full pointer-events-none" />
-      <div className="flex items-center gap-4">
-        <div className="relative shrink-0">
-          {userData.image ? (
+      <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div className="flex items-start gap-4">
+        <div className="relative group shrink-0">
+          {userData?.image ? (
             <img
               src={userData.image}
-              alt={userData.name || "User Avatar"}
-              className="w-16 h-16 rounded-2xl object-cover border border-purple-600/20 shadow-inner"
+              alt={userData.name}
+              className="w-16 h-16 rounded-2xl object-cover border border-[var(--border-color)]"
             />
           ) : (
-            <div className="w-16 h-16 rounded-2xl bg-purple-600/10 text-purple-600 flex items-center justify-center font-black text-xl border border-purple-600/20 uppercase">
-              {userData.name ? userData.name[0].toUpperCase() : "U"}
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-600/10 to-indigo-600/5 border border-purple-500/20 flex items-center justify-center shadow-xs">
+              <span className="text-xl font-black text-purple-600 dark:text-purple-400 font-mono">
+                {firstLetter}
+              </span>
+            </div>
+          )}
+
+          {userData?.isBanned && (
+            <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white p-1 rounded-lg text-[8px] font-black uppercase tracking-wider flex items-center gap-0.5 shadow-md">
+              <ShieldAlert size={10} /> Бан
+            </span>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <h2 className="text-xl font-black tracking-tight text-[var(--text-dark)] truncate uppercase">
+              {userData?.name}
+            </h2>
+            {userData?.role && userData.role !== "user" && (
+              <span className="px-2 py-0.5 bg-purple-500/10 text-purple-600 border border-purple-500/10 rounded-md text-[8px] font-black uppercase tracking-widest font-mono">
+                {userData.role}
+              </span>
+            )}
+          </div>
+
+          {userData?.city && (
+            <div className="flex items-center gap-1 text-xs text-[var(--text-gray)] font-medium mb-1">
+              <MapPin size={12} className="text-purple-500" />
+              <span>{userData.city}</span>
+            </div>
+          )}
+
+          {userData?.organizationId && userData.organizationId !== "null" && (
+            <div className="flex items-center gap-1 text-xs font-bold text-purple-600 dark:text-purple-400">
+              <UserCheck size={12} />
+              <span className="truncate">
+                {userData.organizationId?.name || "Наукова установа"}
+              </span>
             </div>
           )}
         </div>
-
-        <div className="min-w-0 flex-1">
-          <h2 className="text-base font-black text-[var(--text-dark)] leading-tight truncate">
-            {userData.name}
-          </h2>
-          <p className="text-xs text-[var(--text-gray)] font-medium truncate mt-0.5">
-            {userData.email}
-          </p>
-
-          <div className="flex flex-wrap items-center gap-3 mt-1.5">
-            {userData.city && (
-              <div className="flex items-center gap-1 text-[10px] text-purple-600 font-bold uppercase tracking-wide">
-                <MapPin size={10} /> {userData.city}
-              </div>
-            )}
-
-            {userData.socials && (
-              <div className="flex items-center gap-2">
-                {userData.city && (
-                  <span className="w-1 h-1 rounded-full bg-[var(--border-color)]" />
-                )}
-
-                {userData.socials.linkedIn && (
-                  <a
-                    href={userData.socials.linkedIn}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-1 text-[var(--text-gray)] hover:text-purple-600 hover:bg-purple-600/5 rounded-lg transition-all"
-                    title="LinkedIn профіль"
-                  >
-                    <Linkedin size={12} />
-                  </a>
-                )}
-
-                {userData.socials.github && (
-                  <a
-                    href={userData.socials.github}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-1 text-[var(--text-gray)] hover:text-purple-600 hover:bg-purple-600/5 rounded-lg transition-all"
-                    title="GitHub профіль"
-                  >
-                    <Github size={12} />
-                  </a>
-                )}
-
-                {userData.socials.twitter && (
-                  <a
-                    href={userData.socials.twitter}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-1 text-[var(--text-gray)] hover:text-purple-600 hover:bg-purple-600/5 rounded-lg transition-all"
-                    title="Twitter (X) профіль"
-                  >
-                    <Twitter size={12} />
-                  </a>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
       </div>
-      <div className="px-3 py-1.5 bg-purple-500/5 text-purple-600 border border-purple-500/10 text-[9px] font-black uppercase tracking-widest rounded-xl w-fit">
-        Роль: {userData?.role || "Користувач"}
-      </div>
-      {userData.bio && (
-        <p className="text-xs text-[var(--text-gray)] font-medium leading-relaxed border-t border-[var(--border-color)] pt-3 line-clamp-3">
+
+      {userData?.bio && (
+        <p className="text-xs text-[var(--text-gray)] leading-relaxed font-medium">
           {userData.bio}
         </p>
       )}
-      <div className="space-y-2 border-t border-[var(--border-color)] pt-4 mt-2">
-        <button
-          onClick={onOpenEdit}
-          className="w-full px-3 py-2.5 bg-[var(--bg-main)] hover:bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-dark)] rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
-        >
-          <Settings size={13} className="text-purple-600" /> Редагувати профіль
-        </button>
 
-        {userData?.role === "admin" &&
-          userData?.organizationId &&
-          userData?.organizationId !== "null" && (
-            <button
-              onClick={() => navigate("/org-admin")}
-              className="w-full px-3 py-2.5 bg-purple-600 text-white rounded-xl text-xs font-black uppercase tracking-wider italic transition-all hover:bg-purple-700 flex items-center justify-center gap-2 shadow-sm shadow-purple-600/10 cursor-pointer"
+      {userData?.socials && (
+        <div className="flex items-center gap-2 pt-1">
+          {userData.socials.github && (
+            <a
+              href={userData.socials.github}
+              target="_blank"
+              rel="noreferrer"
+              className="p-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-gray)] hover:text-purple-600 hover:border-purple-500/20 transition-all"
             >
-              <UserCheck size={13} /> Кабінет Установи
-            </button>
+              <Github size={14} />
+            </a>
           )}
+          {userData.socials.linkedIn && (
+            <a
+              href={userData.socials.linkedIn}
+              target="_blank"
+              rel="noreferrer"
+              className="p-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-gray)] hover:text-purple-600 hover:border-purple-500/20 transition-all"
+            >
+              <Linkedin size={14} />
+            </a>
+          )}
+          {userData.socials.twitter && (
+            <a
+              href={userData.socials.twitter}
+              target="_blank"
+              rel="noreferrer"
+              className="p-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-gray)] hover:text-purple-600 hover:border-purple-500/20 transition-all"
+            >
+              <Twitter size={14} />
+            </a>
+          )}
+        </div>
+      )}
 
-        {userData?.role === "superadmin" && (
-          <button
-            onClick={() => navigate("/superadmin")}
-            className="w-full px-3 py-2.5 bg-amber-500 text-white rounded-xl text-xs font-black uppercase tracking-wider italic transition-all hover:bg-amber-600 flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <ShieldAlert size={13} /> SuperAdmin Панель
-          </button>
-        )}
-
-        {(userData?.role === "superadmin" || user?.role === "reviewer") && (
-          <button
-            onClick={() => navigate("/reviewer")}
-            className="w-full px-3 py-2.5 bg-purple-600 text-white rounded-xl text-xs font-black uppercase tracking-wider italic transition-all hover:bg-purple-700 flex items-center justify-center gap-2 shadow-sm shadow-purple-600/10 cursor-pointer"
-          >
-            <FileCheck size={13} /> Панель рецензента
-          </button>
-        )}
-
-        {(userData?.role === "superadmin" ||
-          user?.role === "content-manager") && (
-          <button
-            onClick={() => navigate("/content-panel")}
-            className="w-full px-3 py-2.5 bg-purple-600 text-white rounded-xl text-xs font-black uppercase tracking-wider italic transition-all hover:bg-purple-700 flex items-center justify-center gap-2 shadow-sm shadow-purple-600/10 cursor-pointer"
-          >
-            <FileText size={13} /> Менеджер контенту
-          </button>
-        )}
-
-        {userData?.role === "user" && hasNoOrganization && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full pt-1">
+      <div className="flex flex-col gap-2 w-full border-t border-[var(--border-color)]/60 pt-4 mt-auto z-10">
+        {hasNoOrganization && userData?.role !== "superadmin" && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full pb-1">
             <button
               onClick={onOpenJoinOrg}
-              className="px-3 py-2.5 bg-purple-600 hover:bg-purple-700 text-white border border-transparent rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-sm shadow-purple-600/5 cursor-pointer"
+              className="px-3 py-2.5 bg-purple-600 hover:bg-purple-700 text-white border border-transparent rounded-xl text-xs font-black uppercase tracking-wider italic transition-all flex items-center justify-center gap-2 shadow-sm shadow-purple-600/10 cursor-pointer"
             >
               <Building2 size={13} /> Приєднатися до установи
             </button>
             <button
               onClick={onOpenCreateOrg}
-              className="px-3 py-2.5 bg-purple-600/5 hover:bg-purple-600 hover:text-white border border-purple-500/10 text-purple-600 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="px-3 py-2.5 bg-purple-600/5 hover:bg-purple-600 hover:text-white border border-purple-500/10 rounded-xl text-xs font-bold text-purple-600 dark:text-purple-400 transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
-              🏢 Створити установу
+              <Building2 size={13} /> Створити установу
             </button>
           </div>
         )}
+        {hasAccessToAdminDashboard && (
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="w-full px-3 py-2.5 bg-purple-600 text-white rounded-xl text-xs font-black uppercase tracking-wider italic transition-all hover:bg-purple-700 flex items-center justify-center gap-2 shadow-sm shadow-purple-600/10 cursor-pointer"
+          >
+            <LayoutDashboard size={13} />
+            Панель управління
+          </button>
+        )}
+        <button
+          onClick={onOpenEdit}
+          className="w-full px-3 py-2.5 bg-[var(--bg-main)] text-[var(--text-dark)] border border-[var(--border-color)] rounded-xl text-xs font-bold transition-all hover:bg-[var(--bg-card)] hover:border-purple-500/30 flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <Settings size={13} className="text-purple-600" /> Налаштування
+          профілю
+        </button>
       </div>
     </div>
   );

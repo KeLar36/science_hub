@@ -17,15 +17,7 @@ const HomePage = lazy(() => import("./pages/homePage"));
 const LoginPage = lazy(() => import("./pages/loginPage"));
 const RegisterPage = lazy(() => import("./pages/registerPage"));
 const ProfilePage = lazy(() => import("./pages/profilePage"));
-
-const SuperAdminPage = lazy(() => import("./pages/admin/SuperAdminPage"));
-const OrgAdminPage = lazy(() => import("./pages/admin/OrgAdminPage"));
-
 const AboutPage = lazy(() => import("./pages/aboutPage"));
-const ProgramDetails = lazy(() => import("./pages/ProgramDetails"));
-const ReviewerPage = lazy(() => import("./pages/ReviewerPage"));
-const ContentPanel = lazy(() => import("./pages/ContentPanel"));
-const CreatePost = lazy(() => import("./pages/CreatePost"));
 const Blog = lazy(() => import("./pages/BlogPage"));
 const PostDetail = lazy(() => import("./pages/PostDetail"));
 const RulesPage = lazy(() => import("./pages/RulesPage"));
@@ -33,6 +25,15 @@ const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const ArchivePage = lazy(() => import("./pages/ArchivePage"));
 const ProgramsPage = lazy(() => import("./pages/ProgramsPage"));
+const ProgramDetails = lazy(() => import("./pages/ProgramDetails"));
+const DashboardLayout = lazy(
+  () => import("./components/operator/DashboardLayout"),
+);
+const SuperAdminPage = lazy(() => import("./pages/admin/SuperAdminPage"));
+const OrgAdminPage = lazy(() => import("./pages/admin/OrgAdminPage"));
+const ReviewerPage = lazy(() => import("./pages/ReviewerPage"));
+const ContentPanel = lazy(() => import("./pages/ContentPanel"));
+const CreatePost = lazy(() => import("./pages/CreatePost"));
 
 const PageLoader = () => (
   <div className="min-h-screen bg-[var(--bg-main)] flex items-center justify-center">
@@ -51,6 +52,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/login" replace />;
   }
 
+  // Якщо ролі передано, і користувач не має потрібної ролі
   if (allowedRoles && !allowedRoles.includes(user?.role)) {
     return <Navigate to="/" replace />;
   }
@@ -88,30 +90,6 @@ function AppContent() {
           <Route path="/archive" element={<ArchivePage />} />
 
           <Route
-            path="/content-panel"
-            element={
-              <ProtectedRoute allowedRoles={["content-manager", "superadmin"]}>
-                <ContentPanel />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/content-management"
-            element={
-              <ProtectedRoute allowedRoles={["content-manager", "superadmin"]}>
-                <CreatePost />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/edit-post/:id"
-            element={
-              <ProtectedRoute allowedRoles={["content-manager", "superadmin"]}>
-                <CreatePost />
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/profile"
             element={
               <ProtectedRoute>
@@ -119,33 +97,66 @@ function AppContent() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "superadmin",
+                  "admin",
+                  "reviewer",
+                  "content-manager",
+                ]}
+              >
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route
+              index
+              element={
+                <div className="text-sm font-bold text-[var(--text-gray)] uppercase tracking-wider">
+                  👋 Вітаємо в робочій зоні Science Platform!
+                </div>
+              }
+            />
+
+            <Route path="superadmin" element={<SuperAdminPage />} />
+
+            <Route path="org-admin" element={<OrgAdminPage />} />
+
+            <Route path="reviewer" element={<ReviewerPage />} />
+
+            <Route path="content-panel" element={<ContentPanel />} />
+            <Route path="content-management" element={<CreatePost />} />
+            <Route path="edit-post/:id" element={<CreatePost />} />
+          </Route>
 
           <Route
             path="/superadmin"
-            element={
-              <ProtectedRoute allowedRoles={["superadmin"]}>
-                <SuperAdminPage />
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/dashboard/superadmin" replace />}
           />
-
           <Route
             path="/org-admin"
-            element={
-              <ProtectedRoute allowedRoles={["admin", "superadmin"]}>
-                <OrgAdminPage />
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/dashboard/org-admin" replace />}
           />
-
           <Route
             path="/reviewer"
-            element={
-              <ProtectedRoute allowedRoles={["reviewer", "superadmin"]}>
-                <ReviewerPage />
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/dashboard/reviewer" replace />}
           />
+          <Route
+            path="/content-panel"
+            element={<Navigate to="/dashboard/content-panel" replace />}
+          />
+          <Route
+            path="/content-management"
+            element={<Navigate to="/dashboard/content-management" replace />}
+          />
+          <Route
+            path="/edit-post/:id"
+            element={<Navigate to="/dashboard/edit-post/:id" replace />}
+          />
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

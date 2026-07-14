@@ -221,6 +221,43 @@ export default function EditProfileModal({
             />
           </div>
 
+          {editForm.role === "reviewer" && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-gray)] ml-1">
+                Статус рецензування
+              </label>
+              <div className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl p-4 flex items-center justify-between group hover:border-purple-500/20 transition-all text-left">
+                <div className="space-y-0.5 pr-4">
+                  <span className="text-xs font-black text-[var(--text-dark)] uppercase tracking-wide flex items-center gap-1.5">
+                    {editForm.isReviewerActive
+                      ? "🟢 Активний"
+                      : "🔴 Призупинений"}
+                  </span>
+                  <p className="text-[10px] font-medium text-[var(--text-gray)] leading-tight">
+                    {editForm.isReviewerActive
+                      ? "Алгоритми платформи автоматично призначатимуть вам нові наукові роботи за вашою спеціалізацією."
+                      : "Ви тимчасово не отримуватимете нових запитів на перевірку (наприклад, під час відпустки)."}
+                  </p>
+                </div>
+
+                <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={!!editForm.isReviewerActive}
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        isReviewerActive: e.target.checked,
+                      })
+                    }
+                  />
+                  <div className="w-9 h-5 bg-[var(--bg-card)] border border-[var(--border-color)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--text-gray)] peer-checked:after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600 peer-checked:border-purple-500"></div>
+                </label>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-1.5">
             <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-gray)] ml-1">
               Про мене

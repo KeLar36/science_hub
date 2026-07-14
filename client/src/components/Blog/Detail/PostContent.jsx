@@ -39,6 +39,16 @@ export default function PostContent({ post }) {
             {post.category || "Публікація"}
           </span>
 
+          {post.organizationId ? (
+            <span className="flex items-center gap-1.5 px-3 py-1 bg-purple-500 text-white border border-purple-400 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-xs">
+              🏢 Офіційно
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 px-3 py-1 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-[10px] font-bold text-[var(--text-gray)] uppercase tracking-wider">
+              🔬 Загальний
+            </span>
+          )}
+
           <span className="flex items-center gap-1.5 px-3 py-1 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-[10px] font-bold text-[var(--text-gray)] uppercase tracking-wider">
             <Calendar
               size={13}
@@ -114,6 +124,22 @@ export default function PostContent({ post }) {
               </div>
             </div>
           </div>
+
+          {post.organizationId && (
+            <div className="p-3.5 bg-[var(--bg-card)] border border-purple-500/10 rounded-xl flex items-center gap-3 group hover:border-purple-500/30 transition-all">
+              <div className="p-2 bg-purple-500/5 border border-purple-500/10 text-purple-600 dark:text-purple-400 rounded-lg group-hover:scale-105 transition-transform shrink-0">
+                <span className="text-xs">🏢</span>
+              </div>
+              <div className="min-w-0 flex-grow">
+                <div className="text-[9px] font-mono font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider block opacity-80">
+                  Опубліковано від установи
+                </div>
+                <div className="text-xs font-black text-[var(--text-dark)] uppercase tracking-wide truncate mt-0.5">
+                  {post.organizationId.name || "Наукова установа"}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

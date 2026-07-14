@@ -74,6 +74,26 @@ class ProgramService {
     return await newProgram.save();
   }
 
+  async toggleStatus(programId, status) {
+    const Program = mongoose.model("Program");
+
+    const program = await Program.findById(programId);
+    if (!program) {
+      const error = new Error("Програму не знайдено");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (status !== undefined) {
+      program.active = status === "active";
+    } else {
+      program.active = !program.active;
+    }
+
+    await program.save();
+    return program;
+  }
+
   async update(id, programData) {
     const ProgramModel = this.getProgramModel();
     const updatedProgram = await ProgramModel.findByIdAndUpdate(

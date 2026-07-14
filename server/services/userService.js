@@ -33,7 +33,7 @@ class UserService {
   }
 
   async updateProfile(id, profileData) {
-    const currentUser = await User.findById(id).select("image");
+    const currentUser = await User.findById(id).select("image organizationId");
 
     if (
       profileData.image &&
@@ -42,6 +42,20 @@ class UserService {
       currentUser.image !== profileData.image
     ) {
       await this.#deleteImageFromCloudinary(currentUser.image);
+    }
+
+    if (profileData.isReviewerActive === true) {
+      if (
+        !currentUser ||
+        !currentUser.organizationId ||
+        currentUser.organizationId.toString() === "null"
+      ) {
+        const error = new Error(
+          "Не можна активувати статус рецензента без прив'язки до установи!",
+        );
+        error.statusCode = 400;
+        throw error;
+      }
     }
 
     return await User.findByIdAndUpdate(
@@ -86,6 +100,7 @@ class UserService {
           role: role,
           allowedDomains: extraData.allowedDomains || [],
           allowedTypes: extraData.allowedTypes || [],
+          isReviewerActive: true,
         },
       };
     } else {
@@ -94,6 +109,7 @@ class UserService {
         $unset: {
           allowedDomains: 1,
           allowedTypes: 1,
+          isReviewerActive: 1,
         },
       };
     }
@@ -106,9 +122,39 @@ class UserService {
   }
 
   async updateBanStatus(id, isBanned) {
-    return await User.findByIdAndUpdate(id, { isBanned }, { new: true }).select(
-      "-password",
-    );
+    const user = await User.findById(id);
+    if (!user) {
+      const error = new Error("Користувача не знайдено");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    user.isBanned = isBanned;
+    await user.save();
+
+    if (isBanned && user.role === "reviewer") {
+      const Project = mongoose.model("Project");
+
+      await Project.updateMany(
+        {
+          reviewerId: id,
+          status: { $in: ["На розгляді", "На доопрацюванні"] },
+        },
+        {
+          $set: {
+            reviewerId: null,
+            reviewStatus: "Не призначено",
+          },
+        },
+      );
+
+      console.log(
+        `🧹 Авто-очищення: Усі активні роботи забаненого рецензента ${user.name} скинуто в чергу.`,
+      );
+    }
+
+    const updatedUser = await User.findById(id).select("-password");
+    return updatedUser;
   }
 
   async anonymizeUser(userId) {
@@ -179,6 +225,10 @@ class UserService {
 
     if (user.allowedDomains) user.allowedDomains = [];
     if (user.allowedTypes) user.allowedTypes = [];
+
+    if (user.isReviewerActive !== undefined) {
+      user.isReviewerActive = false;
+    }
 
     await user.save();
     console.log(

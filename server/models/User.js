@@ -104,6 +104,10 @@ const ReviewerDiscriminator = User.discriminator(
         message: "Обраний тип програми не існує в системній моделі програм!",
       },
     },
+    isReviewerActive: {
+      type: Boolean,
+      default: true,
+    },
   }),
 );
 

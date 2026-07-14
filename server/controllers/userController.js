@@ -40,6 +40,11 @@ class UserController {
         }
       }
 
+      let isReviewerActive = undefined;
+      if (body.isReviewerActive !== undefined) {
+        isReviewerActive = body.isReviewerActive === "true";
+      }
+
       const profileData = {
         name: body.name,
         bio: body.bio,
@@ -47,6 +52,10 @@ class UserController {
         topics: topics,
         socials: socials,
       };
+
+      if (isReviewerActive !== undefined) {
+        profileData.isReviewerActive = isReviewerActive;
+      }
 
       if (req.file) {
         profileData.image = req.file.path;

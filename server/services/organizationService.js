@@ -277,12 +277,18 @@ class OrganizationService {
     if (!organization.members.includes(userId)) {
       organization.members.push(userId);
     }
-
     await organization.save();
 
-    await User.findByIdAndUpdate(userId, {
-      organizationId: orgId,
-    });
+    const user = await User.findById(userId);
+    if (user) {
+      user.organizationId = orgId;
+
+      if (user.role === "reviewer") {
+        user.isReviewerActive = true;
+      }
+
+      await user.save();
+    }
   }
 
   async rejectJoinRequest(orgId, userId) {
@@ -398,10 +404,18 @@ class OrganizationService {
       $pull: { members: userId },
     });
 
-    if (["admin", "content-manager"].includes(user.role)) {
-      user.role = "user";
-    }
+    const originalRole = user.role;
+
     user.organizationId = null;
+
+    user.role = "user";
+
+    if (originalRole === "reviewer") {
+      user.isReviewerActive = false;
+      user.allowedDomains = [];
+      user.allowedTypes = [];
+    }
+
     await user.save();
   }
 
@@ -432,10 +446,18 @@ class OrganizationService {
 
     const user = await User.findById(targetUserId);
     if (user) {
-      if (["admin", "content-manager"].includes(user.role)) {
-        user.role = "user";
-      }
+      const originalRole = user.role;
+
       user.organizationId = null;
+
+      user.role = "user";
+
+      if (originalRole === "reviewer") {
+        user.isReviewerActive = false;
+        user.allowedDomains = [];
+        user.allowedTypes = [];
+      }
+
       await user.save();
     }
   }
@@ -582,17 +604,16 @@ class OrganizationService {
     // 📦 КРОК 3: Робота з членами організації (Зміна ролей та лінків)
     // =========================================================================
     try {
-      // Для всіх звичайних членів організації зануляємо зв'язок
       await User.updateMany(
-        {
-          organizationId: orgId,
-          _id: { $ne: org.creatorId },
-          role: { $ne: "content-manager" }, // менеджерів обробимо окремо нижче
-        },
+        { organizationId: orgId, role: "reviewer" },
+        { $set: { isReviewerActive: false } },
+      );
+
+      await User.updateMany(
+        { organizationId: orgId },
         { $set: { organizationId: null } },
       );
 
-      // 2. Локальних менеджерів контенту ми прицільно скидаємо на "user"
       const managers = await User.find({
         organizationId: orgId,
         role: "content-manager",

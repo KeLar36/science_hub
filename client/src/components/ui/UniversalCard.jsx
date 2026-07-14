@@ -51,6 +51,9 @@ const BlogCardContent = ({ item, previewText }) => {
       ? item.images.find((img) => img.isHero)?.url || item.images[0].url
       : item.coverImage || item.image || "/placeholder-blog.png";
 
+  // Перевіряємо, чи пост належить організації
+  const isOfficial = !!item.organizationId;
+
   return (
     <div className="flex flex-col h-full text-left">
       <div className="relative h-52 overflow-hidden border-b border-[var(--border-color)] bg-[var(--bg-main)] -mx-5 -mt-5 mb-4 w-[calc(100%+2.5rem)]">
@@ -59,11 +62,23 @@ const BlogCardContent = ({ item, previewText }) => {
           alt={item.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
+
+        {/* Категорія зліва вгорі */}
         {item.category && (
-          <span className="absolute top-4 left-4 px-2.5 py-0.5 bg-purple-600 text-white rounded-md text-[9px] font-black uppercase tracking-wider font-mono shadow-xs">
+          <span className="absolute top-4 left-4 px-2.5 py-0.5 bg-purple-600 text-white rounded-md text-[9px] font-black uppercase tracking-wider font-mono shadow-xs z-10">
             {item.category}
           </span>
         )}
+
+        <span
+          className={`absolute top-4 right-4 px-2.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider font-mono shadow-xs z-10 border ${
+            isOfficial
+              ? "bg-purple-500 text-white border-purple-400"
+              : "bg-[var(--bg-card)] text-[var(--text-gray)] border-[var(--border-color)]"
+          }`}
+        >
+          {isOfficial ? "🏢 Офіційно" : "🔬 Загальний"}
+        </span>
       </div>
 
       <div className="space-y-2 flex-1 flex flex-col justify-between">
@@ -403,7 +418,7 @@ export const UniversalCard = ({
         )}
 
         {/* 🚀 ДИСКУРСИВНИЙ РОУТИНГ ВНУТРІШНЬОГО ВМІСТУ */}
-        {variant === "blog" && (
+        {(variant === "blog" || variant === "profileBookmark") && (
           <BlogCardContent item={item} previewText={previewText} />
         )}
         {variant === "profileArticle" && (

@@ -21,9 +21,6 @@ instance.interceptors.response.use(
       (error.response.status === 401 || error.response.status === 403)
     ) {
       console.warn("Сесія вичерпана, вихід з акаунта...");
-
-      // localStorage.removeItem("token");
-      //  localStorage.removeItem("user");
     }
     return Promise.reject(error);
   },
