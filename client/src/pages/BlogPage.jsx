@@ -5,8 +5,8 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import UniversalFilters from "../components/UniversalFilters";
 import { CATEGORIES } from "../constants/categories";
-import BlogHeader from "../components/blog/BlogHeader";
-import BlogGrid from "../components/blog/BlogGrid";
+import BlogHeader from "../components/Blog/BlogHeader";
+import BlogGrid from "../components/Blog/BlogGrid";
 
 const Blog = () => {
   const [posts, setPosts] = useState([]);
