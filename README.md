@@ -1,4 +1,4 @@
-# 🟣 Science Hub: Open Access Scientific Platform
+# 🟣 Science Hub: Open Access Scientific Platform (in progress!)
 
 ### 📋 Overview
 
