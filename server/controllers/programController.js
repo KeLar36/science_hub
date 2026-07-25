@@ -149,10 +149,10 @@ class ProgramController {
 
       const assignedOrgId =
         req.user.role === "superadmin"
-          ? orgId || null
+          ? orgId || req.user.organizationId
           : req.user.organizationId;
 
-      const baseData = {
+      const programDataToSave = {
         title,
         description,
         deadline,
@@ -160,14 +160,10 @@ class ProgramController {
         createdBy: req.user.id,
         organizationId: assignedOrgId,
         active: true,
-      };
-
-      const programDataToSave = {
-        type,
-        ...baseData,
         ...extraData,
       };
-      const savedProgram = await programService.create(programDataToSave);
+
+      const savedProgram = await programService.create(programDataToSave, type);
 
       res.status(201).json(savedProgram);
     } catch (err) {

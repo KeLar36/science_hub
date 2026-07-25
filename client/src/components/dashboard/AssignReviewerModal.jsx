@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { X, ShieldAlert, Check, BookOpen, Layers } from "lucide-react";
-import { SCIENTIFIC_DOMAINS, PROGRAM_TYPES } from "../../constants/domains";
+import {
+  SCIENTIFIC_DOMAINS,
+  PROGRAM_TYPES,
+} from "../../shared/lib/constants/domains";
 
 const AssignReviewerModal = ({ isOpen, onClose, user, onSave }) => {
   const [selectedDomains, setSelectedDomains] = useState([]);

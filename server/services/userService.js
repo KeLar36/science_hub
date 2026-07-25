@@ -18,7 +18,7 @@ class UserService {
 
       await cloudinary.uploader.destroy(publicId);
     } catch (err) {
-      console.error("💥 Помилка видалення файлу з Cloudinary:", err);
+      console.error("Помилка видалення файлу з Cloudinary:", err);
     }
   }
 
@@ -149,7 +149,7 @@ class UserService {
       );
 
       console.log(
-        `🧹 Авто-очищення: Усі активні роботи забаненого рецензента ${user.name} скинуто в чергу.`,
+        `Авто-очищення: Усі активні роботи забаненого рецензента ${user.name} скинуто в чергу.`,
       );
     }
 
@@ -167,12 +167,8 @@ class UserService {
 
     const Organization = mongoose.model("Organization");
 
-    // =========================================================================
-    // 🛡️ КРОК 1: Перевірка на засновника активної організації
-    // =========================================================================
     const ownedOrg = await Organization.findOne({ creatorId: userId });
     if (ownedOrg) {
-      // Якщо він єдиний член і творець — змушуємо спочатку видалити установу
       if (ownedOrg.members.length <= 1) {
         const error = new Error(
           "Ви є єдиним членом та засновником установи. Будь ласка, видаліть установу перед анонімізацією профілю.",
@@ -188,29 +184,20 @@ class UserService {
       throw error;
     }
 
-    // =========================================================================
-    // 🛡️ КРОК 2: Видалення з членів усіх організацій
-    // =========================================================================
     await Organization.updateMany(
       { members: userId },
       { $pull: { members: userId } },
     );
 
-    // =========================================================================
-    // 🛡️ КРОК 3: Очищення медіа та файлів профілю з Cloudinary
-    // =========================================================================
     if (user.image) {
       await this.#deleteImageFromCloudinary(user.image);
     }
 
-    // =========================================================================
-    // 🛡️ КРОК 4: Анонімізація персональних даних у БД (GDPR-friendly)
-    // =========================================================================
     const anonymizedEmail = `deleted_${userId}_${Date.now()}@scienceplatform.com`;
 
     user.name = "Анонімний дослідник";
     user.email = anonymizedEmail;
-    user.password = `anonymized_${Date.now()}_${Math.random().toString(36).substring(2)}`; // Перезаписуємо випадковим паролем
+    user.password = `anonymized_${Date.now()}_${Math.random().toString(36).substring(2)}`;
     user.image = null;
     user.bio =
       "Цей акаунт було видалено користувачем за власним бажанням відповідно до політики GDPR.";
@@ -232,7 +219,7 @@ class UserService {
 
     await user.save();
     console.log(
-      `🧼 Користувача ${userId} успішно анонімізовано за стандартами GDPR.`,
+      `Користувача ${userId} успішно анонімізовано за стандартами GDPR.`,
     );
     return user;
   }

@@ -12,7 +12,10 @@ import {
 } from "lucide-react";
 import DatePicker from "react-datepicker";
 import { Button } from "../ui/Button";
-import { SCIENTIFIC_DOMAINS, PROGRAM_TYPES } from "../../constants/domains";
+import {
+  SCIENTIFIC_DOMAINS,
+  PROGRAM_TYPES,
+} from "../../shared/lib/constants/domains";
 import axiosInstance from "../../api/axios";
 import toast from "react-hot-toast";
 import "react-datepicker/dist/react-datepicker.css";

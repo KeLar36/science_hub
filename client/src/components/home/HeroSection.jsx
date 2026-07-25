@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../hooks/useAuth";
+import { useAuth } from "../../shared/lib/hooks/useAuth";
 import { Button } from "../ui/Button";
 import { ArrowUpRight, Shield, Search, Award, CheckCircle } from "lucide-react";
 

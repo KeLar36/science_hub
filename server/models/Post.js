@@ -17,6 +17,11 @@ const PostSchema = new mongoose.Schema({
     ref: "Organization",
     index: true,
   },
+  isFeatured: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
 
   images: [
     {

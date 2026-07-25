@@ -72,7 +72,8 @@ class ProjectController {
 
   async create(req, res, next) {
     try {
-      const { title, description, domain, programId, authorComment } = req.body;
+      const { title, description, domain, programId, authorComment, metadata } =
+        req.body;
 
       if (!title || !description || !programId) {
         return res.status(400).json({
@@ -84,6 +85,16 @@ class ProjectController {
         return res
           .status(400)
           .json({ message: "Будь ласка, завантажте файл роботи (PDF/Docx)" });
+      }
+
+      let parsedMetadata = {};
+      if (metadata) {
+        try {
+          parsedMetadata =
+            typeof metadata === "string" ? JSON.parse(metadata) : metadata;
+        } catch (e) {
+          parsedMetadata = {};
+        }
       }
 
       const initialVersion = {
@@ -99,6 +110,7 @@ class ProjectController {
         domain: domain || "Інше",
         authorId: req.user.id,
         programId,
+        metadata: parsedMetadata,
         versions: [initialVersion],
       };
 

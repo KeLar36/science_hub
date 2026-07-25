@@ -15,22 +15,20 @@ class OrganizationController {
 
       let userOrgId = req.user.organizationId;
 
-      if (!userOrgId && req.user.id) {
+      if (!userOrgId && (req.user._id || req.user.id)) {
         const User = mongoose.model("User");
-        const dbUser = await User.findById(req.user.id).select(
+        const dbUser = await User.findById(req.user._id || req.user.id).select(
           "organizationId",
         );
         userOrgId = dbUser?.organizationId;
       }
 
-      const isOrgAdmin =
-        req.user.role === "admin" &&
-        userOrgId &&
-        String(userOrgId._id || userOrgId) === String(id);
+      const isMemberOfOrg =
+        userOrgId && String(userOrgId._id || userOrgId) === String(id);
 
-      if (!isSuperAdmin && !isOrgAdmin) {
+      if (!isSuperAdmin && !isMemberOfOrg) {
         return res.status(403).json({
-          error: "Доступ заборонено: ви не є адміністратором цієї установи",
+          error: "Доступ заборонено: ви не належите до цієї установи",
         });
       }
 
@@ -39,6 +37,7 @@ class OrganizationController {
         page,
         limit,
       );
+
       res.json(result);
     } catch (err) {
       next(err);
@@ -84,7 +83,10 @@ class OrganizationController {
 
   async getPublicList(req, res, next) {
     try {
-      const list = await organizationService.getPublicList();
+      const list = await organizationService.getPublicList({
+        status: "approved",
+        allowPublicJoin: true,
+      });
       res.json(list);
     } catch (err) {
       next(err);
@@ -127,7 +129,9 @@ class OrganizationController {
               ? JSON.parse(req.body.scientificDomains)
               : req.body.scientificDomains;
         } catch (e) {
-          scientificDomains = req.body.scientificDomains;
+          scientificDomains = Array.isArray(req.body.scientificDomains)
+            ? req.body.scientificDomains
+            : [req.body.scientificDomains];
         }
       }
 
@@ -151,6 +155,25 @@ class OrganizationController {
         organizationData,
       );
       res.status(201).json(newOrg);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async update(req, res, next) {
+    try {
+      const { id } = req.params;
+
+      const updatedOrg = await organizationService.update(
+        id,
+        req.body,
+        req.file,
+      );
+
+      res.json({
+        message: "Дані організації успішно оновлено",
+        organization: updatedOrg,
+      });
     } catch (err) {
       next(err);
     }
@@ -194,26 +217,27 @@ class OrganizationController {
         return res.status(400).json({ error: "ID користувача є обов'язковим" });
       }
 
-      let adminOrgId = null;
+      const User = mongoose.model("User");
+      const currentUserId = req.user._id || req.user.id;
 
-      if (req.user.role === "superadmin") {
-        adminOrgId = req.body.organizationId || req.query.organizationId;
-      } else {
-        const User = mongoose.model("User");
-        const freshUser = await User.findById(req.user.id).select(
-          "organizationId",
-        );
+      const freshUser = await User.findById(currentUserId).select(
+        "organizationId role",
+      );
 
-        if (!freshUser || !freshUser.organizationId) {
-          return res.status(403).json({
-            error: "Ви не маєте прав адміністратора для жодної установи",
-          });
-        }
+      let adminOrgId =
+        req.body?.organizationId ||
+        req.query?.organizationId ||
+        req.params?.id ||
+        freshUser?.organizationId;
 
-        adminOrgId = freshUser.organizationId;
+      if (!adminOrgId) {
+        return res.status(403).json({
+          error:
+            "Ви не належите до жодної установи та не вказали organizationId",
+        });
       }
 
-      console.log(`🚀 Приймаємо юзера ${userId} в установу ${adminOrgId}`);
+      console.log(`Приймаємо юзера ${userId} в установу ${adminOrgId}`);
 
       await organizationService.acceptJoinRequest(adminOrgId, userId);
       res.json({ message: "Користувача успішно зараховано до установи" });
@@ -230,29 +254,27 @@ class OrganizationController {
         return res.status(400).json({ error: "ID користувача є обов'язковим" });
       }
 
-      let adminOrgId = null;
+      const User = mongoose.model("User");
+      const currentUserId = req.user._id || req.user.id;
 
-      if (req.user.role === "superadmin") {
-        adminOrgId =
-          req.body.organizationId || req.query.organizationId || req.params.id;
-      } else {
-        const User = mongoose.model("User");
-        const freshUser = await User.findById(req.user.id).select(
-          "organizationId",
-        );
+      const freshUser = await User.findById(currentUserId).select(
+        "organizationId role",
+      );
 
-        if (!freshUser || !freshUser.organizationId) {
-          return res.status(403).json({
-            error: "Ви не маєте прав адміністратора для жодної установи",
-          });
-        }
+      let adminOrgId =
+        req.body?.organizationId ||
+        req.query?.organizationId ||
+        req.params?.id ||
+        freshUser?.organizationId;
 
-        adminOrgId = freshUser.organizationId;
+      if (!adminOrgId) {
+        return res.status(403).json({
+          error:
+            "Ви не належите до жодної установи та не вказали organizationId",
+        });
       }
 
-      console.log(
-        `❌ Відхиляємо запит юзера ${userId} в установу ${adminOrgId}`,
-      );
+      console.log(`Відхиляємо запит юзера ${userId} в установу ${adminOrgId}`);
 
       await organizationService.rejectJoinRequest(adminOrgId, userId);
       res.json({ message: "Запит на вступ відхилено" });
@@ -323,17 +345,57 @@ class OrganizationController {
           .json({ error: "ID цільового користувача є обов'язковим" });
       }
 
-      let adminOrgId = req.user.organizationId;
-      if (req.user.role === "superadmin") {
-        adminOrgId = orgId;
+      let adminOrgId =
+        req.user.role === "superadmin" ? orgId : req.user.organizationId;
+
+      if (!adminOrgId) {
+        const User = mongoose.model("User");
+        const freshUser = await User.findById(req.user.id).select(
+          "organizationId",
+        );
+        adminOrgId = freshUser?.organizationId || orgId;
       }
 
-      await organizationService.kickMember(
-        adminOrgId,
+      await organizationService.kickMember(adminOrgId, req.user, targetUserId);
+
+      res.json({ message: "Користувача успішно виключено з організації" });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async updateMemberRole(req, res, next) {
+    try {
+      const { id: paramOrgId, userId: targetUserId } = req.params;
+      const { role } = req.body;
+
+      const validRoles = ["user", "reviewer", "content-manager", "admin"];
+      if (!role || !validRoles.includes(role)) {
+        return res.status(400).json({ error: "Передано некоректну роль" });
+      }
+
+      const rawOrgId = paramOrgId || req.user.organizationId;
+      const cleanOrgId = rawOrgId?._id
+        ? rawOrgId._id.toString()
+        : rawOrgId?.toString();
+
+      if (!cleanOrgId) {
+        return res
+          .status(400)
+          .json({ error: "Ідентифікатор організації відсутній" });
+      }
+
+      const updatedUser = await organizationService.updateMemberRole(
+        cleanOrgId,
         req.user.id,
         targetUserId,
+        role,
       );
-      res.json({ message: "Користувача успішно виключено з організації" });
+
+      res.json({
+        message: "Роль користувача успішно оновлено",
+        user: updatedUser,
+      });
     } catch (err) {
       next(err);
     }

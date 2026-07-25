@@ -1,75 +1,121 @@
-/* 🌐 Імпортуємо нові шрифти з Google Fonts */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,800;1,800&family=JetBrains+Mono:wght@500;700&display=swap");
-
 @import "tailwindcss";
-@plugin "@tailwindcss/typography";
 
-:root {
-  --purple-main: #6d28d9;
-  --bg-main: #f8f9fa;
-  --bg-card: #ffffff;
-  --text-dark: #111827;
-  --text-main: #1f2937;
-  --text-gray: #4b5563;
-  --border-color: #e5e7eb;
-  --selection-bg: #ddd6fe;
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap");
+
+/* ==================================================================== */
+/* 🟣 СИСТЕМНА СПЕЦИФІКАЦІЯ ТЕМИ (Рівень кореня Tailwind v4)              */
+/* ==================================================================== */
+@theme {
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-tertiary: var(--bg-tertiary);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+
+  --color-brand: var(--brand-color);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-light: var(--brand-light);
+
+  --color-border-color: var(--border);
+
+  --font-sans: "Plus Jakarta Sans", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --font-display: "Plus Jakarta Sans", "Inter", sans-serif;
+  --font-sans: "Geist", "Inter", "system-ui", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
 }
 
+/* ==================================================================== */
+/* ⚪ СВІТЛА ТЕМА: Спокійний академічний папір                          */
+/* ==================================================================== */
+:root {
+  --bg-primary: #f4f5f6; /* М'яка, leдь сірувата основа, приємна для очей */
+  --bg-secondary: #fafafa; /* Матові паперові картки замість блікуючого білого */
+  --bg-tertiary: #ededf0; /* Благородна підкладка інпутів та таблиць */
+
+  --text-primary: #1e2022; /* М'який вугільний відтінок для заголовків */
+  --text-secondary: #3a3f44; /* Стриманий графіт для основного тексту */
+  --text-muted: #78828c; /* Димчастий сірий для підписів */
+
+  --brand-color: #5522b1; /* Шляхетний, глибокий інтелектуальний фіолетовий */
+  --brand-hover: #431a8f;
+  --brand-light: #f1ecfc;
+
+  --border: #dcdee2; /* Вивірені тонкі межі елементів */
+  --shadow-popup:
+    0 4px 30px rgba(30, 32, 34, 0.04), 0 2px 8px rgba(30, 32, 34, 0.02);
+}
+
+/* ==================================================================== */
+/* ⚫ ТЕМНА ТЕМА: Дорогий матовий графіт (Лабораторна ніч)             */
+/* ==================================================================== */
 .dark {
-  --bg-main: #121214;
-  --bg-card: #1a1a1e;
-  --text-dark: #ffffff;
-  --text-gray: #9ca3af;
-  --text-main: #e5e7eb;
-  --border-color: #26262b;
-  --selection-bg: #4c1d95;
+  --bg-primary: #111215; /* Глибока графітова ніч без абсолютного чорного */
+  --bg-secondary: #16181d; /* Полегшений оксамитовий графіт для компонентів */
+  --bg-tertiary: #1f2229; /* Контрастні внутрішні шари інпутів та кнопок */
+
+  --text-primary: #f3f4f6; /* М'яка платина для максимального читання */
+  --text-secondary: #c2c7d0; /* Матове срібло, що не ріже очі вночі */
+  --text-muted: #717782; /* Приглушений графіт для другорядних даних */
+
+  --brand-color: #7c4dff; /* Неонова плазма з ідеальним нічним мікро-контрастом */
+  --brand-hover: #9e7bff;
+  --brand-light: rgba(124, 77, 255, 0.08);
+
+  --border: #242831; /* Ультра-комфортний нічний бордер */
+  --shadow-popup:
+    0 20px 40px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(255, 255, 255, 0.01);
+}
+
+/* ==================================================================== */
+/* ГЛОБАЛЬНІ БАЗОВІ СТИЛІ                                               */
+/* ==================================================================== */
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 h1,
 h2,
-h3 {
-  font-family: "Plus Jakarta Sans", sans-serif !important;
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
 }
 
-body {
-  background-color: var(--bg-main);
-  color: var(--text-main);
-  font-family: "Inter", sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  transition:
-    background-color 0.3s ease,
-    color 0.3s ease;
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--brand-color) transparent;
 }
 
-.font-mono {
-  font-family: "JetBrains Mono", monospace !important;
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
 }
 
-::selection {
-  background-color: var(--selection-bg);
-  color: var(--text-dark);
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-@layer utilities {
-  .grid-pattern {
-    background-image: radial-gradient(var(--border-color) 1px, transparent 1px);
-    background-size: 32px 32px;
-  }
-
-  .text-balance {
-    text-wrap: balance;
-  }
-
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
+::-webkit-scrollbar-thumb {
+  background: var(--brand-color);
+  border-radius: 10px;
 }
 
 @keyframes reveal {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
@@ -78,129 +124,77 @@ body {
 }
 
 .animate-reveal {
-  animation: reveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: reveal 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.bento-card {
-  @apply bg-[var(--bg-card)] border border-[var(--border-color)] 
-         transition-all duration-200 ease-in-out hover:border-[var(--text-dark)];
+/* ==================================================================== */
+/* 📝 ТИПОГРАФІКА ТА КАСТОМІЗАЦІЯ REACT_QUILL (Клас .prose)             */
+/* ==================================================================== */
+
+.prose ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
 }
 
-.ql-container {
-  min-height: 250px;
+.prose ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
 }
 
-.admin-quill .ql-toolbar.ql-snow {
-  border: 1px solid var(--border-color) !important;
-  border-top-left-radius: 12px;
-  border-top-right-radius: 12px;
-  background: var(--bg-card);
+.prose li {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
 }
 
-.admin-quill .ql-container.ql-snow {
-  border: 1px solid var(--border-color) !important;
-  border-top: none !important;
-  border-bottom-left-radius: 12px;
-  border-bottom-right-radius: 12px;
-  min-height: 200px;
-  font-family: inherit;
+.prose blockquote {
+  border-left: 3px solid var(--brand-color);
+  padding-left: 1rem;
+  font-style: italic;
+  color: var(--text-muted);
+  margin: 1.5rem 0;
+  background-color: var(--bg-tertiary);
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
 }
 
-.admin-quill .ql-editor {
-  font-size: 0.875rem;
-  color: var(--text-dark);
+.prose hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
 }
 
-.admin-quill .ql-editor.ql-blank::before {
-  color: var(--text-gray) !important;
-  font-style: normal;
-  opacity: 0.5;
+.prose img {
+  max-width: 100%;
+  height: auto;
+  margin: 1.5rem auto;
+  display: block;
 }
 
-.admin-select-custom {
-  appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b5cf6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 1rem center;
-  background-size: 1em;
+.prose p,
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose li,
+.prose blockquote {
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
 }
 
-.sidebar-drawer {
-  position: fixed;
-  top: 0;
-  right: 0;
-  height: 100vh;
-  width: 100%;
-  max-w: 380px;
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+.quill-editor-wrapper .ql-container.ql-snow {
+  min-height: 500px;
+  max-height: 500px;
+  overflow-y: auto;
+  font-size: 0.95rem;
 }
 
-html {
-  scrollbar-width: thin;
-  scrollbar-color: #6d28d9 transparent;
-}
-
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background-color: rgba(109, 40, 217, 0.4);
-  border-radius: 100px;
-  transition: background-color 0.3s ease;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(109, 40, 217, 0.6);
-}
-
-.rules-grid-bg {
-  background-image: radial-gradient(var(--border-color) 1px, transparent 1px);
-  background-size: 40px 40px;
-  position: absolute;
-  inset: 0;
-  opacity: 0.4;
-  z-index: 0;
-}
-
-.glass-card {
-  background: var(--bg-light);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--border-color);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.glass-card:hover {
-  border-color: #7c3aed;
-  box-shadow: 0 10px 40px -10px rgba(124, 58, 237, 0.2);
-  transform: translateY(-4px);
-}
-
-.label-mono {
-  font-family: "Space Mono", monospace;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: var(--text-gray);
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-  margin-right: 10px;
-}
-
-.section-title {
-  color: var(--text-dark);
-  font-weight: 900;
+.quill-editor-wrapper .ql-editor {
+  min-height: 500px;
 }

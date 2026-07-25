@@ -1,0 +1,100 @@
+/* eslint-disable react-refresh/only-export-components */
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+} from "react";
+import axios from "@/shared/api/axios";
+
+axios.defaults.withCredentials = true;
+
+export const AuthContext = createContext(null);
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
+  const isChecking = useRef(false);
+
+  const checkAuth = useCallback(async (force = false) => {
+    if (isChecking.current) return;
+
+    let shouldSkip = false;
+    setIsAuthChecked((prev) => {
+      if (prev && !force) {
+        shouldSkip = true;
+      }
+      return prev;
+    });
+
+    if (shouldSkip) return;
+    isChecking.current = true;
+
+    try {
+      const res = await axios.get("/users/me");
+      if (res.data && res.data.user) {
+        setUser(res.data.user);
+      } else {
+        setUser(null);
+      }
+    } catch (err) {
+      console.error("Помилка автоматичної авторизації:", err);
+      setUser(null);
+    } finally {
+      setLoading(false);
+      setIsAuthChecked(true);
+      isChecking.current = false;
+    }
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  const updateUserState = (updatedUser) => {
+    setUser(updatedUser);
+  };
+
+  const logoutAction = async () => {
+    try {
+      await axios.post("/auth/logout", {}, { withCredentials: true });
+    } catch (err) {
+      console.error("Помилка під час логауту на сервері:", err);
+    } finally {
+      setUser(null);
+      setLoading(false);
+    }
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated: !!user,
+        loading,
+        logout: logoutAction,
+        checkAuth,
+        updateUserState,
+      }}
+    >
+      {loading ? (
+        <div className="min-h-screen bg-bg-primary flex items-center justify-center transition-colors duration-300">
+          <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      ) : (
+        children
+      )}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth має використовуватись всередині AuthProvider");
+  }
+  return context;
+};

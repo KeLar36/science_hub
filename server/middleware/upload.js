@@ -8,6 +8,20 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+const ALLOWED_DOC_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/x-zip",
+  "application/x-rar-compressed",
+  "application/vnd.rar",
+  "application/x-7z-compressed",
+];
+
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: async (req, file) => {
@@ -16,6 +30,8 @@ const storage = new CloudinaryStorage({
     const cleanFileName = file.originalname
       .split(".")[0]
       .replace(/[^a-zA-Z0-9_-]/g, "_");
+
+    const fileExt = file.originalname.split(".").pop().toLowerCase();
 
     let targetFolder = "science_hub/general";
     const currentRoute = req.baseUrl + req.path;
@@ -29,7 +45,8 @@ const storage = new CloudinaryStorage({
       targetFolder = "science_hub/blog_images";
     } else if (
       currentRoute.includes("/programs") ||
-      currentRoute.includes("/applications")
+      currentRoute.includes("/applications") ||
+      currentRoute.includes("/projects")
     ) {
       targetFolder = isImage
         ? "science_hub/program_attachments/images"
@@ -40,9 +57,8 @@ const storage = new CloudinaryStorage({
 
     return {
       folder: targetFolder,
-      resource_type: isImage ? "image" : "auto",
-      public_id: `${Date.now()}-${cleanFileName}`,
-      format: isImage ? undefined : file.originalname.split(".").pop(),
+      resource_type: isImage ? "image" : "raw",
+      public_id: `${Date.now()}-${cleanFileName}.${fileExt}`,
     };
   },
 });
@@ -50,25 +66,21 @@ const storage = new CloudinaryStorage({
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: (file) => {
-      return file.mimetype.startsWith("image/")
-        ? 5 * 1024 * 1024
-        : 25 * 1024 * 1024;
-    },
+    fileSize: 25 * 1024 * 1024,
   },
   fileFilter: (req, file, cb) => {
     const isImage = file.mimetype.startsWith("image/");
-    const isAllowedDoc = [
-      "application/pdf",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ].includes(file.mimetype);
+    const isAllowedDoc = ALLOWED_DOC_TYPES.includes(file.mimetype);
 
-    if (isImage || isAllowedDoc) {
+    const isArchiveExt = /\.(zip|rar|7z|pdf|docx|xlsx)$/i.test(
+      file.originalname,
+    );
+
+    if (isImage || isAllowedDoc || isArchiveExt) {
       cb(null, true);
     } else {
       const error = new Error(
-        "Непідтримуваний формат файлу! Дозволено зображення та PDF/Word документи.",
+        "Непідтримуваний формат файлу! Дозволено зображення (PNG/JPG), PDF, Word, Excel та ZIP/RAR архіви.",
       );
       error.statusCode = 400;
       cb(error, false);

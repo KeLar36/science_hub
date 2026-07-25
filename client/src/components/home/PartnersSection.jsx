@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from "react";
-import axios from "../../api/axios";
+import axios from "@/shared/api/axios";
 
 const PartnersSection = () => {
   const [organizations, setOrganizations] = useState([]);

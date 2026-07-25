@@ -15,7 +15,10 @@ import { Button } from "./ui/Button";
 import "react-datepicker/dist/react-datepicker.css";
 import "react-quill-new/dist/quill.snow.css";
 
-import { SCIENTIFIC_DOMAINS, PROGRAM_TYPES } from "../constants/domains";
+import {
+  SCIENTIFIC_DOMAINS,
+  PROGRAM_TYPES,
+} from "../shared/lib/constants/domains";
 
 const ProgramForm = ({
   newProgram,

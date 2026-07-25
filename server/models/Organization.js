@@ -79,6 +79,16 @@ const OrganizationSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    isSystem: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    isFeatured: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
     status: {
       type: String,
       enum: ["pending", "approved", "rejected"],
@@ -92,6 +102,10 @@ const OrganizationSchema = new mongoose.Schema(
     isVerified: {
       type: Boolean,
       default: false,
+    },
+    allowPublicJoin: {
+      type: Boolean,
+      default: true,
     },
     members: [
       {

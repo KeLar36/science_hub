@@ -92,21 +92,17 @@ class PostController {
             post.organizationId._id.toString() !==
               req.user.organizationId.toString()
           ) {
-            return res
-              .status(403)
-              .json({
-                error:
-                  "Доступ заборонено! Ви можете редагувати контент лише своєї установи.",
-              });
+            return res.status(403).json({
+              error:
+                "Доступ заборонено! Ви можете редагувати контент лише своєї установи.",
+            });
           }
         } else {
           if (post.organizationId) {
-            return res
-              .status(403)
-              .json({
-                error:
-                  "Доступ заборонено! Глобальний менеджер не може редагувати пости установ.",
-              });
+            return res.status(403).json({
+              error:
+                "Доступ заборонено! Глобальний менеджер не може редагувати пости установ.",
+            });
           }
         }
       }
@@ -153,21 +149,17 @@ class PostController {
             post.organizationId._id.toString() !==
               req.user.organizationId.toString()
           ) {
-            return res
-              .status(403)
-              .json({
-                error:
-                  "Ви не маєте прав на видалення публікацій сторонніх організацій!",
-              });
+            return res.status(403).json({
+              error:
+                "Ви не маєте прав на видалення публікацій сторонніх організацій!",
+            });
           }
         } else {
           if (post.organizationId) {
-            return res
-              .status(403)
-              .json({
-                error:
-                  "Глобальний контент-менеджер не може видаляти публікації офіційних установ!",
-              });
+            return res.status(403).json({
+              error:
+                "Глобальний контент-менеджер не може видаляти публікації офіційних установ!",
+            });
           }
         }
       }
@@ -196,6 +188,28 @@ class PostController {
         type,
       );
       res.json({ reactions });
+    } catch (err) {
+      next(err);
+    }
+  }
+  async getMyContentDashboard(req, res, next) {
+    try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 8;
+
+      const filters = {
+        category: req.query.category,
+        search: req.query.search,
+        status: req.query.status,
+      };
+      const posts = await postService.getMyContentDashboard(
+        req.user,
+        filters,
+        page,
+        limit,
+      );
+
+      return res.status(200).json(posts);
     } catch (err) {
       next(err);
     }

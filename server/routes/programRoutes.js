@@ -36,20 +36,20 @@ router.post(
   programController.forceCleanup,
 );
 
-router.put(
-  "/:id",
-  verifyToken,
-  checkRole(["admin", "superadmin"]),
-  checkOrgAccess,
-  programController.update,
-);
-
 router.patch(
   "/:id/toggle-status",
   verifyToken,
   checkRole(["admin", "superadmin"]),
   checkOrgAccess,
   programController.toggleStatus,
+);
+
+router.put(
+  "/:id",
+  verifyToken,
+  checkRole(["admin", "superadmin"]),
+  checkOrgAccess,
+  programController.update,
 );
 
 router.delete(

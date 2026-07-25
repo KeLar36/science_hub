@@ -5,21 +5,15 @@ const { verifyToken, checkRole } = require("../middleware/auth");
 const checkOrgAccess = require("../middleware/checkOrgAccess");
 const upload = require("../middleware/upload");
 
-router.get(
-  "/public/list",
+router.get("/public/list", organizationController.getPublicList);
+router.post(
+  "/create",
+  verifyToken,
   upload.single("logo"),
-  organizationController.getPublicList,
+  organizationController.create,
 );
-router.post("/create", verifyToken, organizationController.create);
 router.post("/join", verifyToken, organizationController.joinRequest);
 router.post("/leave", verifyToken, organizationController.leave);
-
-router.get(
-  "/requests/pending",
-  verifyToken,
-  checkRole(["admin", "superadmin"]),
-  organizationController.getPendingRequests,
-);
 
 router.get(
   "/all",
@@ -45,7 +39,6 @@ router.post(
 router.get(
   "/:id/users",
   verifyToken,
-  checkRole(["admin", "superadmin"]),
   checkOrgAccess,
   organizationController.getOrganizationUsers,
 );
@@ -53,15 +46,21 @@ router.get(
 router.get(
   "/:id/programs",
   verifyToken,
-  checkRole(["admin", "superadmin"]),
+  checkOrgAccess,
   organizationController.getOrganizationPrograms,
 );
-
 router.post(
   "/:id/kick",
   verifyToken,
   checkRole(["admin", "superadmin"]),
   organizationController.kick,
+);
+
+router.get(
+  "/:id/requests/pending",
+  verifyToken,
+  checkRole(["admin", "superadmin"]),
+  organizationController.getPendingRequests,
 );
 
 router.patch(
@@ -72,9 +71,26 @@ router.patch(
 );
 
 router.patch(
+  "/:id/members/:userId/role",
+  verifyToken,
+  checkRole(["admin", "superadmin"]),
+  checkOrgAccess,
+  organizationController.updateMemberRole,
+);
+
+router.patch(
   "/:id/transfer-ownership",
   verifyToken,
   organizationController.transferOrgOwnership,
+);
+
+router.patch(
+  "/:id",
+  verifyToken,
+  checkRole(["admin", "superadmin"]),
+  checkOrgAccess,
+  upload.single("logo"),
+  organizationController.update,
 );
 
 router.get("/:id", verifyToken, organizationController.getById);

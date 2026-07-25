@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axiosInstance from "../api/axios"; // твій налаштований axios
+import axiosInstance from "@/shared/api/axios";
 
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
+import Navbar from "../components/layout/Navbar";
+import Footer from "../components/layout/Footer";
 
 import HeroSection from "../components/about/HeroSection";
 import Features from "../components/about/Features";

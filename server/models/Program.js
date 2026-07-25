@@ -12,6 +12,11 @@ const BaseProgramSchema = new mongoose.Schema(
       trim: true,
       maxlength: 300,
     },
+    isFeatured: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
     description: {
       type: String,
       required: true,
@@ -102,6 +107,13 @@ const ConferenceProgram = Program.discriminator(
   }),
 );
 
+const ArticleProgram = Program.discriminator(
+  "Стаття",
+  new mongoose.Schema({
+    doi: { type: String, default: null, trim: true },
+  }),
+);
+
 const DatasetProgram = Program.discriminator(
   "Датасет",
   new mongoose.Schema({}),
@@ -114,5 +126,6 @@ Program.GrantProgram = GrantProgram;
 Program.ConferenceProgram = ConferenceProgram;
 Program.DatasetProgram = DatasetProgram;
 Program.CourseProgram = CourseProgram;
+Program.ArticleProgram = ArticleProgram;
 
 module.exports = Program;

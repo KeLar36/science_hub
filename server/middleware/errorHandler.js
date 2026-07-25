@@ -1,5 +1,5 @@
 const errorHandler = (err, req, res, next) => {
-  console.error("💥 Error Caught:", err.stack);
+  console.error("Error Caught:", err.stack);
 
   if (err.kind === "ObjectId") {
     return res.status(400).json({ error: "Некоректний формат ID" });
@@ -11,7 +11,11 @@ const errorHandler = (err, req, res, next) => {
       .json({ error: "Такий запис уже існує в базі даних" });
   }
 
-  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  const statusCode =
+    err.statusCode ||
+    err.status ||
+    (res.statusCode !== 200 ? res.statusCode : 500);
+
   res.status(statusCode).json({
     error: err.message || "Внутрішня помилка сервера",
     stack: process.env.NODE_ENV === "production" ? null : err.stack,

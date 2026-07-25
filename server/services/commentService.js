@@ -55,6 +55,34 @@ class CommentService {
   async deleteByPostId(postId) {
     await Comment.deleteMany({ postId });
   }
+
+  async createProjectComment(projectId, userId, text) {
+    const Project = require("../models/Project");
+    const project = await Project.findById(projectId);
+    if (!project) {
+      const error = new Error("Проєкт не знайдено");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const newComment = new Comment({
+      projectId,
+      userId,
+      text: text.trim(),
+    });
+
+    await newComment.save();
+    return await Comment.findById(newComment._id).populate(
+      "userId",
+      "name role image",
+    );
+  }
+
+  async getByProjectId(projectId) {
+    return await Comment.find({ projectId })
+      .populate("userId", "name role image")
+      .sort({ createdAt: 1 });
+  }
 }
 
 module.exports = new CommentService();

@@ -15,40 +15,56 @@ class PostService {
     }
   }
 
-  async getAll(filters = {}, page = 1, limit = 8) {
-    let query = {};
+  #buildFilterQuery(filters = {}) {
+    const query = {};
 
-    if (filters.status) {
+    if (filters.status && filters.status !== "Всі") {
       query.status = filters.status;
-    } else {
-      query.status = "published";
     }
 
     if (filters.category && filters.category !== "Всі") {
       query.category = filters.category;
     }
 
-    if (filters.search) {
-      query.title = { $regex: filters.search.trim(), $options: "i" };
+    if (filters.domain && filters.domain !== "Всі") {
+      query.domain = filters.domain;
+    }
+
+    if (filters.search && filters.search.trim()) {
+      const searchRegex = { $regex: filters.search.trim(), $options: "i" };
+      query.$or = [{ title: searchRegex }, { content: searchRegex }];
     }
 
     if (filters.organizationId) {
       query.organizationId = filters.organizationId;
     }
 
+    if (filters.authorId) {
+      query.authorId = filters.authorId;
+    }
+
+    return query;
+  }
+
+  async getAll(filters = {}, page = 1, limit = 8) {
+    const query = this.#buildFilterQuery({
+      ...filters,
+      status: filters.status || "published",
+    });
+
     const skip = (page - 1) * limit;
 
     const posts = await Post.find(query)
       .populate("authorId", "name role image")
-      .populate("organizationId", "name logo")
-      .sort({ createdAt: -1 })
+      .populate("organizationId", "name logo isSystem")
+      .sort({ isFeatured: -1, createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
     const total = await Post.countDocuments(query);
     const totalPages = Math.ceil(total / limit);
 
-    return { posts, totalPages, currentPage: page, totalItems: total };
+    return { posts, totalPages, currentPage: Number(page), totalItems: total };
   }
 
   async getById(id) {
@@ -80,8 +96,102 @@ class PostService {
     return postWithCount;
   }
 
+  async toggleReaction(id, userId, type) {
+    const post = await Post.findById(id);
+    if (!post) {
+      const error = new Error("Публікацію не знайдено");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (!post.reactions) post.reactions = {};
+    if (!post.reactions[type]) post.reactions[type] = [];
+
+    const hasReacted = post.reactions[type].includes(userId);
+    const update = hasReacted
+      ? { $pull: { [`reactions.${type}`]: userId } }
+      : { $addToSet: { [`reactions.${type}`]: userId } };
+
+    const updatedPost = await Post.findByIdAndUpdate(id, update, { new: true });
+    return updatedPost.reactions;
+  }
+
+  async getOrganizationDashboardPosts(
+    orgId,
+    filters = {},
+    page = 1,
+    limit = 8,
+  ) {
+    if (!orgId) {
+      const error = new Error("Не вказано ідентифікатор організації");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const query = this.#buildFilterQuery({
+      ...filters,
+      organizationId: orgId,
+      status: filters.status || undefined,
+    });
+
+    const skip = (page - 1) * limit;
+
+    const posts = await Post.find(query)
+      .populate("authorId", "name image role")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Post.countDocuments(query);
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      posts,
+      totalPages,
+      currentPage: Number(page),
+      totalItems: total,
+    };
+  }
+
+  async getSuperAdminDashboardPosts(filters = {}, page = 1, limit = 8) {
+    const query = this.#buildFilterQuery({
+      ...filters,
+      status: filters.status || undefined,
+    });
+
+    const skip = (page - 1) * limit;
+
+    const posts = await Post.find(query)
+      .populate("authorId", "name image role")
+      .populate("organizationId", "name logo")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Post.countDocuments(query);
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      posts,
+      totalPages,
+      currentPage: Number(page),
+      totalItems: total,
+    };
+  }
+
   async create(authorId, postData, uploadedImages = []) {
     const finalStatus = postData.status || "published";
+    let isFeatured = postData.isFeatured || false;
+
+    if (postData.organizationId) {
+      const Organization = require("../models/Organization");
+      const org = await Organization.findById(postData.organizationId).select(
+        "isSystem",
+      );
+      if (org?.isSystem) {
+        isFeatured = true;
+      }
+    }
 
     const newPost = new Post({
       title: postData.title.trim(),
@@ -92,6 +202,7 @@ class PostService {
       authorId,
       organizationId: postData.organizationId || null,
       images: uploadedImages,
+      isFeatured,
     });
 
     return await newPost.save();
@@ -155,26 +266,6 @@ class PostService {
     await Comment.deleteMany({ postId: id });
 
     await Post.findByIdAndDelete(id);
-  }
-
-  async toggleReaction(id, userId, type) {
-    const post = await Post.findById(id);
-    if (!post) {
-      const error = new Error("Публікацію не знайдено");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    if (!post.reactions) post.reactions = {};
-    if (!post.reactions[type]) post.reactions[type] = [];
-
-    const hasReacted = post.reactions[type].includes(userId);
-    const update = hasReacted
-      ? { $pull: { [`reactions.${type}`]: userId } }
-      : { $addToSet: { [`reactions.${type}`]: userId } };
-
-    const updatedPost = await Post.findByIdAndUpdate(id, update, { new: true });
-    return updatedPost.reactions;
   }
 }
 

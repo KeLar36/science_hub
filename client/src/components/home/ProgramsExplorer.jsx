@@ -5,7 +5,10 @@ import axiosInstance from "../../api/axios";
 import UniversalFilters from "../UniversalFilters";
 import UniversalCard from "../ui/UniversalCard";
 import { Pagination } from "../ui/Pagination";
-import { SCIENTIFIC_DOMAINS, PROGRAM_TYPES } from "../../constants/domains";
+import {
+  SCIENTIFIC_DOMAINS,
+  PROGRAM_TYPES,
+} from "../../shared/lib/constants/domains";
 
 const ProgramsExplorer = () => {
   const [items, setItems] = useState([]);

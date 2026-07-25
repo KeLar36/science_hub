@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import axiosInstance from "../api/axios";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
+import axiosInstance from "@/shared/api/axios";
+import Navbar from "../components/layout/Navbar";
+import Footer from "../components/layout/Footer";
 import HeroSection from "../components/home/HeroSection";
 import StatsSection from "../components/home/StatsSection";
 import FeaturesSection from "../components/home/FeaturesSection";

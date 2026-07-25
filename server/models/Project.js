@@ -28,6 +28,10 @@ const ProjectSchema = new mongoose.Schema(
       ref: "Program",
       required: true,
     },
+    programTitle: {
+      type: String,
+      required: true,
+    },
 
     reviewerId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -44,6 +48,11 @@ const ProjectSchema = new mongoose.Schema(
       type: String,
       default: "Не призначено",
       enum: ["Не призначено", "В процесі", "Завершено", "На доопрацюванні"],
+    },
+
+    metadata: {
+      type: Object,
+      default: {},
     },
 
     reviewerRecommendation: {

@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from "react";
 import axios from "../api/axios";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "../shared/lib/hooks/useAuth";
 import toast, { Toaster } from "react-hot-toast";
 import {
   FileText,
@@ -17,8 +17,8 @@ import {
   Bookmark,
   Layers,
 } from "lucide-react";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
+import Navbar from "../components/layout/Navbar";
+import Footer from "../components/layout/Footer";
 
 const ReviewerPage = () => {
   const { user } = useAuth();

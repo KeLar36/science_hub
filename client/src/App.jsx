@@ -1,94 +1,83 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useEffect, Suspense, lazy } from "react";
+import React, { Suspense, lazy } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
 } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
-import { useAuth } from "./hooks/useAuth";
 import "react-datepicker/dist/react-datepicker.css";
-import ScrollToTop from "./components/ScrollToTop";
-import AOS from "aos";
-import "aos/dist/aos.css";
 
-const HomePage = lazy(() => import("./pages/homePage"));
-const LoginPage = lazy(() => import("./pages/loginPage"));
-const RegisterPage = lazy(() => import("./pages/registerPage"));
-const ProfilePage = lazy(() => import("./pages/profilePage"));
-const AboutPage = lazy(() => import("./pages/aboutPage"));
-const Blog = lazy(() => import("./pages/BlogPage"));
-const PostDetail = lazy(() => import("./pages/PostDetail"));
-const RulesPage = lazy(() => import("./pages/RulesPage"));
-const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
-const ResetPassword = lazy(() => import("./pages/ResetPassword"));
-const ArchivePage = lazy(() => import("./pages/ArchivePage"));
-const ProgramsPage = lazy(() => import("./pages/ProgramsPage"));
-const ProgramDetails = lazy(() => import("./pages/ProgramDetails"));
-const DashboardLayout = lazy(
-  () => import("./components/operator/DashboardLayout"),
+import { AuthProvider } from "@/shared/lib/context/AuthContext";
+import { useAuth } from "@/shared/lib/hooks/useAuth";
+
+import ScrollToTop from "@/components/ScrollToTop";
+import Loader from "@/shared/ui/Loader";
+
+const ContentManagerPage = lazy(
+  () => import("@/features/content-manager/pages/ContentManagerPage"),
 );
-const SuperAdminPage = lazy(() => import("./pages/admin/SuperAdminPage"));
-const OrgAdminPage = lazy(() => import("./pages/admin/OrgAdminPage"));
-const ReviewerPage = lazy(() => import("./pages/ReviewerPage"));
-const ContentPanel = lazy(() => import("./pages/ContentPanel"));
-const CreatePost = lazy(() => import("./pages/CreatePost"));
-
-const PageLoader = () => (
-  <div className="min-h-screen bg-[var(--bg-main)] flex items-center justify-center">
-    <div className="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-  </div>
+const SubmitProjectPage = lazy(
+  () => import("@/features/user/pages/SubmitProjectPage"),
+);
+const OrganizationDashboardPage = lazy(
+  () => import("@/features/organization/pages/OrganizationDashboard"),
+);
+const HomePage = lazy(() => import("@/pages/homePage"));
+const AboutPage = lazy(() => import("@/pages/aboutPage"));
+const RulesPage = lazy(() => import("@/pages/RulesPage"));
+const ArchivePage = lazy(() => import("@/features/projects/pages/ArchivePage"));
+const ProgramsPage = lazy(
+  () => import("@/features/programs/pages/ProgramsPage"),
+);
+const ProgramDetailsPage = lazy(
+  () => import("@/features/programs/pages/ProgramDetails"),
 );
 
-const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { isAuthenticated, user, loading } = useAuth();
+const Blog = lazy(() => import("@/features/blog/pages/BlogPage"));
+const PostDetail = lazy(() => import("@/features/blog/pages/PostDetail"));
+const AuthPage = lazy(() => import("@/features/auth/pages/AuthPage"));
+const ProfilePage = lazy(() => import("@/features/user/pages/ProfilePage"));
 
-  if (loading) {
-    return <PageLoader />;
-  }
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // Якщо ролі передано, і користувач не має потрібної ролі
-  if (allowedRoles && !allowedRoles.includes(user?.role)) {
-    return <Navigate to="/" replace />;
-  }
+  if (loading) return <Loader fullScreen />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   return children;
 };
 
 function AppContent() {
-  useEffect(() => {
-    AOS.init({
-      duration: 800,
-      once: true,
-      easing: "ease-out",
-      offset: 100,
-    });
-  }, []);
-
   return (
     <Router>
       <ScrollToTop />
 
-      <Suspense fallback={<PageLoader />}>
+      <Suspense fallback={<Loader fullScreen />}>
         <Routes>
+          {/* ================================================================ */}
+          {/* 1. ПУБЛІЧНИЙ ШАР (Вільний доступ для всіх відвідувачів)         */}
+          {/* ================================================================ */}
           <Route path="/" element={<HomePage />} />
-          <Route path="/programs" element={<ProgramsPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password/:token" element={<ResetPassword />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/blog" element={<Blog />} />
-          <Route path="/blog/:id" element={<PostDetail />} />
           <Route path="/about" element={<AboutPage />} />
-          <Route path="/program/:id" element={<ProgramDetails />} />
           <Route path="/rules" element={<RulesPage />} />
           <Route path="/archive" element={<ArchivePage />} />
+          <Route path="/programs" element={<ProgramsPage />} />
+          <Route path="/programs/:id" element={<ProgramDetailsPage />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/:id" element={<PostDetail />} />
 
+          {/* ================================================================ */}
+          {/* 2. ШАР АВТОРИЗАЦІЇ (Доступні лише неавторизованим)              */}
+          {/* ================================================================ */}
+          <Route path="/login" element={<AuthPage />} />
+          <Route path="/register" element={<AuthPage />} />
+          <Route path="/forgot-password" element={<AuthPage />} />
+          <Route path="/reset-password/:token" element={<AuthPage />} />
+
+          {/* ================================================================ */}
+          {/* 3. РУТИ ДЛЯ АВТОРИЗОВАНИХ КОРИСТУВАЧІВ                           */}
+          {/* ================================================================ */}
           <Route
             path="/profile"
             element={
@@ -98,65 +87,33 @@ function AppContent() {
             }
           />
           <Route
-            path="/dashboard"
+            path="/projects/submit"
             element={
-              <ProtectedRoute
-                allowedRoles={[
-                  "superadmin",
-                  "admin",
-                  "reviewer",
-                  "content-manager",
-                ]}
-              >
-                <DashboardLayout />
+              <ProtectedRoute>
+                <SubmitProjectPage />
               </ProtectedRoute>
             }
-          >
-            <Route
-              index
-              element={
-                <div className="text-sm font-bold text-[var(--text-gray)] uppercase tracking-wider">
-                  👋 Вітаємо в робочій зоні Science Platform!
-                </div>
-              }
-            />
-
-            <Route path="superadmin" element={<SuperAdminPage />} />
-
-            <Route path="org-admin" element={<OrgAdminPage />} />
-
-            <Route path="reviewer" element={<ReviewerPage />} />
-
-            <Route path="content-panel" element={<ContentPanel />} />
-            <Route path="content-management" element={<CreatePost />} />
-            <Route path="edit-post/:id" element={<CreatePost />} />
-          </Route>
-
-          <Route
-            path="/superadmin"
-            element={<Navigate to="/dashboard/superadmin" replace />}
           />
           <Route
-            path="/org-admin"
-            element={<Navigate to="/dashboard/org-admin" replace />}
-          />
-          <Route
-            path="/reviewer"
-            element={<Navigate to="/dashboard/reviewer" replace />}
-          />
-          <Route
-            path="/content-panel"
-            element={<Navigate to="/dashboard/content-panel" replace />}
-          />
-          <Route
-            path="/content-management"
-            element={<Navigate to="/dashboard/content-management" replace />}
-          />
-          <Route
-            path="/edit-post/:id"
-            element={<Navigate to="/dashboard/edit-post/:id" replace />}
+            path="/organization/dashboard"
+            element={
+              <ProtectedRoute>
+                <OrganizationDashboardPage />
+              </ProtectedRoute>
+            }
           />
 
+          {/* ================================================================ */}
+          {/* 4. Захищені шляхи (Створення, редагування блогу)               */}
+          {/* ================================================================ */}
+          <Route
+            path="/manager-dashboard"
+            element={
+              <ProtectedRoute>
+                <ContentManagerPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

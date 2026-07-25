@@ -1,6 +1,6 @@
 const userService = require("../services/userService");
 const User = require("../models/User");
-const Post = require("../models/Post"); // Потрібно для saved-posts
+const Post = require("../models/Post");
 
 class UserController {
   async getMe(req, res, next) {
@@ -200,7 +200,6 @@ class UserController {
       const index = user.bookmarks.indexOf(postId);
 
       if (index === -1) {
-        // Якщо немає в закладках - додаємо
         user.bookmarks.push(postId);
       } else {
         // Якщо є - видаляємо
@@ -253,14 +252,9 @@ class UserController {
     }
   }
 
-  // =========================================================================
-  // 🟢 GDPR АНОНІМІЗАЦІЯ ПРОФІЛЮ КОРИСТУВАЧА
-  // =========================================================================
-
   async deleteSelf(req, res, next) {
     try {
       const userId = req.user.id;
-
       await userService.anonymizeUser(userId);
 
       res.json({
@@ -277,10 +271,18 @@ class UserController {
       const targetUserId = req.params.id;
 
       const targetUser = await userService.getById(targetUserId);
+      if (!targetUser) {
+        const error = new Error("Користувача не знайдено");
+        error.statusCode = 404;
+        throw error;
+      }
+
       if (targetUser.role === "superadmin") {
-        return res
-          .status(403)
-          .json({ error: "Не можна видалити суперадміністратора системи" });
+        const error = new Error(
+          "Не можна видалити суперадміністратора системи",
+        );
+        error.statusCode = 403;
+        throw error;
       }
 
       await userService.anonymizeUser(targetUserId);

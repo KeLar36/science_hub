@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const User = require("../models/User");
+const Organization = require("../models/Organization");
 const projectService = require("./projectService");
 
 class ProgramService {
@@ -12,8 +13,8 @@ class ProgramService {
     const skip = (page - 1) * limit;
 
     const programs = await ProgramModel.find(queryFilters)
-      .populate("organizationId", "name logo")
-      .sort({ createdAt: -1 })
+      .populate("organizationId", "name logo isSystem")
+      .sort({ isFeatured: -1, createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
@@ -55,21 +56,31 @@ class ProgramService {
 
   async create(programData, type) {
     const ProgramModel = this.getProgramModel();
-    let newProgram;
+    const Organization = mongoose.model("Organization");
 
-    if (type === "Науковий журнал") {
-      newProgram = new ProgramModel.JournalProgram(programData);
-    } else if (type === "Грант") {
-      newProgram = new ProgramModel.GrantProgram(programData);
-    } else if (type === "Конференція") {
-      newProgram = new ProgramModel.ConferenceProgram(programData);
-    } else if (type === "Датасет") {
-      newProgram = new ProgramModel.DatasetProgram(programData);
-    } else if (type === "Курс") {
-      newProgram = new ProgramModel.CourseProgram(programData);
-    } else {
-      newProgram = new ProgramModel(programData);
+    if (programData.organizationId) {
+      const org = await Organization.findById(
+        programData.organizationId,
+      ).select("name isSystem");
+      if (org) {
+        programData.organizer = org.name;
+        if (org.isSystem) {
+          programData.isFeatured = true;
+        }
+      }
     }
+
+    const modelsMap = {
+      "Науковий журнал": ProgramModel.JournalProgram,
+      Грант: ProgramModel.GrantProgram,
+      Конференція: ProgramModel.ConferenceProgram,
+      Датасет: ProgramModel.DatasetProgram,
+      Курс: ProgramModel.CourseProgram,
+      Стаття: ProgramModel.ArticleProgram,
+    };
+
+    const TargetModel = modelsMap[type] || ProgramModel;
+    const newProgram = new TargetModel(programData);
 
     return await newProgram.save();
   }
@@ -148,7 +159,7 @@ class ProgramService {
     }
 
     console.log(
-      `⏰ Дедлайн програми ${programId}. Файли відхилених робіт видалено з Cloudinary. Картки та активні проєкти збережено.`,
+      `Дедлайн програми ${programId}. Файли відхилених робіт видалено з Cloudinary. Картки та активні проєкти збережено.`,
     );
   }
 
@@ -175,7 +186,7 @@ class ProgramService {
     await program.save();
 
     console.log(
-      `🔒 Програму ${programId} примусово закрито суперадміном. Неприйняті файли видалено з Cloudinary, картки збережено для історії.`,
+      `Програму ${programId} примусово закрито суперадміном. Неприйняті файли видалено з Cloudinary, картки збережено для історії.`,
     );
   }
 }
