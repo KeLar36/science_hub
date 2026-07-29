@@ -10,6 +10,7 @@ class PostController {
         category: req.query.category,
         search: req.query.search,
         status: req.query.status,
+        domain: req.query.domain,
         organizationId: req.query.organizationId,
       };
 
@@ -40,7 +41,7 @@ class PostController {
 
   async create(req, res, next) {
     try {
-      const { title, content, category, status } = req.body;
+      const { title, content, category, status, domain } = req.body;
       if (!title || !content || !category) {
         return res.status(400).json({
           error: "Заповніть обов'язкові поля: назва, вміст та категорія",
@@ -62,6 +63,7 @@ class PostController {
         title: title.trim(),
         content: content.trim(),
         category,
+        domain: domain || null,
         status: status || "published",
         organizationId: userHasOrg
           ? req.user.organizationId
@@ -81,7 +83,7 @@ class PostController {
 
   async update(req, res, next) {
     try {
-      const { title, content, category, status } = req.body;
+      const { title, content, category, status, domain } = req.body;
 
       const post = await postService.getById(req.params.id);
 
@@ -120,6 +122,7 @@ class PostController {
         title: title ? title.trim() : undefined,
         content: content ? content.trim() : undefined,
         category,
+        domain,
         status,
         organizationId:
           req.user.role === "superadmin"
@@ -192,6 +195,7 @@ class PostController {
       next(err);
     }
   }
+
   async getMyContentDashboard(req, res, next) {
     try {
       const page = parseInt(req.query.page) || 1;
@@ -199,17 +203,41 @@ class PostController {
 
       const filters = {
         category: req.query.category,
+        domain: req.query.domain,
         search: req.query.search,
         status: req.query.status,
       };
-      const posts = await postService.getMyContentDashboard(
-        req.user,
-        filters,
-        page,
-        limit,
-      );
 
-      return res.status(200).json(posts);
+      let result;
+
+      if (req.user.role === "superadmin") {
+        result = await postService.getSuperAdminDashboardPosts(
+          filters,
+          page,
+          limit,
+        );
+      } else if (
+        req.user.role === "admin" ||
+        req.user.role === "content-manager"
+      ) {
+        if (!req.user.organizationId) {
+          return res
+            .status(403)
+            .json({ error: "Ви не належите до жодної організації" });
+        }
+        result = await postService.getOrganizationDashboardPosts(
+          req.user.organizationId,
+          filters,
+          page,
+          limit,
+        );
+      } else {
+        return res
+          .status(403)
+          .json({ error: "У вас немає доступу до цієї робочої зони" });
+      }
+
+      return res.status(200).json(result);
     } catch (err) {
       next(err);
     }

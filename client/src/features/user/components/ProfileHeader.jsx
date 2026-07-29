@@ -11,6 +11,8 @@ import {
   PlusCircle,
   ExternalLink,
   ShieldAlert,
+  FileText,
+  CheckSquare,
 } from "lucide-react";
 import Card from "@/shared/ui/Card";
 import Button from "@/shared/ui/Button";
@@ -36,11 +38,17 @@ export default function ProfileHeader({
   const hasPendingJoinRequest = Boolean(
     user?.pendingJoinRequestOrgId || user?.hasPendingJoinRequest,
   );
+
   const isSuperAdmin = user?.role === "superadmin";
+  const isContentManager =
+    user?.role === "content-manager" || user?.role === "admin";
+  const isReviewer = user?.role === "reviewer";
 
   const superAdminDashboards = [
     { label: "Адмінка", path: "/admin/dashboard", icon: ShieldAlert },
     { label: "Установа", path: "/organization/dashboard", icon: ExternalLink },
+    { label: "Контент", path: "/manager-dashboard", icon: FileText },
+    { label: "Рецензент", path: "/reviewer-dashboard", icon: CheckSquare },
   ];
 
   const getDashboardConfig = (user) => {
@@ -59,7 +67,7 @@ export default function ProfileHeader({
 
   return (
     <>
-      <Card className="bg-bg-secondary/60 border-border-color backdrop-blur-xs space-y-4">
+      <Card className="bg-bg-secondary/60 border-border-color backdrop-blur-xs space-y-4 text-left">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-3">
           <div className="flex items-center gap-4">
             <Avatar
@@ -126,13 +134,39 @@ export default function ProfileHeader({
               </div>
             ) : (
               <>
+                {isReviewer && (
+                  <Link to="/reviewer-dashboard" className="w-full sm:w-auto">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      icon={CheckSquare}
+                      className="w-full justify-center text-xs"
+                    >
+                      Зона рецензента
+                    </Button>
+                  </Link>
+                )}
+
+                {isContentManager && (
+                  <Link to="/manager-dashboard" className="w-full sm:w-auto">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      icon={FileText}
+                      className="w-full justify-center text-xs"
+                    >
+                      Зона контент-менеджера
+                    </Button>
+                  </Link>
+                )}
+
                 {dashboardConfig && (
                   <Link to={dashboardConfig.path} className="w-full sm:w-auto">
                     <Button
                       variant={dashboardConfig.variant}
                       size="sm"
                       icon={dashboardConfig.icon}
-                      className="w-full justify-center"
+                      className="w-full justify-center text-xs"
                     >
                       {dashboardConfig.label}
                     </Button>

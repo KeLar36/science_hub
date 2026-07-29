@@ -9,6 +9,13 @@ export default function SettingsTab({ onDeleteAccount }) {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState(null);
 
+  const showError = (msg) => {
+    setError(msg);
+    setTimeout(() => {
+      setError(null);
+    }, 5000);
+  };
+
   const handleDelete = async () => {
     try {
       setDeleting(true);
@@ -17,24 +24,25 @@ export default function SettingsTab({ onDeleteAccount }) {
       const res = await onDeleteAccount?.();
 
       if (res && res.success === false) {
-        setError(res.error || "Не вдалося видалити акаунт.");
+        showError(res.error || "Не вдалося видалити акаунт.");
       }
     } catch (err) {
       const serverError =
         err?.response?.data?.error ||
         err?.message ||
         "Не вдалося видалити акаунт. Спробуйте пізніше.";
-      setError(serverError);
+      showError(serverError);
     } finally {
       setDeleting(false);
     }
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 text-left">
       {error && (
         <Alert
           variant="danger"
+          onClose={() => setError(null)}
           className="animate-in fade-in slide-in-from-top-1"
         >
           {error}

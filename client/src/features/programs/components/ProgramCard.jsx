@@ -1,5 +1,12 @@
 import React from "react";
-import { Calendar, Award, BookOpen, Layers } from "lucide-react";
+import {
+  Calendar,
+  Award,
+  BookOpen,
+  Layers,
+  Star,
+  CheckCircle2,
+} from "lucide-react";
 import Card from "@/shared/ui/Card";
 import Badge from "@/shared/ui/Badge";
 import Link from "@/shared/ui/Link";
@@ -23,24 +30,52 @@ export default function ProgramCard({ program }) {
   };
 
   const programPath = `/programs/${program._id}`;
+  const isOrgVerified =
+    program.organizationId?.isVerified || program.isVerified;
 
   return (
     <Link href={programPath} variant="muted" className="block w-full !gap-0">
       <Card
         hoverable
-        className="flex flex-col justify-between h-full w-full !p-5 overflow-hidden group"
+        className={`flex flex-col justify-between h-full w-full !p-5 overflow-hidden group transition-all duration-300 ${
+          program.isFeatured
+            ? "border-brand/60 shadow-[0_0_15px_rgba(168,85,247,0.15)] ring-1 ring-brand/30"
+            : ""
+        }`}
       >
         <div className="space-y-4">
           <div className="flex justify-between items-start gap-3">
-            <span className="text-[10px] font-mono text-text-muted uppercase tracking-widest truncate max-w-[140px]">
-              {program.organizationId?.name || "Science Platform"}
-            </span>
-            <Badge status={getBadgeStatus(program.type)}>
-              <span className="flex items-center gap-1.5">
-                {getTypeIcon(program.type)}
-                {program.type}
+            <div className="flex items-center gap-1.5 truncate max-w-[160px]">
+              <span className="text-[10px] font-mono text-text-muted uppercase tracking-widest truncate">
+                {program.organizationId?.name || "Science Platform"}
               </span>
-            </Badge>
+              {isOrgVerified && (
+                <CheckCircle2
+                  size={13}
+                  className="text-brand shrink-0 fill-brand/10"
+                  title="Верифікована установа"
+                />
+              )}
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              {program.isFeatured && (
+                <Badge
+                  status="warning"
+                  className="!bg-amber-500/90 !text-white border-none flex items-center gap-1 font-bold shadow-sm"
+                >
+                  <Star className="w-3 h-3 fill-white" />
+                  <span>Топ</span>
+                </Badge>
+              )}
+
+              <Badge status={getBadgeStatus(program.type)}>
+                <span className="flex items-center gap-1.5">
+                  {getTypeIcon(program.type)}
+                  {program.type}
+                </span>
+              </Badge>
+            </div>
           </div>
 
           <div>

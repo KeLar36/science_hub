@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
-import axiosInstance from "@/shared/api/axios";
 import { useAuth } from "@/shared/lib/context/AuthContext";
+import { userApi } from "@/features/user/api/userApi";
+import { projectApi } from "@/features/projects/api/projectApi";
 
 export function useProfile() {
   const { user, updateUserState, logout } = useAuth();
@@ -21,10 +22,10 @@ export function useProfile() {
   const fetchSavedPosts = useCallback(async () => {
     try {
       setLoadingSaved(true);
-      const res = await axiosInstance.get("/users/saved-posts");
-      setSavedPosts(res.data || []);
+      const data = await userApi.getSavedPosts();
+      setSavedPosts(data || []);
     } catch (err) {
-      console.error("💥 Помилка завантаження збережених постів:", err);
+      console.error("Помилка завантаження збережених постів:", err);
     } finally {
       setLoadingSaved(false);
     }
@@ -33,8 +34,7 @@ export function useProfile() {
   const fetchMyProjects = useCallback(async (page = 1) => {
     try {
       setLoadingProjects(true);
-      const res = await axiosInstance.get(`/projects/my?page=${page}`);
-      const rawData = res.data;
+      const rawData = await projectApi.getMyProjects({}, page, 8);
 
       setMyProjects(rawData || []);
 
@@ -53,7 +53,7 @@ export function useProfile() {
         ).length,
       });
     } catch (err) {
-      console.error("💥 Помилка завантаження моїх проєктів:", err);
+      console.error("Помилка завантаження моїх проєктів:", err);
     } finally {
       setLoadingProjects(false);
     }
@@ -63,13 +63,11 @@ export function useProfile() {
     try {
       setUpdating(true);
       setError(null);
-      const res = await axiosInstance.patch("/users/update-profile", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      updateUserState(res.data);
-      return { success: true, data: res.data };
+      const updatedUser = await userApi.updateProfile(formData);
+      updateUserState(updatedUser);
+      return { success: true, data: updatedUser };
     } catch (err) {
-      console.error("💥 Помилка оновлення даних профілю:", err);
+      console.error("Помилка оновлення даних профілю:", err);
       const msg = err.response?.data?.message || "Не вдалося оновити дані";
       setError(msg);
       return { success: false, error: msg };
@@ -80,16 +78,16 @@ export function useProfile() {
 
   const toggleBookmark = async (postId) => {
     try {
-      const res = await axiosInstance.post(`/users/bookmarks/toggle/${postId}`);
+      const data = await userApi.toggleBookmark(postId);
 
-      if (res.data?.bookmarks) {
-        updateUserState({ ...user, bookmarks: res.data.bookmarks });
+      if (data?.bookmarks) {
+        updateUserState({ ...user, bookmarks: data.bookmarks });
       }
 
       fetchSavedPosts();
-      return { success: true, data: res.data };
+      return { success: true, data };
     } catch (err) {
-      console.error("💥 Помилка збереження посту:", err);
+      console.error("Помилка збереження посту:", err);
       return {
         success: false,
         error: err.response?.data?.message || "Помилка закладок",
@@ -99,9 +97,9 @@ export function useProfile() {
 
   const deleteAccount = async () => {
     try {
-      const res = await axiosInstance.delete("/users/profile");
+      const res = await userApi.deleteAccount();
       await logout();
-      return { success: true, message: res.data?.message };
+      return { success: true, message: res?.message };
     } catch (err) {
       return {
         success: false,

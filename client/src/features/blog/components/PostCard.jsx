@@ -1,4 +1,4 @@
-import { Calendar, User, Eye } from "lucide-react";
+import { Calendar, Star } from "lucide-react";
 import Card from "@/shared/ui/Card";
 import Avatar from "@/shared/ui/Avatar";
 import Badge from "@/shared/ui/Badge";
@@ -39,7 +39,11 @@ export default function PostCard({ post }) {
     <Link href={postPath} variant="muted" className="block w-full !gap-0">
       <Card
         hoverable
-        className="flex flex-col h-full justify-between !p-0 overflow-hidden group"
+        className={`flex flex-col h-full justify-between !p-0 overflow-hidden group transition-all duration-300 ${
+          post.isFeatured
+            ? "border-brand/60 shadow-[0_0_15px_rgba(168,85,247,0.15)] ring-1 ring-brand/30"
+            : ""
+        }`}
       >
         <div className="pb-0 space-y-4">
           <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-bg-tertiary border border-border-color/40">
@@ -55,15 +59,36 @@ export default function PostCard({ post }) {
               </div>
             )}
 
-            <Badge
-              status="default"
-              className="absolute top-2 left-2 backdrop-blur-md !bg-bg-primary/80"
-            >
-              {post.category}
-            </Badge>
+            <div className="absolute top-2 left-2 flex flex-wrap gap-1.5 items-center">
+              {post.isFeatured && (
+                <Badge
+                  status="warning"
+                  className="backdrop-blur-md !bg-amber-500/90 !text-white border-none flex items-center gap-1 font-bold shadow-sm"
+                >
+                  <Star className="w-3 h-3 fill-white" />
+                  <span>Топ</span>
+                </Badge>
+              )}
+
+              <Badge
+                status="default"
+                className="backdrop-blur-md !bg-bg-primary/80"
+              >
+                {post.category}
+              </Badge>
+
+              {post.domain && (
+                <Badge
+                  status="success"
+                  className="backdrop-blur-md !bg-brand/80 text-white"
+                >
+                  {post.domain}
+                </Badge>
+              )}
+            </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 p-4 pt-0">
             <h3 className="block text-sm font-bold leading-snug tracking-tight text-text-primary group-hover:text-brand transition-colors line-clamp-2">
               {post.title}
             </h3>
@@ -74,7 +99,7 @@ export default function PostCard({ post }) {
           </div>
         </div>
 
-        <div className="p-2 pt-3 mt-4 border-t border-border-color/60 flex items-center justify-between text-[10px] font-medium text-text-muted">
+        <div className="p-3 border-t border-border-color/60 flex items-center justify-between text-[10px] font-medium text-text-muted">
           <div className="flex items-center gap-2.5">
             <Avatar
               src={post.authorId?.image}

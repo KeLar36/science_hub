@@ -1,8 +1,10 @@
 import axiosInstance from "@/shared/api/axios";
 
 export const contentManagerApi = {
-  async create(rawData) {
-    const response = await axiosInstance.post("/posts/create", rawData);
+  async create(formData) {
+    const response = await axiosInstance.post("/posts", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     return response.data;
   },
 
@@ -28,8 +30,20 @@ export const contentManagerApi = {
     return response.data;
   },
 
-  async getDashboarData() {
-    const response = await axiosInstance.get("/posts/my-dashboard");
+  async getDashboardData(filters = {}, page = 1, limit = 8) {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      ...Object.fromEntries(
+        Object.entries(filters).filter(
+          ([_, value]) => value !== undefined && value !== null && value !== "",
+        ),
+      ),
+    });
+
+    const response = await axiosInstance.get(
+      `/posts/my-dashboard?${params.toString()}`,
+    );
     return response.data;
   },
 };

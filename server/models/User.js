@@ -61,6 +61,7 @@ const UserSchema = new mongoose.Schema(
       default: "user",
     },
     isBanned: { type: Boolean, default: false },
+    isAnonymized: { type: Boolean, default: false },
   },
   {
     collection: "users",
@@ -88,6 +89,18 @@ const User = mongoose.model("User", UserSchema);
 const ReviewerDiscriminator = User.discriminator(
   "reviewer",
   new mongoose.Schema({
+    academicDegree: {
+      type: String,
+      enum: [
+        "Немає / Дослідник",
+        "Кандидат наук / PhD",
+        "Доктор наук",
+        "Доцент",
+        "Професор",
+        "Інше",
+      ],
+      default: "Немає / Дослідник",
+    },
     allowedDomains: {
       type: [String],
       default: [],
@@ -97,6 +110,7 @@ const ReviewerDiscriminator = User.discriminator(
       default: [],
       validate: {
         validator: function (v) {
+          if (!Array.isArray(v) || v.length === 0) return true;
           const Program = mongoose.model("Program");
           const validTypes = Object.keys(Program.discriminators || {});
           return v.every((type) => validTypes.includes(type));

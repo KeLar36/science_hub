@@ -57,6 +57,10 @@ class UserController {
         profileData.isReviewerActive = isReviewerActive;
       }
 
+      if (body.academicDegree !== undefined) {
+        profileData.academicDegree = body.academicDegree;
+      }
+
       if (req.file) {
         profileData.image = req.file.path;
       }
@@ -88,10 +92,13 @@ class UserController {
       const queryFilters = {};
 
       if (req.query.search) {
-        queryFilters.name = { $regex: req.query.search.trim(), $options: "i" };
+        queryFilters.search = req.query.search;
       }
       if (req.query.role && req.query.role !== "Всі ролі") {
         queryFilters.role = req.query.role;
+      }
+      if (req.query.accountStatus) {
+        queryFilters.accountStatus = req.query.accountStatus;
       }
 
       const result = await userService.getPagedUsers(queryFilters, page, limit);
@@ -103,7 +110,7 @@ class UserController {
 
   async updateRole(req, res, next) {
     try {
-      const { role, allowedDomains, allowedTypes } = req.body;
+      const { role, allowedDomains, allowedTypes, academicDegree } = req.body;
 
       if (req.params.id === req.user.id) {
         return res.status(400).json({ error: "Не можна змінити власну роль" });
@@ -118,6 +125,7 @@ class UserController {
       const updatedUser = await userService.updateRole(req.params.id, role, {
         allowedDomains,
         allowedTypes,
+        academicDegree,
       });
 
       res.json(updatedUser);

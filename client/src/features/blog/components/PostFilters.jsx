@@ -1,5 +1,6 @@
 import { Search, RotateCcw } from "lucide-react";
 import { CATEGORIES } from "@/shared/lib/constants/categories";
+import { SCIENTIFIC_DOMAINS } from "@/shared/lib/constants/domains";
 
 import Input from "@/shared/ui/Input";
 import Select from "@/shared/ui/Select";
@@ -10,7 +11,20 @@ export default function PostFilters({
   applySearch,
   resetFilters,
 }) {
-  const isFiltered = filters.search !== "" || filters.category !== "Всі";
+  const isFiltered =
+    filters.search !== "" ||
+    filters.category !== "Всі" ||
+    (filters.domain && filters.domain !== "Всі");
+
+  const domainOptions = [
+    { value: "Всі", label: "Всі галузі" },
+    ...(SCIENTIFIC_DOMAINS || []).map((dom) => ({ value: dom, label: dom })),
+  ];
+
+  const categoryOptions = [
+    { value: "Всі", label: "Всі категорії" },
+    ...CATEGORIES.map((cat) => ({ value: cat, label: cat })),
+  ];
 
   return (
     <div className="w-full flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-bg-secondary p-4 rounded-lg border border-border-color shadow-sm">
@@ -30,12 +44,20 @@ export default function PostFilters({
         </button>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="w-48">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="w-40 sm:w-48">
           <Select
             value={filters.category}
             onChange={(e) => updateFilter("category", e.target.value)}
-            options={CATEGORIES.map((cat) => ({ value: cat, label: cat }))}
+            options={categoryOptions}
+          />
+        </div>
+
+        <div className="w-40 sm:w-48">
+          <Select
+            value={filters.domain || "Всі"}
+            onChange={(e) => updateFilter("domain", e.target.value)}
+            options={domainOptions}
           />
         </div>
 

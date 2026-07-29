@@ -9,13 +9,22 @@ import {
   SCIENTIFIC_DOMAINS,
   PROGRAM_TYPES,
 } from "@/shared/lib/constants/domains";
-import { organizationApi } from "../api/organizationApi";
+import { organizationApi } from "@/features/organization/api/organizationApi";
 
 const rolesList = [
   { label: "Учасник (Дослідник)", value: "user" },
   { label: "Рецензент (Reviewer)", value: "reviewer" },
   { label: "Контент-менеджер", value: "content-manager" },
   { label: "Адміністратор установи", value: "admin" },
+];
+
+const academicDegreesList = [
+  { label: "Немає / Дослідник", value: "Немає / Дослідник" },
+  { label: "Кандидат наук / PhD", value: "Кандидат наук / PhD" },
+  { label: "Доктор наук", value: "Доктор наук" },
+  { label: "Доцент", value: "Доцент" },
+  { label: "Професор", value: "Професор" },
+  { label: "Інше", value: "Інше" },
 ];
 
 export default function ChangeRoleModal({
@@ -26,6 +35,9 @@ export default function ChangeRoleModal({
   onSuccess,
 }) {
   const [selectedRole, setSelectedRole] = useState(member?.role || "user");
+  const [academicDegree, setAcademicDegree] = useState(
+    member?.academicDegree || "Немає / Дослідник",
+  );
   const [allowedDomains, setAllowedDomains] = useState([]);
   const [allowedTypes, setAllowedTypes] = useState([]);
   const [submitting, setSubmitting] = useState(false);
@@ -34,6 +46,7 @@ export default function ChangeRoleModal({
   useEffect(() => {
     if (isOpen && member) {
       setSelectedRole(member.role || "user");
+      setAcademicDegree(member.academicDegree || "Немає / Дослідник");
       setAllowedDomains(member.allowedDomains || []);
       setAllowedTypes(member.allowedTypes || []);
       setError(null);
@@ -82,6 +95,7 @@ export default function ChangeRoleModal({
       const payload = {
         role: selectedRole,
         ...(selectedRole === "reviewer" && {
+          academicDegree,
           allowedDomains,
           allowedTypes,
         }),
@@ -105,7 +119,11 @@ export default function ChangeRoleModal({
       title={`Зміна ролі: ${member?.name}`}
     >
       <form onSubmit={handleSubmit} className="space-y-4 text-left">
-        {error && <Alert variant="danger">{error}</Alert>}
+        {error && (
+          <Alert variant="danger" onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
 
         <div>
           <Select
@@ -118,6 +136,16 @@ export default function ChangeRoleModal({
 
         {selectedRole === "reviewer" && (
           <div className="space-y-4 pt-2 border-t border-border-color animate-in fade-in duration-200">
+            {/* Вибір наукового ступеня */}
+            <div>
+              <Select
+                label="Науковий ступінь / Вчене звання"
+                value={academicDegree}
+                onChange={(e) => setAcademicDegree(e.target.value)}
+                options={academicDegreesList}
+              />
+            </div>
+
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-[10px] font-mono font-bold uppercase text-text-muted">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Search, Building2, Send } from "lucide-react";
+import { Search, Building2, Send, CheckCircle2 } from "lucide-react";
 import Modal from "@/shared/ui/Modal";
 import Input from "@/shared/ui/Input";
 import Button from "@/shared/ui/Button";
@@ -7,8 +7,7 @@ import Avatar from "@/shared/ui/Avatar";
 import Badge from "@/shared/ui/Badge";
 import Skeleton from "@/shared/ui/Skeleton";
 import Alert from "@/shared/ui/Alert";
-
-import { useOrganization } from "../hooks/useOrganization";
+import { useOrganization } from "@/features/organization/hooks/useOrganization";
 
 export default function JoinOrganizationModal({ isOpen, onClose, onSuccess }) {
   const {
@@ -30,6 +29,13 @@ export default function JoinOrganizationModal({ isOpen, onClose, onSuccess }) {
     }
   }, [isOpen, fetchPublicList]);
 
+  const showError = (msg) => {
+    setFormError(msg);
+    setTimeout(() => {
+      setFormError(null);
+    }, 5000);
+  };
+
   const handleClose = () => {
     setSelectedOrgId(null);
     setFormError(null);
@@ -50,9 +56,9 @@ export default function JoinOrganizationModal({ isOpen, onClose, onSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("1. Submit triggered. Selected Org ID:", selectedOrgId);
+
     if (!selectedOrgId) {
-      setFormError("Будь ласка, оберіть організацію зі списку");
+      showError("Будь ласка, оберіть організацію зі списку");
       return;
     }
 
@@ -61,7 +67,7 @@ export default function JoinOrganizationModal({ isOpen, onClose, onSuccess }) {
       onSuccess?.(res.message);
       handleClose();
     } else {
-      setFormError(res.error);
+      showError(res.error || "Не вдалося надіслати запит на вступ");
     }
   };
 
@@ -73,7 +79,9 @@ export default function JoinOrganizationModal({ isOpen, onClose, onSuccess }) {
     >
       <form onSubmit={handleSubmit} className="space-y-4 text-left">
         {(formError || error) && (
-          <Alert variant="danger">{formError || error}</Alert>
+          <Alert variant="danger" onClose={() => setFormError(null)}>
+            {formError || error}
+          </Alert>
         )}
 
         <div className="relative">
@@ -112,7 +120,7 @@ export default function JoinOrganizationModal({ isOpen, onClose, onSuccess }) {
                     p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3
                     ${
                       isSelected
-                        ? "border-brand bg-brand/10 shadow-sm"
+                        ? "border-brand bg-brand/10 shadow-sm ring-1 ring-brand/30"
                         : "border-border-color bg-bg-secondary hover:border-brand/40"
                     }
                   `}
@@ -120,14 +128,25 @@ export default function JoinOrganizationModal({ isOpen, onClose, onSuccess }) {
                   <div className="flex items-center gap-3">
                     <Avatar src={org.logo} name={org.name} size="md" />
                     <div className="space-y-0.5">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <h4 className="text-xs font-bold font-sans text-text-primary">
                           {org.name}
                         </h4>
+
+                        {/* Галочка верифікованої організації */}
+                        {org.isVerified && (
+                          <CheckCircle2
+                            size={13}
+                            className="text-brand shrink-0 fill-brand/10"
+                            title="Верифікована установа"
+                          />
+                        )}
+
                         <Badge status="default">{org.type || "Установа"}</Badge>
                       </div>
+
                       <p className="text-[10px] font-mono text-text-muted">
-                        ЄДРПОУ: {org.edrpou} • {org.city}
+                        ЄДРПОУ: {org.edrpou} • {org.city || "Україна"}
                       </p>
                     </div>
                   </div>

@@ -1,5 +1,6 @@
 import React from "react";
-import { Download } from "lucide-react";
+import Link from "@/shared/ui/Link";
+import { Download, MessageSquare } from "lucide-react";
 import Modal from "@/shared/ui/Modal";
 import Badge from "@/shared/ui/Badge";
 import Button from "@/shared/ui/Button";
@@ -64,6 +65,12 @@ export default function ProjectDetailModal({
             Закрити
           </Button>
 
+          <Link to={`/projects/${project._id}`}>
+            <Button variant="secondary" size="sm" icon={MessageSquare}>
+              Повна сторінка та чат
+            </Button>
+          </Link>
+
           {latestVersion?.fileUrl && (
             <a
               href={
@@ -75,7 +82,7 @@ export default function ProjectDetailModal({
               rel="noopener noreferrer"
             >
               <Button variant="primary" size="sm" icon={Download}>
-                Завантажити матеріал (PDF)
+                Завантажити (PDF)
               </Button>
             </a>
           )}

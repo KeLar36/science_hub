@@ -8,7 +8,7 @@ import Combobox from "@/shared/ui/Combobox";
 import Alert from "@/shared/ui/Alert";
 import Button from "@/shared/ui/Button";
 import { UKRAINIAN_CITIES } from "@/shared/lib/constants/cities";
-import { useOrganization } from "../hooks/useOrganization";
+import { useOrganization } from "@/features/organization/hooks/useOrganization";
 
 const orgTypes = [
   { label: "Університет", value: "Університет" },
@@ -50,7 +50,17 @@ export default function CreateOrganizationModal({
   const [previewUrl, setPreviewUrl] = useState("");
   const [formError, setFormError] = useState(null);
 
+  const showError = (msg) => {
+    setFormError(msg);
+    setTimeout(() => {
+      setFormError(null);
+    }, 5000);
+  };
+
   const handleClose = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
     setFormError(null);
     setLogoFile(null);
     setPreviewUrl("");
@@ -70,8 +80,11 @@ export default function CreateOrganizationModal({
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (file.size > 5 * 1024 * 1024) {
-        setFormError("Розмір логотипу має бути до 5 MB");
+        showError("Розмір логотипу має бути до 5 MB");
         return;
+      }
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
       }
       setFormError(null);
       setLogoFile(file);
@@ -84,7 +97,7 @@ export default function CreateOrganizationModal({
     setFormError(null);
 
     if (!formData.name.trim() || !formData.edrpou.trim()) {
-      setFormError("Назва та код ЄДРПОУ є обов'язковими");
+      showError("Назва та код ЄДРПОУ є обов'язковими");
       return;
     }
 
@@ -102,7 +115,7 @@ export default function CreateOrganizationModal({
       onSuccess?.();
       handleClose();
     } else {
-      setFormError(res.error);
+      showError(res.error || "Не вдалося створити організацію");
     }
   };
 
@@ -114,7 +127,9 @@ export default function CreateOrganizationModal({
     >
       <form onSubmit={handleSubmit} className="space-y-4 text-left">
         {(formError || error) && (
-          <Alert variant="danger">{formError || error}</Alert>
+          <Alert variant="danger" onClose={() => setFormError(null)}>
+            {formError || error}
+          </Alert>
         )}
 
         <div className="flex items-center gap-4 p-3 bg-bg-secondary rounded-xl border border-border-color">

@@ -10,10 +10,13 @@ import MyProjectsTab from "@/features/user/components/MyProjectsTab";
 import SavedPostsTab from "@/features/user/components/SavedPostsTab";
 import SettingsTab from "@/features/user/components/SettingsTab";
 import ProfileStats from "../components/ProfileStats";
+import ProjectChatModal from "@/features/projects/components/ProjectChatModal";
 import { useProfile } from "@/features/user/hooks/useProfile";
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState("projects");
+  const [activeChatProject, setActiveChatProject] = useState(null);
+
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -82,7 +85,12 @@ export default function ProfilePage() {
         />
 
         {activeTab === "projects" && (
-          <MyProjectsTab projects={myProjects} loading={loadingProjects} />
+          <MyProjectsTab
+            projects={myProjects}
+            loading={loadingProjects}
+            onOpenChat={(project) => setActiveChatProject(project)}
+            onPageChange={(page) => fetchMyProjects(page)}
+          />
         )}
 
         {activeTab === "saved" && (
@@ -97,6 +105,13 @@ export default function ProfilePage() {
           <SettingsTab onDeleteAccount={deleteAccount} />
         )}
       </main>
+
+      {activeChatProject && (
+        <ProjectChatModal
+          project={activeChatProject}
+          onClose={() => setActiveChatProject(null)}
+        />
+      )}
 
       <Footer />
     </div>

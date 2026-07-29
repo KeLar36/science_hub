@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Plus, Mail, MapPin } from "lucide-react";
 import Card from "@/shared/ui/Card";
 import Button from "@/shared/ui/Button";
@@ -18,9 +19,10 @@ import OrganizationMembers from "@/shared/lib/components/OrganizationMembers";
 import OrganizationPrograms from "@/shared/lib/components/OrganizationPrograms";
 import OrganizationJoinRequests from "@/shared/lib/components/OrganizationJoinRequests";
 import CreateProgramForm from "@/shared/lib/components/CreateProgramForm";
-import CreatePostForm from "@/shared/lib/components/CreatePostForm";
 import OrganizationPosts from "@/shared/lib/components/OrganizationPosts";
 import OrganizationSubmittedProjects from "@/shared/lib/components/OrganizationSubmittedProjects";
+import ProjectDetailModal from "@/features/projects/components/ProjectDetailModal";
+import ProjectChatModal from "@/features/projects/components/ProjectChatModal";
 
 export default function OrganizationDashboard() {
   const { user } = useAuth();
@@ -54,8 +56,6 @@ export default function OrganizationDashboard() {
     handleToggleProgramStatus,
     handleTransferOwnership,
     handleDeleteProgram,
-    handleCreatePost,
-    handleUpdatePost,
     handleDeletePost,
     handleKickMember,
   } = useOrganizationDashboard(orgId);
@@ -64,8 +64,9 @@ export default function OrganizationDashboard() {
   const [selectedMember, setSelectedMember] = useState(null);
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [editingProgram, setEditingProgram] = useState(null);
-  const [editingPost, setEditingPost] = useState(null);
-
+  const [selectedProjectForDetail, setSelectedProjectForDetail] =
+    useState(null);
+  const [selectedProjectForChat, setSelectedProjectForChat] = useState(null);
   const isOrgAdmin = user?.role === "admin" || user?.role === "superadmin";
   const canManageContent = isOrgAdmin || user?.role === "content-manager";
 
@@ -104,20 +105,15 @@ export default function OrganizationDashboard() {
 
   const dashboardTabs = [
     { id: "overview", label: "Огляд" },
-    { id: "members", label: `Учасники` },
-    { id: "programs", label: `Програми` },
+    { id: "members", label: "Учасники" },
+    { id: "programs", label: "Програми" },
     ...(isOrgAdmin
-      ? [
-          {
-            id: "submitted-projects",
-            label: `Подані проєкти`,
-          },
-        ]
+      ? [{ id: "submitted-projects", label: "Подані проєкти" }]
       : []),
-    ...(canManageContent ? [{ id: "posts", label: `Блог / Новини` }] : []),
+    ...(canManageContent ? [{ id: "posts", label: "Блог / Новини" }] : []),
     ...(isOrgAdmin
       ? [
-          { id: "requests", label: `Заявки на вступ` },
+          { id: "requests", label: "Заявки на вступ" },
           {
             id: "create-program",
             label: editingProgram
@@ -126,30 +122,22 @@ export default function OrganizationDashboard() {
           },
         ]
       : []),
-    ...(canManageContent
-      ? [
-          {
-            id: "create-post",
-            label: editingPost ? "✏️ Редагування допису" : "+ Новий допис",
-          },
-        ]
-      : []),
     ...(isOrgAdmin ? [{ id: "settings", label: "Налаштування" }] : []),
   ];
+
+  const navigate = useNavigate();
+
+  const handleStartCreatePost = () => {
+    navigate(`/content-manager/posts/create?orgId=${orgId}`);
+  };
+
+  const handleStartEditPost = (post) => {
+    navigate(`/content-manager/posts/edit/${post._id}?orgId=${orgId}`);
+  };
 
   const handleStartEditProgram = (program) => {
     setEditingProgram(program);
     setActiveTab("create-program");
-  };
-
-  const handleStartEditPost = (post) => {
-    setEditingPost(post);
-    setActiveTab("create-post");
-  };
-
-  const handleStartCreatePost = () => {
-    setEditingPost(null);
-    setActiveTab("create-post");
   };
 
   if (loadingOrg) {
@@ -165,7 +153,7 @@ export default function OrganizationDashboard() {
     <>
       <Navbar />
 
-      <div className="max-w-7xl mx-auto p-3 md:p-0 space-y-6 text-left my-20">
+      <div className="max-w-7xl mx-auto p-3 lg:p-0 space-y-6 text-left my-20">
         <Breadcrumbs items={breadcrumbItems} />
 
         <Card className="p-6 bg-bg-secondary/60 border-border-color backdrop-blur-xs">
@@ -234,11 +222,14 @@ export default function OrganizationDashboard() {
             members={members}
             loading={loadingMembers}
             isOrgAdmin={isOrgAdmin}
+            currentUserId={user?._id}
+            creatorId={orgData?.ownerId || orgData?.creatorId}
             onOpenRoleModal={(member) => {
               setSelectedMember(member);
               setIsRoleModalOpen(true);
             }}
             onKickMember={handleKickMember}
+            onPageChange={(p) => fetchMembers(p)}
           />
         )}
 
@@ -254,6 +245,7 @@ export default function OrganizationDashboard() {
             onEditClick={handleStartEditProgram}
             onToggleArchiveClick={handleToggleProgramStatus}
             onDeleteClick={handleDeleteProgram}
+            onPageChange={(p) => fetchPrograms(p)}
           />
         )}
 
@@ -261,8 +253,10 @@ export default function OrganizationDashboard() {
           <OrganizationSubmittedProjects
             projects={submittedProjects}
             loading={loadingSubmittedProjects}
-            onViewDetails={(project) => console.log("View project:", project)}
-            onReviewClick={(project) => console.log("Review project:", project)}
+            onViewDetails={(project) => setSelectedProjectForDetail(project)}
+            onOpenChat={(project) => setSelectedProjectForChat(project)}
+            onReviewClick={(project) => setSelectedProjectForChat(project)}
+            onPageChange={(p) => fetchSubmittedProjects(p)}
           />
         )}
 
@@ -274,6 +268,7 @@ export default function OrganizationDashboard() {
             onCreateClick={handleStartCreatePost}
             onEditClick={handleStartEditPost}
             onDeleteClick={handleDeletePost}
+            onPageChange={(p) => fetchPosts(p)}
           />
         )}
 
@@ -296,25 +291,6 @@ export default function OrganizationDashboard() {
           />
         )}
 
-        {activeTab === "create-post" && canManageContent && (
-          <CreatePostForm
-            key={editingPost?._id || "new-post"}
-            initialData={editingPost}
-            onSubmit={async (formData) => {
-              if (editingPost) {
-                return await handleUpdatePost?.(editingPost._id, formData);
-              } else {
-                return await handleCreatePost?.(formData);
-              }
-            }}
-            onSuccess={() => {
-              setEditingPost(null);
-              setActiveTab("posts");
-              fetchPosts?.();
-            }}
-          />
-        )}
-
         {activeTab === "requests" && isOrgAdmin && (
           <OrganizationJoinRequests
             requests={requests}
@@ -322,6 +298,7 @@ export default function OrganizationDashboard() {
             actionLoading={actionLoading}
             onAccept={handleAcceptRequest}
             onReject={handleRejectRequest}
+            onPageChange={(p) => fetchPendingRequests(p)}
           />
         )}
 
@@ -341,6 +318,20 @@ export default function OrganizationDashboard() {
             member={selectedMember}
             orgId={orgId}
             onSuccess={() => fetchMembers()}
+          />
+        )}
+
+        {selectedProjectForDetail && (
+          <ProjectDetailModal
+            project={selectedProjectForDetail}
+            onClose={() => setSelectedProjectForDetail(null)}
+          />
+        )}
+
+        {selectedProjectForChat && (
+          <ProjectChatModal
+            project={selectedProjectForChat}
+            onClose={() => setSelectedProjectForChat(null)}
           />
         )}
       </div>

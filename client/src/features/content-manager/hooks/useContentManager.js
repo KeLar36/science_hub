@@ -14,6 +14,11 @@ export function useContentManager() {
     formData.append("content", rawData.content);
     formData.append("category", rawData.category);
     formData.append("status", rawData.status || "published");
+
+    if (rawData.domain) {
+      formData.append("domain", rawData.domain);
+    }
+
     if (rawData.organizationId) {
       formData.append("organizationId", rawData.organizationId);
     }
@@ -30,7 +35,9 @@ export function useContentManager() {
       return { success: true, data: responseData };
     } catch (err) {
       const errorMsg =
-        err.response?.data?.message || "Не вдалося створити публікацію.";
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        "Не вдалося створити публікацію.";
       setError(errorMsg);
       return { success: false, error: errorMsg };
     } finally {
@@ -51,6 +58,10 @@ export function useContentManager() {
       formData.append("content", rawData.content);
       formData.append("category", rawData.category);
       formData.append("status", rawData.status);
+
+      if (rawData.domain) {
+        formData.append("domain", rawData.domain);
+      }
       if (rawData.organizationId) {
         formData.append("organizationId", rawData.organizationId);
       }
@@ -65,6 +76,7 @@ export function useContentManager() {
         content: rawData.content,
         category: rawData.category,
         status: rawData.status,
+        domain: rawData.domain,
         ...(rawData.organizationId && {
           organizationId: rawData.organizationId,
         }),
@@ -77,7 +89,9 @@ export function useContentManager() {
       return { success: true, data: responseData };
     } catch (err) {
       const errorMsg =
-        err.response?.data?.message || "Не вдалося оновити публікацію.";
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        "Не вдалося оновити публікацію.";
       setError(errorMsg);
       return { success: false, error: errorMsg };
     } finally {
@@ -94,7 +108,9 @@ export function useContentManager() {
       return { success: true, data: responseData };
     } catch (err) {
       const errorMsg =
-        err.response?.data?.message || "Не вдалося видалити публікацію.";
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        "Не вдалося видалити публікацію.";
       setError(errorMsg);
       return { success: false, error: errorMsg };
     } finally {
@@ -113,7 +129,8 @@ export function useContentManager() {
       return data;
     } catch (err) {
       setError(
-        err.response?.data?.message ||
+        err.response?.data?.error ||
+          err.response?.data?.message ||
           "Не вдалося завантажити дані для редагування.",
       );
     } finally {

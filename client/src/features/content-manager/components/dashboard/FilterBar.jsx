@@ -9,9 +9,9 @@ export default function FilterBar({
   setStatusFilter,
 }) {
   const statusOptions = [
-    { value: "all", label: "Всі статуси" },
-    { value: "published", label: "Published" },
-    { value: "draft", label: "Draft" },
+    { value: "", label: "Всі статуси" },
+    { value: "published", label: "Опубліковані" },
+    { value: "draft", label: "Чернетки" },
   ];
 
   return (

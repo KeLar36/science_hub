@@ -49,6 +49,21 @@ router.get(
   checkOrgAccess,
   organizationController.getOrganizationPrograms,
 );
+
+router.patch(
+  "/:id/verify",
+  verifyToken,
+  checkRole(["superadmin"]),
+  organizationController.toggleVerified,
+);
+
+router.patch(
+  "/:id/feature",
+  verifyToken,
+  checkRole(["superadmin"]),
+  organizationController.toggleFeatured,
+);
+
 router.post(
   "/:id/kick",
   verifyToken,

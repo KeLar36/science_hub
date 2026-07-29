@@ -8,7 +8,7 @@ const upload = require("../middleware/upload");
 router.get("/", postController.getAll);
 
 router.post(
-  "/create",
+  "/",
   verifyToken,
   checkBanStatus,
   checkRole(["admin", "content-manager", "superadmin"]),

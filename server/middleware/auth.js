@@ -10,7 +10,7 @@ const ROLE_WEIGHTS = {
   user: 10,
 };
 
-const verifyToken = (req, res, next) => {
+const verifyToken = async (req, res, next) => {
   const token = req.cookies ? req.cookies.token : null;
 
   if (!token) {
@@ -21,14 +21,36 @@ const verifyToken = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
+
+    // Шукаємо за decoded.id або decoded._id
+    const userId = decoded.id || decoded._id;
+    const freshUser = await User.findById(userId).select("-password").lean();
+
+    if (!freshUser) {
+      return res
+        .status(401)
+        .json({ error: "Користувача з цього токена більше не існує." });
+    }
+
+    if (freshUser.isBanned === true) {
+      return res
+        .status(403)
+        .json({ error: "Ваш акаунт тимчасово або назавжди заблоковано." });
+    }
+
+    req.user = {
+      ...freshUser,
+      id: freshUser._id.toString(),
+      _id: freshUser._id,
+    };
+
     next();
   } catch (err) {
     return res.status(403).json({ error: "Недійсний або прострочений токен." });
   }
 };
 
-const optionalToken = (req, res, next) => {
+const optionalToken = async (req, res, next) => {
   const token = req.cookies ? req.cookies.token : null;
 
   if (!token) {
@@ -37,7 +59,13 @@ const optionalToken = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
+    const freshUser = await User.findById(decoded.id)
+      .select("-password")
+      .lean();
+
+    if (freshUser && !freshUser.isBanned) {
+      req.user = freshUser;
+    }
   } catch (err) {}
   next();
 };
@@ -56,12 +84,12 @@ const checkRole = (roles) => {
 const canManageUser = async (req, res, next) => {
   try {
     const actorRole = req.user.role;
-    const actorId = req.user.id;
+    const actorId = req.user._id || req.user.id;
     const targetUserId = req.params.id;
 
     if (actorRole === "superadmin") return next();
 
-    const targetUser = await User.findById(targetUserId);
+    const targetUser = await User.findById(targetUserId).lean();
     if (!targetUser) {
       return res
         .status(404)
@@ -78,7 +106,7 @@ const canManageUser = async (req, res, next) => {
     }
 
     if (actorRole === "admin") {
-      const currentUser = await User.findById(actorId);
+      const currentUser = req.user;
 
       if (
         !currentUser.organizationId ||

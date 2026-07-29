@@ -1,30 +1,28 @@
 import axiosInstance from "@/shared/api/axios";
 
 export const commentApi = {
-  /**
-   * @param {string} postId - ID публікації
-   */
-  async getByPostId(postId) {
-    const response = await axiosInstance.get(`/posts/${postId}/comments`);
-    return response.data;
+  getByPostId: async (postId) => {
+    const res = await axiosInstance.get(`/comments/post/${postId}`);
+    return res.data;
+  },
+  createPostComment: async (postId, text) => {
+    const res = await axiosInstance.post(`/comments/post/${postId}`, { text });
+    return res.data;
   },
 
-  /**
-   * @param {string} postId - ID публікації
-   * @param {string} text - Текст коментаря
-   */
-  async create(postId, text) {
-    const response = await axiosInstance.post(`/posts/${postId}/comment`, {
+  getByProjectId: async (projectId) => {
+    const res = await axiosInstance.get(`/comments/project/${projectId}`);
+    return res.data;
+  },
+  createProjectComment: async (projectId, text) => {
+    const res = await axiosInstance.post(`/comments/project/${projectId}`, {
       text,
     });
-    return response.data;
+    return res.data;
   },
 
-  /**
-   * @param {string} commentId - ID коментаря
-   */
-  async delete(commentId) {
-    const response = await axiosInstance.delete(`/posts/comment/${commentId}`);
-    return response.data;
+  delete: async (id) => {
+    const res = await axiosInstance.delete(`/comments/${id}`);
+    return res.data;
   },
 };

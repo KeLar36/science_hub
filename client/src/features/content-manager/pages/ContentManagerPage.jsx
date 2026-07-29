@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import axios from "@/shared/api/axios";
 import Breadcrumbs from "@/shared/ui/Breadcrumbs";
 import Skeleton from "@/shared/ui/Skeleton";
+import Alert from "@/shared/ui/Alert";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import FilterBar from "@/features/content-manager/components/dashboard/FilterBar";
@@ -16,6 +17,7 @@ export default function ContentManagerPage() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [feedback, setFeedback] = useState({ type: null, message: "" });
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
@@ -28,6 +30,13 @@ export default function ContentManagerPage() {
     { label: "Особистий кабінет", href: "/profile" },
     { label: "Контент-менеджер", active: true },
   ];
+
+  const showFeedback = (type, message) => {
+    setFeedback({ type, message });
+    setTimeout(() => {
+      setFeedback({ type: null, message: "" });
+    }, 5000);
+  };
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -58,6 +67,7 @@ export default function ContentManagerPage() {
 
     fetchDashboardData();
   }, [page, statusFilter, searchTerm]);
+
   const handleSearchChange = (val) => {
     setSearchTerm(val);
     setPage(1);
@@ -68,14 +78,17 @@ export default function ContentManagerPage() {
     setPage(1);
   };
 
+  // Редагування: Перехід на нову сторінку
   const handleEdit = (id) => {
-    navigate(`/post-form/${id}`);
+    navigate(`/content-manager/posts/edit/${id}`);
   };
 
+  // Створення: Перехід на нову сторінку
   const handleAddPost = () => {
-    navigate("/post-form");
+    navigate("/content-manager/posts/create");
   };
 
+  // Видалення допису
   const handleDelete = async (id) => {
     if (
       !window.confirm(
@@ -87,16 +100,19 @@ export default function ContentManagerPage() {
     try {
       await axios.delete(`/posts/${id}`);
       setPosts((prevPosts) => prevPosts.filter((post) => post._id !== id));
-      setTotalItems((prev) => prev - 1);
-      alert("Публікацію успішно видалено.");
+      setTotalItems((prev) => Math.max(0, prev - 1));
+      showFeedback("success", "Публікацію успішно видалено.");
     } catch (err) {
-      alert(err.response?.data?.error || "Не вдалося видалити статтю");
+      showFeedback(
+        "danger",
+        err.response?.data?.error || "Не вдалося видалити статтю.",
+      );
     }
   };
 
   if (loading && posts.length === 0) {
     return (
-      <div className="max-w-6xl mx-auto p-6 space-y-6 pt-24">
+      <div className="max-w-6xl mx-auto p-6 space-y-6 pt-24 text-left">
         <Skeleton variant="line" width="200px" height="16px" />
         <div className="space-y-2">
           <Skeleton variant="rectangle" height="40px" />
@@ -113,10 +129,8 @@ export default function ContentManagerPage() {
 
   if (error) {
     return (
-      <div className="max-w-6xl mx-auto p-6 pt-24">
-        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg text-sm font-mono">
-          Критичний збій системи: {error}
-        </div>
+      <div className="max-w-6xl mx-auto p-6 pt-24 text-left">
+        <Alert variant="danger">Критичний збій системи: {error}</Alert>
       </div>
     );
   }
@@ -126,8 +140,18 @@ export default function ContentManagerPage() {
       <Navbar />
 
       <main className="mx-auto mt-20">
-        <div className="max-w-6xl mx-auto p-6 space-y-6 bg-bg-primary text-text-primary min-h-screen">
+        <div className="max-w-6xl mx-auto p-6 space-y-6 bg-bg-primary text-text-primary min-h-screen text-left">
           <Breadcrumbs items={breadcrumbItems} />
+
+          {/* Авто-алерт сповіщень */}
+          {feedback.type && (
+            <Alert
+              variant={feedback.type}
+              onClose={() => setFeedback({ type: null, message: "" })}
+            >
+              {feedback.message}
+            </Alert>
+          )}
 
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-border-color pb-4">
             <div>
@@ -138,8 +162,8 @@ export default function ContentManagerPage() {
                 Керування науковими публікаціями та контентом організації.
               </p>
             </div>
-            <div>
-              <div className="font-mono text-[10px] font-bold uppercase tracking-wider text-text-secondary bg-bg-secondary border border-border-color px-3 py-1.5 mb-2 rounded-sm text-center">
+            <div className="flex flex-col items-end gap-2">
+              <div className="font-mono text-[10px] font-bold uppercase tracking-wider text-text-secondary bg-bg-secondary border border-border-color px-3 py-1.5 rounded-sm text-center">
                 Знайдено елементів: {totalItems}
               </div>
               <Button
@@ -171,7 +195,9 @@ export default function ContentManagerPage() {
           ) : (
             <>
               <div
-                className={`transition-opacity duration-200 ${loading ? "opacity-50 pointer-events-none" : "opacity-100"}`}
+                className={`transition-opacity duration-200 ${
+                  loading ? "opacity-50 pointer-events-none" : "opacity-100"
+                }`}
               >
                 <PostTable
                   posts={posts}

@@ -210,7 +210,7 @@ class ProjectService {
     return await Project.findById(id)
       .populate("authorId", "name email image")
       .populate("programId", "title type description organizationId")
-      .populate("reviewerId", "name email allowedDomains");
+      .populate("reviewerId", "name email allowedDomains academicDegree");
   }
 
   async getPublicArchive() {
@@ -288,9 +288,17 @@ class ProjectService {
   async addVersion(id, fileData) {
     return await Project.findByIdAndUpdate(
       id,
-      { $push: { versions: fileData } },
-      { new: true },
-    );
+      {
+        $push: { versions: fileData },
+        $set: {
+          status: "На розгляді",
+          reviewStatus: "В процесі",
+        },
+      },
+      { new: true, runValidators: true },
+    )
+      .populate("authorId", "name email image")
+      .populate("programId", "title");
   }
 
   async delete(id) {

@@ -8,36 +8,71 @@ class ProgramService {
     return mongoose.model("Program");
   }
 
-  async getAll(queryFilters, page = 1, limit = 8) {
+  #buildFilterQuery(filters = {}) {
+    const query = {};
+
+    if (filters.active !== undefined) {
+      query.active = filters.active === true || filters.active === "true";
+    }
+
+    if (filters.type && filters.type !== "Всі") {
+      query.type = filters.type;
+    }
+
+    if (filters.organizationId) {
+      query.organizationId = filters.organizationId;
+    }
+
+    if (filters.search && filters.search.trim()) {
+      const searchRegex = { $regex: filters.search.trim(), $options: "i" };
+      query.$or = [{ title: searchRegex }, { description: searchRegex }];
+    }
+
+    return query;
+  }
+
+  async getAll(queryFilters = {}, page = 1, limit = 8) {
     const ProgramModel = this.getProgramModel();
+    const query = this.#buildFilterQuery(queryFilters);
     const skip = (page - 1) * limit;
 
-    const programs = await ProgramModel.find(queryFilters)
+    const programs = await ProgramModel.find(query)
       .populate("organizationId", "name logo isSystem")
       .sort({ isFeatured: -1, createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    const total = await ProgramModel.countDocuments(queryFilters);
+    const total = await ProgramModel.countDocuments(query);
     const totalPages = Math.ceil(total / limit);
 
-    return { programs, totalPages, currentPage: page };
+    return {
+      programs,
+      totalPages,
+      currentPage: Number(page),
+      totalItems: total,
+    };
   }
 
-  async getArchive(queryFilters, page = 1, limit = 8) {
+  async getArchive(queryFilters = {}, page = 1, limit = 8) {
     const ProgramModel = this.getProgramModel();
+    const query = this.#buildFilterQuery({ ...queryFilters, active: false });
     const skip = (page - 1) * limit;
 
-    const archived = await ProgramModel.find(queryFilters)
+    const archived = await ProgramModel.find(query)
       .populate("organizationId", "name logo")
       .sort({ updatedAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    const total = await ProgramModel.countDocuments(queryFilters);
+    const total = await ProgramModel.countDocuments(query);
     const totalPages = Math.ceil(total / limit);
 
-    return { archived, totalPages, currentPage: page };
+    return {
+      archived,
+      totalPages,
+      currentPage: Number(page),
+      totalItems: total,
+    };
   }
 
   async getById(id) {
@@ -56,10 +91,10 @@ class ProgramService {
 
   async create(programData, type) {
     const ProgramModel = this.getProgramModel();
-    const Organization = mongoose.model("Organization");
+    const OrganizationModel = mongoose.model("Organization");
 
     if (programData.organizationId) {
-      const org = await Organization.findById(
+      const org = await OrganizationModel.findById(
         programData.organizationId,
       ).select("name isSystem");
       if (org) {
@@ -86,9 +121,9 @@ class ProgramService {
   }
 
   async toggleStatus(programId, status) {
-    const Program = mongoose.model("Program");
+    const ProgramModel = this.getProgramModel();
 
-    const program = await Program.findById(programId);
+    const program = await ProgramModel.findById(programId);
     if (!program) {
       const error = new Error("Програму не знайдено");
       error.statusCode = 404;
@@ -145,9 +180,9 @@ class ProgramService {
     program.active = false;
     await program.save();
 
-    const Project = mongoose.model("Project");
+    const ProjectModel = mongoose.model("Project");
 
-    const trashProjects = await Project.find({
+    const trashProjects = await ProjectModel.find({
       programId: programId,
       status: "Відхилено",
     }).select("_id");
@@ -169,9 +204,9 @@ class ProgramService {
 
     if (!program) return;
 
-    const Project = mongoose.model("Project");
+    const ProjectModel = mongoose.model("Project");
 
-    const nonApprovedProjects = await Project.find({
+    const nonApprovedProjects = await ProjectModel.find({
       programId: programId,
       status: { $ne: "Прийнято" },
     }).select("_id");

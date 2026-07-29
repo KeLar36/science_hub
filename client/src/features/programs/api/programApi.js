@@ -1,4 +1,5 @@
 import axiosInstance from "@/shared/api/axios";
+
 const extractId = (target) =>
   typeof target === "object" && target !== null
     ? target._id || target.id
@@ -16,7 +17,7 @@ export const programApi = {
   },
 
   create: async (programData) => {
-    const res = await axiosInstance.post("/programs/", programData);
+    const res = await axiosInstance.post("/programs", programData);
     return res.data;
   },
 

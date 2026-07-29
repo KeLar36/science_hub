@@ -3,6 +3,7 @@ const router = express.Router();
 const projectController = require("../controllers/projectController");
 const { verifyToken, checkRole } = require("../middleware/auth");
 const checkProjectAdminAccess = require("../middleware/checkProjectAdminAccess");
+const checkProjectOwner = require("../middleware/checkProjectOwner");
 const upload = require("../middleware/upload");
 
 router.get("/archive", projectController.getArchive);
@@ -20,7 +21,8 @@ router.get("/:id", verifyToken, projectController.getById);
 router.post(
   "/:id/version",
   verifyToken,
-  checkRole(["user"]),
+  checkProjectOwner,
+  upload.single("file"),
   projectController.uploadNewVersion,
 );
 router.patch(
@@ -30,7 +32,7 @@ router.patch(
   checkProjectAdminAccess,
   projectController.assignReviewer,
 );
-router.patch(
+router.post(
   "/:id/review",
   verifyToken,
   checkRole(["reviewer", "admin", "superadmin"]),

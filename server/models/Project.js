@@ -58,7 +58,6 @@ const ProjectSchema = new mongoose.Schema(
     reviewerRecommendation: {
       type: String,
       default: "Немає",
-      enum: ["Немає", "Прийнято", "Відхилено"],
     },
 
     versions: [

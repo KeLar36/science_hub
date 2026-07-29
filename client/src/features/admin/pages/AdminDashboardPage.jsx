@@ -1,0 +1,174 @@
+import React, { useState } from "react";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
+import Breadcrumbs from "@/shared/ui/Breadcrumbs";
+import Tabs from "@/shared/ui/Tabs";
+import Card from "@/shared/ui/Card";
+import { useAuth } from "@/shared/lib/hooks/useAuth";
+import {
+  ShieldAlert,
+  Sparkles,
+  LayoutDashboard,
+  Crown,
+  FolderKanban,
+  Building2,
+  FileText,
+  Users,
+  UserCheck,
+  AlertTriangle,
+} from "lucide-react";
+
+import SuperadminProgramsTab from "@/features/admin/components/SuperadminProgramsTab";
+import SuperadminOrganizationsTab from "@/features/admin/components/SuperadminOrganizationsTab";
+import SuperadminProjectsTab from "@/features/admin/components/SuperadminProjectsTab";
+import SuperadminUsersTab from "@/features/admin/components/SuperadminUsersTab";
+import SuperadminReviewersTab from "@/features/admin/components/SuperadminReviewersTab";
+
+export default function AdminDashboardPage() {
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState("overview");
+
+  const handleCreateProgram = () => {
+    console.log("Відкрити модалку створення програми");
+  };
+
+  const handleEditProgram = (program) => {
+    console.log("Редагувати програму:", program);
+  };
+
+  const handleCreateOrganization = () => {
+    console.log("Відкрити модалку створення організації");
+  };
+
+  const handleEditOrganization = (organization) => {
+    console.log("Редагувати організацію:", organization);
+  };
+
+  const breadcrumbItems = [
+    { label: "Особистий кабінет", href: "/profile" },
+    { label: "Панель Суперадміністратора", active: true },
+  ];
+
+  const adminTabs = [
+    { id: "overview", label: "Огляд", icon: LayoutDashboard },
+    { id: "programs", label: "Програми", icon: FolderKanban },
+    { id: "organizations", label: "Установи", icon: Building2 },
+    { id: "projects", label: "Праці", icon: FileText },
+    { id: "users", label: "Користувачі", icon: Users },
+    { id: "reviewers", label: "Рецензенти", icon: UserCheck },
+    { id: "danger_zone", label: "🚨 Danger Zone" },
+  ];
+
+  const isKnownTab = [
+    "overview",
+    "programs",
+    "organizations",
+    "projects",
+    "users",
+    "reviewers",
+    "danger_zone",
+  ].includes(activeTab);
+
+  return (
+    <div className="min-h-screen flex flex-col bg-bg-primary text-text-primary selection:bg-purple-600 selection:text-white">
+      <Navbar />
+
+      <main className="flex-grow pt-36 pb-24 px-3 md:px-0 max-w-7xl mx-auto w-full space-y-6 text-left">
+        <Breadcrumbs items={breadcrumbItems} />
+
+        <div className="p-6 bg-bg-secondary/60 border border-border-color rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-purple-600 font-mono text-xs font-bold uppercase tracking-wider">
+              <Sparkles size={14} />
+              <span>Панель керування</span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-text-primary flex items-center gap-2 font-sans">
+              Вітаємо, {user?.name || "Суперадмін"}!{" "}
+              <Crown
+                size={22}
+                className="text-purple-600 inline-block animate-pulse"
+              />{" "}
+            </h1>
+            <p className="text-xs font-mono text-text-muted">
+              Ви авторизовані з найвищим рівнем доступу (Superadmin). Оберіть
+              необхідний розділ для роботи.
+            </p>
+          </div>
+
+          <div className="px-3 py-1.5 bg-purple-500/10 border border-purple-500/20 rounded-xl text-purple-600 text-xs font-mono font-bold shrink-0 flex items-center gap-1.5">
+            <ShieldAlert size={14} />
+            <span>SUPERADMIN ACCESS</span>
+          </div>
+        </div>
+
+        <Tabs tabs={adminTabs} activeTab={activeTab} onChange={setActiveTab} />
+
+        {activeTab === "overview" && (
+          <div className="space-y-4">
+            <Card className="p-8 text-center space-y-3 bg-bg-secondary/40 border-dashed">
+              <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mx-auto text-purple-600">
+                <LayoutDashboard size={24} />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-bold text-sm text-text-primary">
+                  Центр управління Science Platform
+                </h3>
+                <p className="text-xs text-text-muted max-w-md mx-auto font-mono">
+                  Адмін-панель готова до роботи. Обирай потрібну вкладку зверху,
+                  щоб завантажувати та редагувати дані.
+                </p>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === "programs" && (
+          <SuperadminProgramsTab
+            onCreateClick={handleCreateProgram}
+            onEditClick={handleEditProgram}
+          />
+        )}
+
+        {activeTab === "organizations" && (
+          <SuperadminOrganizationsTab
+            onCreateClick={handleCreateOrganization}
+            onEditClick={handleEditOrganization}
+          />
+        )}
+
+        {activeTab === "projects" && <SuperadminProjectsTab />}
+
+        {activeTab === "users" && <SuperadminUsersTab />}
+
+        {activeTab === "reviewers" && <SuperadminReviewersTab />}
+
+        {activeTab === "danger_zone" && (
+          <Card className="p-8 text-center space-y-3 bg-red-500/5 border-red-500/20 border-dashed">
+            <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto text-red-500">
+              <AlertTriangle size={24} />
+            </div>
+            <div className="space-y-1">
+              <h3 className="font-bold text-sm text-red-500 font-mono">
+                🚨 Danger Zone
+              </h3>
+              <p className="text-xs text-text-muted max-w-md mx-auto font-mono">
+                Тут знаходитимуться небезпечні операції: каскадне видалення
+                установ, примусове очищення програм (Program Cleanup) та
+                видалення некорисних файлів з Cloudinary.
+              </p>
+            </div>
+          </Card>
+        )}
+
+        {!isKnownTab && (
+          <Card className="p-8 text-center text-xs font-mono text-text-muted bg-bg-secondary/20">
+            Розділ <strong>"{activeTab}"</strong> у розробці. Ми підключимо його
+            наступним кроком.
+          </Card>
+        )}
+      </main>
+
+      <Footer />
+    </div>
+  );
+}

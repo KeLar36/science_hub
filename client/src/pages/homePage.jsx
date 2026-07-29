@@ -4,11 +4,9 @@ import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import HeroSection from "../components/home/HeroSection";
 import StatsSection from "../components/home/StatsSection";
-import FeaturesSection from "../components/home/FeaturesSection";
 import HowItWorksSection from "../components/home/HowItWorksSection";
 import PartnersSection from "../components/home/PartnersSection";
 import FaqSection from "../components/home/FaqSection";
-import DigestSection from "../components/home/DigestSection";
 
 const HomePage = () => {
   const [totalPrograms, setTotalPrograms] = useState(0);
@@ -39,10 +37,8 @@ const HomePage = () => {
         totalPrograms={totalPrograms}
         totalOrganizations={totalOrgs}
       />
-      <FeaturesSection />
       <HowItWorksSection />
       <FaqSection />
-      <DigestSection />
       <Footer />
     </div>
   );

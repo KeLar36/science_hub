@@ -1,9 +1,23 @@
-import React from "react";
-import { Plus, Edit, Trash2, Eye, Calendar, Tag } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import {
+  Plus,
+  Edit3,
+  Trash2,
+  Eye,
+  Calendar,
+  Tag,
+  Search,
+  FileText,
+} from "lucide-react";
 import Card from "@/shared/ui/Card";
-import Button from "@/shared/ui/Button";
-import Badge from "@/shared/ui/Badge";
 import Skeleton from "@/shared/ui/Skeleton";
+import Badge from "@/shared/ui/Badge";
+import Button from "@/shared/ui/Button";
+import Alert from "@/shared/ui/Alert";
+import Input from "@/shared/ui/Input";
+import Select from "@/shared/ui/Select";
+import Pagination from "@/shared/ui/Pagination";
+import { Table, TableRow, TableCell } from "@/shared/ui/Table";
 
 export default function OrganizationPosts({
   posts = [],
@@ -12,27 +26,88 @@ export default function OrganizationPosts({
   onCreateClick,
   onEditClick,
   onDeleteClick,
+  currentPage = 1,
+  totalPages = 1,
+  onPageChange,
 }) {
-  if (loading) {
-    return (
-      <Card className="p-6 space-y-4">
-        <Skeleton variant="line" className="h-6 w-1/4" />
-        <Skeleton variant="rectangle" height="80px" />
-        <Skeleton variant="rectangle" height="80px" />
-      </Card>
-    );
-  }
+  const [feedback, setFeedback] = useState({ type: null, message: "" });
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const showFeedback = (type, message) => {
+    setFeedback({ type, message });
+    setTimeout(() => setFeedback({ type: null, message: "" }), 5000);
+  };
+
+  const handleDelete = async (postId, postTitle) => {
+    if (!confirm(`Ви дійсно бажаєте видалити допис "${postTitle}"?`)) return;
+
+    try {
+      const res = await onDeleteClick?.(postId);
+      if (res?.success) {
+        showFeedback("success", `Допис "${postTitle}" успішно видалено.`);
+      } else {
+        showFeedback("danger", res?.error || "Не вдалося видалити допис.");
+      }
+    } catch {
+      showFeedback("danger", "Помилка при видаленні допису.");
+    }
+  };
+
+  const filteredPosts = useMemo(() => {
+    return posts.filter((post) => {
+      const matchesSearch =
+        !search.trim() ||
+        post.title?.toLowerCase().includes(search.toLowerCase()) ||
+        post.category?.toLowerCase().includes(search.toLowerCase());
+
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "published" && post.status !== "draft") ||
+        (statusFilter === "draft" && post.status === "draft");
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [posts, search, statusFilter]);
+
+  if (loading) return <Skeleton variant="rectangle" height="200px" />;
+
+  const headers = [
+    "Публікація",
+    "Категорія",
+    "Дата",
+    "Статус",
+    ...(canManage ? ["Дії"] : []),
+  ];
 
   return (
-    <Card className="p-6 bg-bg-secondary/80 border-border-color text-left space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border-color/60 pb-4">
-        <div>
-          <h3 className="text-base font-bold uppercase text-text-primary">
-            Публікації та Новини
-          </h3>
-          <p className="text-xs text-text-muted mt-1">
-            Керуйте статями, новинами та анонсами вашої організації.
-          </p>
+    <div className="space-y-4 text-left">
+      {feedback.type && (
+        <Alert
+          variant={feedback.type}
+          onClose={() => setFeedback({ type: null, message: "" })}
+        >
+          {feedback.message}
+        </Alert>
+      )}
+
+      <div className="flex flex-col md:flex-row items-center justify-between gap-3 bg-bg-secondary p-3 rounded-xl border border-border-color">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full md:w-auto flex-1">
+          <Input
+            placeholder="Шукати за заголовком чи категорією..."
+            icon={Search}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <Select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            options={[
+              { label: "Всі статуси", value: "all" },
+              { label: "Опубліковані", value: "published" },
+              { label: "Чернетки", value: "draft" },
+            ]}
+          />
         </div>
 
         {canManage && (
@@ -41,122 +116,119 @@ export default function OrganizationPosts({
             size="sm"
             icon={Plus}
             onClick={onCreateClick}
+            className="shrink-0 w-full md:w-auto"
           >
             Створити допис
           </Button>
         )}
       </div>
 
-      {posts.length === 0 ? (
-        <div className="text-center py-12 border border-dashed border-border-color rounded-xl bg-bg-primary/40 space-y-3">
-          <p className="text-sm text-text-muted">
-            У вашої організації ще немає опублікованих статей чи дописів.
+      {filteredPosts.length === 0 ? (
+        <Card className="p-8 text-center space-y-2 bg-bg-secondary/40 border-dashed">
+          <FileText className="mx-auto text-text-muted" size={32} />
+          <p className="text-xs font-mono text-text-muted">
+            {posts.length === 0
+              ? "У вашої організації ще немає опублікованих статей чи дописів."
+              : "За вказаними фільтрами дописів не знайдено."}
           </p>
-          {canManage && (
+          {canManage && posts.length === 0 && (
             <Button
               variant="outline"
               size="sm"
               icon={Plus}
               onClick={onCreateClick}
+              className="mt-2"
             >
               Написати перший допис
             </Button>
           )}
-        </div>
+        </Card>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-border-color text-text-muted uppercase text-[10px] font-bold tracking-wider">
-                <th className="py-3 px-4">Публікація</th>
-                <th className="py-3 px-4">Категорія</th>
-                <th className="py-3 px-4">Дата</th>
-                <th className="py-3 px-4">Статус</th>
-                {canManage && <th className="py-3 px-4 text-right">Дії</th>}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border-color/40">
-              {posts.map((post) => {
-                const isDraft = post.status === "draft";
-                const createdDate = post.createdAt
-                  ? new Date(post.createdAt).toLocaleDateString("uk-UA")
-                  : "—";
+        <>
+          <Table headers={headers}>
+            {filteredPosts.map((post) => {
+              const isDraft = post.status === "draft";
+              const createdDate = post.createdAt
+                ? new Date(post.createdAt).toLocaleDateString("uk-UA")
+                : "—";
 
-                return (
-                  <tr
-                    key={post._id}
-                    className="hover:bg-bg-primary/50 transition-colors"
-                  >
-                    <td className="py-3.5 px-4 font-medium text-text-primary max-w-xs truncate">
-                      <div className="font-bold text-sm truncate">
-                        {post.title}
-                      </div>
-                    </td>
+              return (
+                <TableRow key={post._id}>
+                  <TableCell>
+                    <div className="font-bold text-xs text-text-primary leading-snug">
+                      {post.title}
+                    </div>
+                  </TableCell>
 
-                    <td className="py-3.5 px-4 text-text-secondary">
-                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-bg-primary border border-border-color/60 text-[11px] font-mono">
-                        <Tag size={10} className="text-brand" />
-                        {post.category || "Загальне"}
-                      </span>
-                    </td>
+                  <TableCell>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-bg-tertiary border border-border-color text-[10px] font-mono">
+                      <Tag size={10} className="text-brand" />
+                      {post.category || "Загальне"}
+                    </span>
+                  </TableCell>
 
-                    <td className="py-3.5 px-4 text-text-muted font-mono whitespace-nowrap">
-                      <span className="flex items-center gap-1">
-                        <Calendar size={12} />
-                        {createdDate}
-                      </span>
-                    </td>
+                  <TableCell>
+                    <span className="text-xs font-mono text-text-muted flex items-center gap-1">
+                      <Calendar size={12} />
+                      {createdDate}
+                    </span>
+                  </TableCell>
 
-                    <td className="py-3.5 px-4">
-                      {isDraft ? (
-                        <Badge status="default">Чернетка</Badge>
-                      ) : (
-                        <Badge status="success">Опубліковано</Badge>
-                      )}
-                    </td>
-
-                    {canManage && (
-                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {!isDraft && (
-                            <a
-                              href={`/posts/${post._id}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="p-1.5 text-text-muted hover:text-brand hover:bg-bg-primary rounded-lg transition-colors"
-                              title="Переглянути на сайті"
-                            >
-                              <Eye size={15} />
-                            </a>
-                          )}
-
-                          <button
-                            type="button"
-                            onClick={() => onEditClick?.(post)}
-                            className="p-1.5 text-text-muted hover:text-brand hover:bg-bg-primary rounded-lg transition-colors"
-                            title="Редагувати"
-                          >
-                            <Edit size={15} />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => onDeleteClick?.(post._id)}
-                            className="p-1.5 text-text-muted hover:text-red-500 hover:bg-bg-primary rounded-lg transition-colors"
-                            title="Видалити"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
-                      </td>
+                  <TableCell>
+                    {isDraft ? (
+                      <Badge status="default">Чернетка</Badge>
+                    ) : (
+                      <Badge status="success">Опубліковано</Badge>
                     )}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                  </TableCell>
+
+                  {canManage && (
+                    <TableCell>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {!isDraft && (
+                          <a href={`/blog/${post._id}`} rel="noreferrer">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              icon={Eye}
+                              className="!p-1.5"
+                              title="Переглянути на сайті"
+                            />
+                          </a>
+                        )}
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          icon={Edit3}
+                          onClick={() => onEditClick?.(post)}
+                          className="!p-1.5"
+                          title="Редагувати"
+                        />
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          icon={Trash2}
+                          onClick={() => handleDelete(post._id, post.title)}
+                          className="!p-1.5 border-red-500/30 text-red-500 hover:bg-red-500/10"
+                          title="Видалити"
+                        />
+                      </div>
+                    </TableCell>
+                  )}
+                </TableRow>
+              );
+            })}
+          </Table>
+
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={onPageChange}
+          />
+        </>
       )}
-    </Card>
+    </div>
   );
 }

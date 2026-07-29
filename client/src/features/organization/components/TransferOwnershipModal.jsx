@@ -6,7 +6,7 @@ import Input from "@/shared/ui/Input";
 import Avatar from "@/shared/ui/Avatar";
 import Alert from "@/shared/ui/Alert";
 import Skeleton from "@/shared/ui/Skeleton";
-import { organizationApi } from "../api/organizationApi";
+import { organizationApi } from "@/features/organization/api/organizationApi";
 
 export default function TransferOwnershipModal({
   isOpen,
@@ -31,17 +31,24 @@ export default function TransferOwnershipModal({
     }
   }, [isOpen, orgId]);
 
+  const showError = (msg) => {
+    setError(msg);
+    setTimeout(() => {
+      setError(null);
+    }, 5000);
+  };
+
   const fetchMembers = async () => {
     try {
       setLoading(true);
       setError(null);
       const res = await organizationApi.getUsers(orgId, 1);
       const membersOnly = (res.items || []).filter(
-        (m) => m._id !== currentOwnerId,
+        (m) => (m._id || m.id) !== currentOwnerId,
       );
       setUsers(membersOnly);
     } catch (err) {
-      setError(
+      showError(
         err?.response?.data?.error || "Не вдалося завантажити учасників",
       );
     } finally {
@@ -67,7 +74,7 @@ export default function TransferOwnershipModal({
       u.email?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const selectedUser = users.find((u) => u._id === selectedUserId);
+  const selectedUser = users.find((u) => (u._id || u.id) === selectedUserId);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -88,7 +95,7 @@ export default function TransferOwnershipModal({
       onSuccess?.(res.message || "Права власності успішно передано!");
       handleClose();
     } catch (err) {
-      setError(err?.response?.data?.error || "Не вдалося передати права");
+      showError(err?.response?.data?.error || "Не вдалося передати права");
       setConfirmStep(false);
     } finally {
       setSubmitting(false);
@@ -102,7 +109,11 @@ export default function TransferOwnershipModal({
       title="Передача прав засновника"
     >
       <form onSubmit={handleSubmit} className="space-y-4 text-left">
-        {error && <Alert variant="danger">{error}</Alert>}
+        {error && (
+          <Alert variant="danger" onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
 
         {!confirmStep ? (
           <>
@@ -111,7 +122,7 @@ export default function TransferOwnershipModal({
               <p>
                 <strong>Увага:</strong> Після передачі прав засновника ви
                 втратите статус адміністратора організації та отримаєте роль
-                зазвичайного учасника.
+                звичайного учасника.
               </p>
             </div>
 
@@ -136,14 +147,15 @@ export default function TransferOwnershipModal({
                 </p>
               ) : (
                 filteredUsers.map((user) => {
-                  const isSelected = selectedUserId === user._id;
+                  const uId = user._id || user.id;
+                  const isSelected = selectedUserId === uId;
                   return (
                     <div
-                      key={user._id}
-                      onClick={() => setSelectedUserId(user._id)}
+                      key={uId}
+                      onClick={() => setSelectedUserId(uId)}
                       className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
                         isSelected
-                          ? "border-brand bg-brand/10 shadow-xs"
+                          ? "border-brand bg-brand/10 shadow-xs ring-1 ring-brand/30"
                           : "border-border-color bg-bg-secondary hover:border-brand/40"
                       }`}
                     >

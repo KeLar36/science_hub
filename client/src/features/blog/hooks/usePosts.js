@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { postApi } from "../api/postApi";
 
-export function usePosts(initialFilters = {}, limit = 8) {
+export function usePosts(initialFilters = {}, limit = 8, isDashboard = false) {
   const [posts, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -14,6 +14,7 @@ export function usePosts(initialFilters = {}, limit = 8) {
   const [filters, setFilters] = useState({
     search: "",
     category: "Всі",
+    domain: "Всі",
     status: "",
     organizationId: "",
     ...initialFilters,
@@ -36,12 +37,16 @@ export function usePosts(initialFilters = {}, limit = 8) {
       setIsLoading(true);
       setError(null);
       try {
-        const data = await postApi.getAll(currentFilters, pageToFetch, limit);
-        setPosts(data.posts);
+        const fetchMethod = isDashboard
+          ? postApi.getMyDashboard
+          : postApi.getAll;
+
+        const data = await fetchMethod(currentFilters, pageToFetch, limit);
+        setPosts(data.posts || []);
         setPagination({
-          currentPage: data.currentPage,
-          totalPages: data.totalPages,
-          totalItems: data.totalItems,
+          currentPage: data.currentPage || 1,
+          totalPages: data.totalPages || 1,
+          totalItems: data.totalItems || 0,
         });
       } catch (err) {
         setError(
@@ -51,7 +56,7 @@ export function usePosts(initialFilters = {}, limit = 8) {
         setIsLoading(false);
       }
     },
-    [limit],
+    [limit, isDashboard],
   );
 
   useEffect(() => {
@@ -60,6 +65,7 @@ export function usePosts(initialFilters = {}, limit = 8) {
   }, [
     pagination.currentPage,
     filters.category,
+    filters.domain,
     filters.status,
     filters.organizationId,
     debouncedSearch,
@@ -93,6 +99,7 @@ export function usePosts(initialFilters = {}, limit = 8) {
     const clearedFilters = {
       search: "",
       category: "Всі",
+      domain: "Всі",
       status: "",
       organizationId: "",
       ...initialFilters,

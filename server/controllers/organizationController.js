@@ -1,8 +1,4 @@
 const organizationService = require("../services/organizationService");
-const User = require("../models/User");
-const Organization = require("../models/Organization");
-const checkOrgAccess = require("../middleware/checkOrgAccess");
-const mongoose = require("mongoose");
 
 class OrganizationController {
   async getOrganizationUsers(req, res, next) {
@@ -12,16 +8,7 @@ class OrganizationController {
       const limit = parseInt(req.query.limit) || 8;
 
       const isSuperAdmin = req.user.role === "superadmin";
-
-      let userOrgId = req.user.organizationId;
-
-      if (!userOrgId && (req.user._id || req.user.id)) {
-        const User = mongoose.model("User");
-        const dbUser = await User.findById(req.user._id || req.user.id).select(
-          "organizationId",
-        );
-        userOrgId = dbUser?.organizationId;
-      }
+      const userOrgId = req.user.organizationId;
 
       const isMemberOfOrg =
         userOrgId && String(userOrgId._id || userOrgId) === String(id);
@@ -65,16 +52,16 @@ class OrganizationController {
     try {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 8;
-      const query = {};
 
-      if (req.query.status) {
-        query.status = req.query.status;
-      }
-      if (req.query.search) {
-        query.name = { $regex: req.query.search.trim(), $options: "i" };
-      }
+      const filters = {
+        status: req.query.status,
+        search: req.query.search,
+        type: req.query.type,
+        city: req.query.city,
+        scientificDomains: req.query.scientificDomains,
+      };
 
-      const result = await organizationService.getAll(query, page, limit);
+      const result = await organizationService.getAll(filters, page, limit);
       res.json(result);
     } catch (err) {
       next(err);
@@ -83,10 +70,14 @@ class OrganizationController {
 
   async getPublicList(req, res, next) {
     try {
-      const list = await organizationService.getPublicList({
-        status: "approved",
-        allowPublicJoin: true,
-      });
+      const filters = {
+        type: req.query.type,
+        city: req.query.city,
+        scientificDomains: req.query.scientificDomains,
+        search: req.query.search,
+      };
+
+      const list = await organizationService.getPublicList(filters);
       res.json(list);
     } catch (err) {
       next(err);
@@ -217,18 +208,11 @@ class OrganizationController {
         return res.status(400).json({ error: "ID користувача є обов'язковим" });
       }
 
-      const User = mongoose.model("User");
-      const currentUserId = req.user._id || req.user.id;
-
-      const freshUser = await User.findById(currentUserId).select(
-        "organizationId role",
-      );
-
-      let adminOrgId =
+      const adminOrgId =
         req.body?.organizationId ||
         req.query?.organizationId ||
         req.params?.id ||
-        freshUser?.organizationId;
+        req.user.organizationId;
 
       if (!adminOrgId) {
         return res.status(403).json({
@@ -236,8 +220,6 @@ class OrganizationController {
             "Ви не належите до жодної установи та не вказали organizationId",
         });
       }
-
-      console.log(`Приймаємо юзера ${userId} в установу ${adminOrgId}`);
 
       await organizationService.acceptJoinRequest(adminOrgId, userId);
       res.json({ message: "Користувача успішно зараховано до установи" });
@@ -254,18 +236,11 @@ class OrganizationController {
         return res.status(400).json({ error: "ID користувача є обов'язковим" });
       }
 
-      const User = mongoose.model("User");
-      const currentUserId = req.user._id || req.user.id;
-
-      const freshUser = await User.findById(currentUserId).select(
-        "organizationId role",
-      );
-
-      let adminOrgId =
+      const adminOrgId =
         req.body?.organizationId ||
         req.query?.organizationId ||
         req.params?.id ||
-        freshUser?.organizationId;
+        req.user.organizationId;
 
       if (!adminOrgId) {
         return res.status(403).json({
@@ -273,8 +248,6 @@ class OrganizationController {
             "Ви не належите до жодної установи та не вказали organizationId",
         });
       }
-
-      console.log(`Відхиляємо запит юзера ${userId} в установу ${adminOrgId}`);
 
       await organizationService.rejectJoinRequest(adminOrgId, userId);
       res.json({ message: "Запит на вступ відхилено" });
@@ -290,23 +263,15 @@ class OrganizationController {
       const limit = parseInt(req.query.limit) || 8;
       const search = req.query.search || "";
 
-      let adminOrgId = null;
+      let adminOrgId =
+        req.user.role === "superadmin"
+          ? orgId || req.user.organizationId
+          : req.user.organizationId;
 
-      if (req.user.role === "superadmin") {
-        adminOrgId = orgId;
-      } else {
-        const User = mongoose.model("User");
-        const freshUser = await User.findById(req.user.id).select(
-          "organizationId",
-        );
-
-        if (!freshUser || !freshUser.organizationId) {
-          return res
-            .status(403)
-            .json({ error: "Ви не належите до жодної установи" });
-        }
-
-        adminOrgId = freshUser.organizationId;
+      if (!adminOrgId) {
+        return res
+          .status(403)
+          .json({ error: "Ви не належите до жодної установи" });
       }
 
       const result = await organizationService.getPagedPendingRequests(
@@ -345,15 +310,15 @@ class OrganizationController {
           .json({ error: "ID цільового користувача є обов'язковим" });
       }
 
-      let adminOrgId =
-        req.user.role === "superadmin" ? orgId : req.user.organizationId;
+      const adminOrgId =
+        req.user.role === "superadmin"
+          ? orgId || req.user.organizationId
+          : req.user.organizationId;
 
       if (!adminOrgId) {
-        const User = mongoose.model("User");
-        const freshUser = await User.findById(req.user.id).select(
-          "organizationId",
-        );
-        adminOrgId = freshUser?.organizationId || orgId;
+        return res
+          .status(403)
+          .json({ error: "Ви не належите до жодної установи" });
       }
 
       await organizationService.kickMember(adminOrgId, req.user, targetUserId);
@@ -367,7 +332,7 @@ class OrganizationController {
   async updateMemberRole(req, res, next) {
     try {
       const { id: paramOrgId, userId: targetUserId } = req.params;
-      const { role } = req.body;
+      const { role, academicDegree, allowedDomains, allowedTypes } = req.body;
 
       const validRoles = ["user", "reviewer", "content-manager", "admin"];
       if (!role || !validRoles.includes(role)) {
@@ -390,10 +355,15 @@ class OrganizationController {
         req.user.id,
         targetUserId,
         role,
+        {
+          academicDegree,
+          allowedDomains,
+          allowedTypes,
+        },
       );
 
       res.json({
-        message: "Роль користувача успішно оновлено",
+        message: "Роль користувача та параметри рецензування успішно оновлено",
         user: updatedUser,
       });
     } catch (err) {
@@ -423,6 +393,50 @@ class OrganizationController {
       next(err);
     }
   }
+
+  // В organizationController.js:
+
+  toggleVerified = async (req, res, next) => {
+    try {
+      const updatedOrg = await organizationService.toggleVerified(
+        req.params.id,
+      );
+      if (!updatedOrg) {
+        return res.status(404).json({ message: "Установу не знайдено" });
+      }
+      return res.json({
+        success: true,
+        message: `Статус верифікації змінено на ${updatedOrg.isVerified}`,
+        organization: updatedOrg,
+      });
+    } catch (err) {
+      if (typeof next === "function") return next(err);
+      return res
+        .status(500)
+        .json({ message: err.message || "Серверна помилка" });
+    }
+  };
+
+  toggleFeatured = async (req, res, next) => {
+    try {
+      const updatedOrg = await organizationService.toggleFeatured(
+        req.params.id,
+      );
+      if (!updatedOrg) {
+        return res.status(404).json({ message: "Установу не знайдено" });
+      }
+      return res.json({
+        success: true,
+        message: `Статус рекомендування (Featured) змінено на ${updatedOrg.isFeatured}`,
+        organization: updatedOrg,
+      });
+    } catch (err) {
+      if (typeof next === "function") return next(err);
+      return res
+        .status(500)
+        .json({ message: err.message || "Серверна помилка" });
+    }
+  };
 
   async delete(req, res, next) {
     try {

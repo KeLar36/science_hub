@@ -22,18 +22,130 @@ class UserService {
     }
   }
 
-  async getById(id) {
-    const user = await User.findById(id).select("-password");
+  #buildFilterQuery(filters = {}) {
+    const query = {};
+
+    if (filters.role && filters.role !== "Всі") {
+      query.role = filters.role;
+    }
+
+    if (filters.organizationId) {
+      query.organizationId = filters.organizationId;
+    }
+
+    if (filters.accountStatus) {
+      if (filters.accountStatus === "banned") {
+        query.isBanned = true;
+        query.isAnonymized = false;
+      } else if (filters.accountStatus === "anonymized") {
+        query.isAnonymized = true;
+      } else if (filters.accountStatus === "active") {
+        query.isBanned = false;
+        query.isAnonymized = false;
+      }
+    } else if (filters.isBanned !== undefined) {
+      query.isBanned = filters.isBanned === true || filters.isBanned === "true";
+    }
+
+    if (filters.search && filters.search.trim()) {
+      const searchRegex = { $regex: filters.search.trim(), $options: "i" };
+      query.$or = [{ name: searchRegex }, { email: searchRegex }];
+    }
+
+    return query;
+  }
+
+  async anonymizeUser(userId) {
+    const user = await User.findById(userId);
     if (!user) {
       const error = new Error("Користувача не знайдено");
       error.statusCode = 404;
       throw error;
     }
+
+    if (user.isAnonymized) {
+      const error = new Error("Цей акаунт вже було анонімізовано раніше.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const Organization = mongoose.model("Organization");
+
+    const ownedOrg = await Organization.findOne({ creatorId: userId });
+    if (ownedOrg) {
+      if (ownedOrg.members.length <= 1) {
+        const error = new Error(
+          "Ви є єдиним членом та засновником установи. Будь ласка, видаліть установу перед анонімізацією профілю.",
+        );
+        error.statusCode = 400;
+        throw error;
+      }
+
+      const error = new Error(
+        "Ви є засновником організації. Передайте права власності іншому учаснику перед анонімізацією.",
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    await Organization.updateMany(
+      { members: userId },
+      { $pull: { members: userId } },
+    );
+
+    if (user.image) {
+      await this.#deleteImageFromCloudinary(user.image);
+    }
+
+    const anonymizedEmail = `deleted_${userId}_${Date.now()}@scienceplatform.com`;
+
+    user.name = "Анонімний дослідник (GDPR)";
+    user.email = anonymizedEmail;
+    user.password = `anonymized_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+    user.image = null;
+    user.bio = "Цей акаунт було анонімізовано відповідно до політики GDPR.";
+    user.topics = [];
+    user.city = "";
+    user.socials = { github: "", twitter: "", linkedIn: "" };
+    user.bookmarks = [];
+    user.organizationId = null;
+    user.pendingOrganizationId = undefined;
+
+    user.role = "user";
+    user.isBanned = true;
+    user.isAnonymized = true;
+
+    if (user.allowedDomains) user.allowedDomains = [];
+    if (user.allowedTypes) user.allowedTypes = [];
+    if (user.academicDegree) user.academicDegree = "Немає / Дослідник";
+
+    if (user.isReviewerActive !== undefined) {
+      user.isReviewerActive = false;
+    }
+
+    await user.save();
+    console.log(
+      `Користувача ${userId} успішно анонімізовано та позначано isAnonymized: true.`,
+    );
+    return user;
+  }
+
+  async getById(userId) {
+    const user = await User.findById(userId).select("-password").lean();
+
+    if (!user) {
+      const error = new Error("Користувача не знайдено");
+      error.statusCode = 404;
+      throw error;
+    }
+
     return user;
   }
 
   async updateProfile(id, profileData) {
-    const currentUser = await User.findById(id).select("image organizationId");
+    const currentUser = await User.findById(id).select(
+      "image organizationId role",
+    );
 
     if (
       profileData.image &&
@@ -63,98 +175,6 @@ class UserService {
       { $set: profileData },
       { new: true, runValidators: true },
     ).select("-password");
-  }
-
-  async getPagedUsers(queryFilters, page = 1, limit = 8) {
-    const skip = (page - 1) * limit;
-
-    const users = await User.find(queryFilters)
-      .select("-password")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const total = await User.countDocuments(queryFilters);
-    const totalPages = Math.ceil(total / limit);
-
-    return { users, totalPages, currentPage: page };
-  }
-
-  async countUsers(queryFilters) {
-    return await User.countDocuments(queryFilters);
-  }
-
-  async updateRole(id, role, extraData = {}) {
-    const targetUser = await User.findById(id);
-    if (!targetUser) {
-      const error = new Error("Користувача не знайдено");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    let updateQuery = {};
-
-    if (role === "reviewer") {
-      updateQuery = {
-        $set: {
-          role: role,
-          allowedDomains: extraData.allowedDomains || [],
-          allowedTypes: extraData.allowedTypes || [],
-          isReviewerActive: true,
-        },
-      };
-    } else {
-      updateQuery = {
-        $set: { role: role },
-        $unset: {
-          allowedDomains: 1,
-          allowedTypes: 1,
-          isReviewerActive: 1,
-        },
-      };
-    }
-
-    return await User.findByIdAndUpdate(id, updateQuery, {
-      new: true,
-      runValidators: true,
-      overwriteDiscriminatorKey: true,
-    });
-  }
-
-  async updateBanStatus(id, isBanned) {
-    const user = await User.findById(id);
-    if (!user) {
-      const error = new Error("Користувача не знайдено");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    user.isBanned = isBanned;
-    await user.save();
-
-    if (isBanned && user.role === "reviewer") {
-      const Project = mongoose.model("Project");
-
-      await Project.updateMany(
-        {
-          reviewerId: id,
-          status: { $in: ["На розгляді", "На доопрацюванні"] },
-        },
-        {
-          $set: {
-            reviewerId: null,
-            reviewStatus: "Не призначено",
-          },
-        },
-      );
-
-      console.log(
-        `Авто-очищення: Усі активні роботи забаненого рецензента ${user.name} скинуто в чергу.`,
-      );
-    }
-
-    const updatedUser = await User.findById(id).select("-password");
-    return updatedUser;
   }
 
   async anonymizeUser(userId) {
@@ -212,6 +232,7 @@ class UserService {
 
     if (user.allowedDomains) user.allowedDomains = [];
     if (user.allowedTypes) user.allowedTypes = [];
+    if (user.academicDegree) user.academicDegree = "Немає / Дослідник";
 
     if (user.isReviewerActive !== undefined) {
       user.isReviewerActive = false;
@@ -222,6 +243,117 @@ class UserService {
       `Користувача ${userId} успішно анонімізовано за стандартами GDPR.`,
     );
     return user;
+  }
+
+  async getPagedUsers(queryFilters = {}, page = 1, limit = 8) {
+    const query = this.#buildFilterQuery(queryFilters);
+    const skip = (page - 1) * limit;
+
+    const users = await User.find(query)
+      .select("-password")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await User.countDocuments(query);
+    const totalPages = Math.ceil(total / limit);
+
+    return { users, totalPages, currentPage: Number(page), totalItems: total };
+  }
+
+  async countUsers(queryFilters = {}) {
+    const query = this.#buildFilterQuery(queryFilters);
+    return await User.countDocuments(query);
+  }
+
+  async updateRole(id, role, extraData = {}) {
+    const targetUser = await User.findById(id);
+    if (!targetUser) {
+      const error = new Error("Користувача не знайдено");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (targetUser.isAnonymized) {
+      const error = new Error(
+        "Неможливо змінити роль анонімізованому акаунту.",
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    let updateQuery = {};
+
+    if (role === "reviewer") {
+      updateQuery = {
+        $set: {
+          role: role,
+          academicDegree: extraData.academicDegree || "Немає / Дослідник",
+          allowedDomains: extraData.allowedDomains || [],
+          allowedTypes: extraData.allowedTypes || [],
+          isReviewerActive: true,
+        },
+      };
+    } else {
+      updateQuery = {
+        $set: { role: role },
+        $unset: {
+          academicDegree: 1,
+          allowedDomains: 1,
+          allowedTypes: 1,
+          isReviewerActive: 1,
+        },
+      };
+    }
+
+    return await User.findByIdAndUpdate(id, updateQuery, {
+      new: true,
+      runValidators: true,
+      overwriteDiscriminatorKey: true,
+    });
+  }
+
+  async updateBanStatus(id, isBanned) {
+    const user = await User.findById(id);
+    if (!user) {
+      const error = new Error("Користувача не знайдено");
+      error.statusCode = 404;
+      throw error;
+    }
+    if (user.isAnonymized) {
+      const error = new Error(
+        "Неможливо змінити статус бана анонімізованого акаунта.",
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    user.isBanned = isBanned;
+    await user.save();
+
+    if (isBanned && user.role === "reviewer") {
+      const Project = mongoose.model("Project");
+
+      await Project.updateMany(
+        {
+          reviewerId: id,
+          status: { $in: ["На розгляді", "На доопрацюванні"] },
+        },
+        {
+          $set: {
+            reviewerId: null,
+            reviewStatus: "Не призначено",
+          },
+        },
+      );
+
+      console.log(
+        `Авто-очищення: Усі активні роботи забаненого рецензента ${user.name} скинуто в чергу.`,
+      );
+    }
+
+    const updatedUser = await User.findById(id).select("-password");
+    return updatedUser;
   }
 }
 

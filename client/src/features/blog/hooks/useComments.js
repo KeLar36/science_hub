@@ -1,9 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { commentApi } from "@/shared/api/commentApi";
 
-/**
- * @param {string} postId - ID публікації, для якої потрібно отримати коментарі
- */
 export function useComments(postID) {
   const [comments, setComments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,9 +27,9 @@ export function useComments(postID) {
 
   const addComment = useCallback(
     async (text) => {
-      if (!text.trim()) return;
+      if (!text.trim() || !postID) return;
       try {
-        const newComment = await commentApi.create(postID, text);
+        const newComment = await commentApi.createPostComment(postID, text);
         setComments((prev) => [...prev, newComment]);
         return newComment;
       } catch (err) {
@@ -51,7 +48,7 @@ export function useComments(postID) {
         prev.filter((comment) => comment._id !== commentId),
       );
     } catch (err) {
-      console.error("Помилка при аидаленні коментаря", err);
+      console.error("Помилка при видаленні коментаря:", err);
       throw err;
     }
   }, []);

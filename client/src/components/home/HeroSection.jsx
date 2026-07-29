@@ -2,7 +2,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../shared/lib/hooks/useAuth";
-import { Button } from "../ui/Button";
 import { ArrowUpRight, Shield, Search, Award, CheckCircle } from "lucide-react";
 
 const HeroSection = () => {
@@ -41,29 +40,7 @@ const HeroSection = () => {
               єдину екосистему взаємодії.
             </p>
 
-            <div className="flex flex-wrap gap-4 pt-2">
-              <Button
-                onClick={handleStart}
-                variant="primary"
-                size="lg"
-                className="font-black tracking-wider uppercase group rounded-xl"
-              >
-                <span>Почати шлях</span>
-                <ArrowUpRight
-                  size={14}
-                  className="transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300"
-                />
-              </Button>
-
-              <Button
-                onClick={() => navigate("/programs")}
-                variant="outline"
-                size="lg"
-                className="font-black tracking-wider uppercase rounded-xl border-[var(--border-color)] hover:border-purple-500/50 hover:bg-purple-600/[0.02] text-[var(--text-dark)]"
-              >
-                Дослідити можливості
-              </Button>
-            </div>
+            <div className="flex flex-wrap gap-4 pt-2"></div>
 
             <div className="flex flex-wrap gap-x-6 gap-y-2 pt-6 border-t border-[var(--border-color)]/40 w-full font-mono text-[10px] uppercase tracking-wider text-[var(--text-gray)]">
               <div className="flex items-center gap-1.5">

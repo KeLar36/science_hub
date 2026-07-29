@@ -1,57 +1,33 @@
 const programService = require("../services/programService");
-const User = require("../models/User");
-const Program = require("../models/Program");
 
 class ProgramController {
   async getAll(req, res, next) {
     try {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 8;
-      const skip = (page - 1) * limit;
 
-      const query = {};
+      let activeFilter;
+      if (req.query.status === "active") activeFilter = true;
+      if (req.query.status === "archived") activeFilter = false;
 
-      if (req.query.search) {
-        const searchRegex = { $regex: req.query.search.trim(), $options: "i" };
-        query.$or = [{ title: searchRegex }, { description: searchRegex }];
-      }
-      if (req.query.type && req.query.type !== "Всі типи") {
-        query.type = req.query.type;
-      }
-      if (req.query.domain && req.query.domain !== "Всі галузі") {
-        query.domain = req.query.domain;
-      }
-      if (req.query.status) {
-        query.active = req.query.status === "active";
-      } else {
-        query.active = true;
+      const filters = {
+        search: req.query.search,
+        type: req.query.type !== "Всі типи" ? req.query.type : undefined,
+        active: activeFilter,
+      };
+
+      if (req.user?.role === "admin" && req.user.organizationId) {
+        filters.organizationId = req.user.organizationId;
       }
 
-      if (req.user?.role === "admin") {
-        return res.status(200).json({
-          items: [],
-          programs: [],
-          totalPages: 1,
-          totalItems: 0,
-          currentPage: page,
-        });
-      }
-
-      const totalItems = await Program.countDocuments(query);
-      const totalPages = Math.ceil(totalItems / limit);
-
-      const programs = await Program.find(query)
-        .populate("organizationId", "name logo")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit);
+      const result = await programService.getAll(filters, page, limit);
 
       return res.status(200).json({
-        items: programs,
-        programs,
-        currentPage: page,
-        totalPages: totalPages || 1,
-        totalItems,
+        items: result.programs,
+        programs: result.programs,
+        currentPage: result.currentPage,
+        totalPages: result.totalPages || 1,
+        totalItems: result.totalItems || 0,
       });
     } catch (err) {
       next(err);
@@ -60,25 +36,16 @@ class ProgramController {
 
   async getPublicPrograms(req, res, next) {
     try {
-      let query = { active: true };
-
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 8;
 
-      if (req.query.search) {
-        const searchRegex = { $regex: req.query.search.trim(), $options: "i" };
-        query.$or = [{ title: searchRegex }, { description: searchRegex }];
-      }
+      const filters = {
+        active: true,
+        search: req.query.search,
+        type: req.query.type !== "Всі типи" ? req.query.type : undefined,
+      };
 
-      if (req.query.type && req.query.type !== "Всі типи") {
-        query.type = req.query.type;
-      }
-
-      if (req.query.domain && req.query.domain !== "Всі галузі") {
-        query.domain = req.query.domain;
-      }
-
-      const result = await programService.getAll(query, page, limit);
+      const result = await programService.getAll(filters, page, limit);
       res.json(result);
     } catch (err) {
       next(err);
@@ -87,33 +54,18 @@ class ProgramController {
 
   async getArchive(req, res, next) {
     try {
-      let query = { active: false };
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 8;
 
-      if (req.query.orgId) {
-        query.organizationId = req.query.orgId;
-      } else if (req.user.role === "admin") {
-        if (!req.user.organizationId) {
-          return res.json({ archived: [], totalPages: 0, currentPage: page });
-        }
-        query.organizationId = req.user.organizationId;
-      }
+      const filters = {
+        search: req.query.search,
+        type: req.query.type !== "Всі типи" ? req.query.type : undefined,
+        organizationId:
+          req.query.orgId ||
+          (req.user?.role === "admin" ? req.user.organizationId : undefined),
+      };
 
-      if (req.query.search) {
-        const searchRegex = { $regex: req.query.search.trim(), $options: "i" };
-        query.$or = [{ title: searchRegex }, { description: searchRegex }];
-      }
-
-      if (req.query.type && req.query.type !== "Всі типи") {
-        query.type = req.query.type;
-      }
-
-      if (req.query.domain && req.query.domain !== "Всі галузі") {
-        query.domain = req.query.domain;
-      }
-
-      const result = await programService.getArchive(query, page, limit);
+      const result = await programService.getArchive(filters, page, limit);
       res.json(result);
     } catch (err) {
       next(err);

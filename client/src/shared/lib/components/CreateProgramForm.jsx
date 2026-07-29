@@ -71,10 +71,16 @@ export default function CreateProgramForm({
   }
 
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(null);
-  const [successMsg, setSuccessMsg] = useState(null);
+  const [feedback, setFeedback] = useState({ type: null, message: "" });
 
   const isEditing = Boolean(initialData?._id);
+
+  const showFeedback = (type, message) => {
+    setFeedback({ type, message });
+    setTimeout(() => {
+      setFeedback({ type: null, message: "" });
+    }, 5000);
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -87,38 +93,33 @@ export default function CreateProgramForm({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Спроба відправки форми! Поточний formData:", formData);
 
     setSubmitting(true);
-    setError(null);
-    setSuccessMsg(null);
+    setFeedback({ type: null, message: "" });
 
-    // 1. Перевірка опису
     if (isQuillEmpty(formData.description)) {
-      console.warn("Валідація не пройшла: Опис порожній!");
-      setError("Будь ласка, заповніть повний опис програми!");
+      showFeedback("danger", "Будь ласка, заповніть повний опис програми!");
       setSubmitting(false);
       return;
     }
 
     try {
-      console.log("Викликаємо onSubmit callback з даними...");
       const res = await onSubmit(formData);
-      console.log("Отримано відповідь від onSubmit:", res);
 
       if (res?.success) {
-        setSuccessMsg(
+        showFeedback(
+          "success",
           isEditing
             ? "Наукову програму успішно оновлено!"
             : "Наукову програму успішно створено!",
         );
         onSuccess?.();
       } else {
-        setError(res?.error || "Не вдалося зберегти програму");
+        showFeedback("danger", res?.error || "Не вдалося зберегти програму");
       }
     } catch (err) {
-      console.error("💥 Неочікувана помилка в handleSubmit:", err);
-      setError("Сталася помилка при збереженні програми");
+      console.error("💥 Помилка збереження програми:", err);
+      showFeedback("danger", "Сталася помилка при збереженні програми");
     } finally {
       setSubmitting(false);
     }
@@ -152,8 +153,14 @@ export default function CreateProgramForm({
         </div>
       </div>
 
-      {error && <Alert variant="danger">{error}</Alert>}
-      {successMsg && <Alert variant="success">{successMsg}</Alert>}
+      {feedback.type && (
+        <Alert
+          variant={feedback.type}
+          onClose={() => setFeedback({ type: null, message: "" })}
+        >
+          {feedback.message}
+        </Alert>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="p-3 bg-bg-primary/60 rounded-xl border border-border-color/40 flex items-center gap-2.5 text-xs text-text-secondary font-mono">

@@ -51,8 +51,14 @@ class AuthService {
   async login(email, password) {
     const user = await User.findOne({ email: email.trim().toLowerCase() });
 
-    if (!user || user.isBanned) {
-      const error = new Error("Доступ неможливий або акаунт заблоковано");
+    if (!user) {
+      const error = new Error("Користувача з таким Email не знайдено");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (user.isBanned === true) {
+      const error = new Error("Ваш акаунт заблоковано");
       error.statusCode = 400;
       throw error;
     }

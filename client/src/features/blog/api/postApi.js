@@ -7,12 +7,29 @@ export const postApi = {
       limit: limit.toString(),
       ...Object.fromEntries(
         Object.entries(filters).filter(
-          ([_, value]) => value !== undefined && value !== "",
+          ([_, value]) => value !== undefined && value !== null && value !== "",
         ),
       ),
     });
 
     const response = await axiosInstance.get(`/posts?${params.toString()}`);
+    return response.data;
+  },
+
+  async getMyDashboard(filters = {}, page = 1, limit = 8) {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      ...Object.fromEntries(
+        Object.entries(filters).filter(
+          ([_, value]) => value !== undefined && value !== null && value !== "",
+        ),
+      ),
+    });
+
+    const response = await axiosInstance.get(
+      `/posts/my-dashboard?${params.toString()}`,
+    );
     return response.data;
   },
 

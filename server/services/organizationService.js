@@ -4,6 +4,7 @@ const User = require("../models/User");
 const Program = require("../models/Program");
 const Post = require("../models/Post");
 const Comment = require("../models/Comment");
+const projectService = require("./projectService");
 const mongoose = require("mongoose");
 const cloudinary = require("cloudinary").v2;
 
@@ -37,90 +38,41 @@ class OrganizationService {
     }
   }
 
-  async getOrganizationUsers(orgId, page = 1, limit = 8) {
-    const skip = (page - 1) * limit;
+  #buildFilterQuery(filters = {}) {
+    const query = {};
 
-    const org = await Organization.findById(orgId).select("members").populate({
-      path: "members",
-      select: "name email role city socials isBanned",
-      options: { skip, limit },
-    });
-
-    if (!org) {
-      const error = new Error("Організацію не знайдено");
-      error.statusCode = 404;
-      throw error;
+    if (filters.status) {
+      query.status = filters.status;
     }
 
-    const totalOrg = await Organization.findById(orgId).select("members");
-    const totalItems = totalOrg?.members?.length || 0;
-    const totalPages = Math.ceil(totalItems / limit);
-
-    return {
-      items: org.members || [],
-      currentPage: page,
-      totalPages: totalPages || 1,
-      totalItems,
-    };
-  }
-
-  async getOrganizationPrograms(orgId, page = 1, limit = 8) {
-    const skip = (page - 1) * limit;
-
-    const totalItems = await Program.countDocuments({ organizationId: orgId });
-    const totalPages = Math.ceil(totalItems / limit);
-
-    const programs = await Program.find({ organizationId: orgId })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    return {
-      items: programs,
-      currentPage: page,
-      totalPages: totalPages || 1,
-      totalItems,
-    };
-  }
-
-  async getAll(query = {}, page = 1, limit = 8) {
-    const skip = (page - 1) * limit;
-
-    const organizations = await Organization.find(query)
-      .populate("creatorId", "name email")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const total = await Organization.countDocuments(query);
-    const totalPages = Math.ceil(total / limit);
-
-    return { organizations, totalPages, currentPage: page };
-  }
-
-  async getPublicList(filter = { status: "approved", allowPublicJoin: true }) {
-    const now = Date.now();
-
-    if (this.publicListCache && now - this.cacheTimestamp < this.CACHE_TTLL) {
-      return this.publicListCache;
+    if (filters.type && filters.type !== "Всі") {
+      query.type = filters.type;
     }
 
-    const list = await Organization.find(filter)
-      .select(
-        "name logo website description edrpou type city scientificDomains isVerified email allowPublicJoin",
-      )
-      .lean();
+    if (filters.city && filters.city !== "Всі") {
+      query.city = { $regex: filters.city.trim(), $options: "i" };
+    }
 
-    this.publicListCache = list;
-    this.cacheTimestamp = now;
+    if (filters.scientificDomains && filters.scientificDomains !== "Всі") {
+      query.scientificDomains = filters.scientificDomains;
+    }
 
-    return list;
+    if (filters.search && filters.search.trim()) {
+      const searchRegex = { $regex: filters.search.trim(), $options: "i" };
+      query.$or = [
+        { name: searchRegex },
+        { edrpou: searchRegex },
+        { description: searchRegex },
+      ];
+    }
+
+    return query;
   }
 
   async getById(id) {
     const organization = await Organization.findById(id)
       .populate("creatorId", "name email")
-      .populate("members", "name email role");
+      .populate("members", "name email role image");
 
     if (!organization) {
       const error = new Error("Організацію не знайдено");
@@ -128,6 +80,41 @@ class OrganizationService {
       throw error;
     }
     return organization;
+  }
+
+  async getPublicList(filters = {}) {
+    const now = Date.now();
+
+    const isDefaultFilter =
+      Object.keys(filters).length === 0 ||
+      (filters.status === "approved" && filters.allowPublicJoin === true);
+
+    if (
+      isDefaultFilter &&
+      this.publicListCache &&
+      now - this.cacheTimestamp < this.CACHE_TTL
+    ) {
+      return this.publicListCache;
+    }
+
+    const query = this.#buildFilterQuery({
+      status: "approved",
+      allowPublicJoin: true,
+      ...filters,
+    });
+
+    const list = await Organization.find(query)
+      .select(
+        "name logo website description edrpou type city scientificDomains isVerified email allowPublicJoin",
+      )
+      .lean();
+
+    if (isDefaultFilter) {
+      this.publicListCache = list;
+      this.cacheTimestamp = now;
+    }
+
+    return list;
   }
 
   async create(userId, data) {
@@ -159,7 +146,6 @@ class OrganizationService {
       throw error;
     }
 
-    // Обробка наукових галузей
     let domains = data.scientificDomains || [];
     if (typeof domains === "string") {
       try {
@@ -192,7 +178,133 @@ class OrganizationService {
       pendingOrganizationId: newOrg._id,
     });
 
+    this.clearCache();
     return newOrg;
+  }
+
+  async requestToJoin(orgId, userId) {
+    const organization = await Organization.findById(orgId);
+    if (!organization) {
+      const error = new Error("Організацію не знайдено");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (organization.status !== "approved") {
+      const error = new Error("Не можна вступити до непідтвердженої установи");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (organization.allowPublicJoin === false) {
+      const error = new Error(
+        "Ця організація закрила можливість надсилання публічних заявок на вступ",
+      );
+      error.statusCode = 403;
+      throw error;
+    }
+
+    const alreadyRequested = organization.joinRequests.some(
+      (req) => req.userId.toString() === userId.toString(),
+    );
+    if (alreadyRequested) {
+      const error = new Error(
+        "Ви вже надіслали запит на вступ до цієї установи",
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const user = await User.findById(userId);
+    if (user.organizationId) {
+      const error = new Error("Ви вже є членом іншої організації");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    organization.joinRequests.push({ userId });
+    await organization.save();
+  }
+
+  async leaveOrganization(userId) {
+    const user = await User.findById(userId);
+    if (!user || !user.organizationId) {
+      const error = new Error("Ви не перебуваєте в жодній установі");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const org = await Organization.findById(user.organizationId);
+    if (org && org.creatorId.toString() === userId.toString()) {
+      const error = new Error(
+        "Творець організації не може вийти з неї. Тільки видалити або передати права.",
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    await Organization.findByIdAndUpdate(user.organizationId, {
+      $pull: { members: userId },
+    });
+
+    const originalRole = user.role;
+    user.organizationId = null;
+    user.role = "user";
+
+    if (originalRole === "reviewer") {
+      user.isReviewerActive = false;
+      user.allowedDomains = [];
+      user.allowedTypes = [];
+      user.academicDegree = "Немає / Дослідник";
+    }
+
+    await user.save();
+  }
+
+  async getOrganizationUsers(orgId, page = 1, limit = 8) {
+    const skip = (page - 1) * limit;
+
+    const org = await Organization.findById(orgId).select("members").populate({
+      path: "members",
+      select: "name email role city socials isBanned image",
+      options: { skip, limit },
+    });
+
+    if (!org) {
+      const error = new Error("Організацію не знайдено");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const totalOrg = await Organization.findById(orgId).select("members");
+    const totalItems = totalOrg?.members?.length || 0;
+    const totalPages = Math.ceil(totalItems / limit);
+
+    return {
+      items: org.members || [],
+      currentPage: Number(page),
+      totalPages: totalPages || 1,
+      totalItems,
+    };
+  }
+
+  async getOrganizationPrograms(orgId, page = 1, limit = 8) {
+    const skip = (page - 1) * limit;
+
+    const totalItems = await Program.countDocuments({ organizationId: orgId });
+    const totalPages = Math.ceil(totalItems / limit);
+
+    const programs = await Program.find({ organizationId: orgId })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    return {
+      items: programs,
+      currentPage: Number(page),
+      totalPages: totalPages || 1,
+      totalItems,
+    };
   }
 
   async update(orgId, updateData, file) {
@@ -285,164 +397,17 @@ class OrganizationService {
     );
 
     this.clearCache();
-
     return updatedOrg;
-  }
-
-  async updateStatus(id, status) {
-    const org = await Organization.findById(id);
-    if (!org) {
-      const error = new Error("Організацію не знайдено");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    org.status = status;
-    this.publicListCache = null;
-
-    const creatorUserId = org.creatorId._id || org.creatorId;
-
-    if (status === "approved") {
-      org.isVerified = true;
-
-      if (org.edrpou.includes("-rejected-")) {
-        org.edrpou = org.edrpou.split("-rejected-")[0];
-      }
-      org.name = org.name.replace(/\s*\(Відхилено\)/g, "").trim();
-
-      const updatedUser = await User.findByIdAndUpdate(
-        creatorUserId,
-        {
-          $set: {
-            role: "admin",
-            organizationId: org._id,
-          },
-          $unset: {
-            pendingOrganizationId: 1,
-          },
-        },
-        {
-          new: true,
-          runValidators: false,
-          overwriteDiscriminatorKey: true,
-        },
-      );
-
-      if (updatedUser) {
-        console.log(`Роль засновника успішно змінено на ${updatedUser.role}!`);
-      }
-    }
-
-    if (status === "rejected") {
-      org.isVerified = false;
-      org.edrpou = `${org.edrpou}-rejected-${Date.now()}`;
-      org.name = `${org.name} (Відхилено)`;
-
-      await User.findByIdAndUpdate(creatorUserId, {
-        $unset: { pendingOrganizationId: 1 },
-      });
-    }
-
-    await org.save();
-    return org;
-  }
-
-  async requestToJoin(orgId, userId) {
-    const organization = await Organization.findById(orgId);
-    if (!organization) {
-      const error = new Error("Організацію не знайдено");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    if (organization.status !== "approved") {
-      const error = new Error("Не можна вступити до непідтвердженої установи");
-      error.statusCode = 400;
-      throw error;
-    }
-
-    if (organization.allowPublicJoin === false) {
-      const error = new Error(
-        "Ця організація закрила можливість надсилання публічних заявок на вступ",
-      );
-      error.statusCode = 403;
-      throw error;
-    }
-
-    const alreadyRequested = organization.joinRequests.some(
-      (req) => req.userId.toString() === userId.toString(),
-    );
-    if (alreadyRequested) {
-      const error = new Error(
-        "Ви вже надіслали запит на вступ до цієї установи",
-      );
-      error.statusCode = 400;
-      throw error;
-    }
-
-    const user = await User.findById(userId);
-    if (user.organizationId) {
-      const error = new Error("Ви вже є членом іншої організації");
-      error.statusCode = 400;
-      throw error;
-    }
-
-    organization.joinRequests.push({ userId });
-    await organization.save();
-  }
-
-  async acceptJoinRequest(orgId, userId) {
-    const organization = await Organization.findById(orgId);
-    if (!organization) {
-      const error = new Error("Організацію не знайдено чи доступ обмежено");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    organization.joinRequests = organization.joinRequests.filter(
-      (req) => req.userId.toString() !== userId.toString(),
-    );
-
-    const isAlreadyMember = organization.members.some(
-      (memberId) => memberId.toString() === userId.toString(),
-    );
-
-    if (!isAlreadyMember) {
-      organization.members.push(userId);
-    }
-
-    await organization.save();
-
-    const user = await User.findById(userId);
-    if (user) {
-      user.organizationId = orgId;
-
-      if (user.role === "reviewer") {
-        user.isReviewerActive = true;
-      }
-
-      await user.save();
-    }
-  }
-
-  async rejectJoinRequest(orgId, userId) {
-    const organization = await Organization.findById(orgId);
-    if (!organization) {
-      const error = new Error("Організацію не знайдено");
-      error.statusCode = 404;
-      throw error;
-    }
-
-    organization.joinRequests = organization.joinRequests.filter(
-      (req) => req.userId.toString() !== userId.toString(),
-    );
-
-    await organization.save();
   }
 
   async getPagedPendingRequests(orgId, { page = 1, limit = 8, search = "" }) {
     if (!orgId) {
-      return { items: [], currentPage: page, totalPages: 1, totalItems: 0 };
+      return {
+        items: [],
+        currentPage: Number(page),
+        totalPages: 1,
+        totalItems: 0,
+      };
     }
 
     const cleanOrgId = orgId._id ? orgId._id.toString() : orgId.toString();
@@ -501,46 +466,57 @@ class OrganizationService {
 
     return {
       items,
-      currentPage: page,
+      currentPage: Number(page),
       totalPages,
       totalItems,
     };
   }
 
-  async leaveOrganization(userId) {
+  async acceptJoinRequest(orgId, userId) {
+    const organization = await Organization.findById(orgId);
+    if (!organization) {
+      const error = new Error("Організацію не знайдено чи доступ обмежено");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    organization.joinRequests = organization.joinRequests.filter(
+      (req) => req.userId.toString() !== userId.toString(),
+    );
+
+    const isAlreadyMember = organization.members.some(
+      (memberId) => memberId.toString() === userId.toString(),
+    );
+
+    if (!isAlreadyMember) {
+      organization.members.push(userId);
+    }
+
+    await organization.save();
+
     const user = await User.findById(userId);
-    if (!user || !user.organizationId) {
-      const error = new Error("Ви не перебуваєте в жодній установі");
-      error.statusCode = 400;
+    if (user) {
+      user.organizationId = orgId;
+      if (user.role === "reviewer") {
+        user.isReviewerActive = true;
+      }
+      await user.save();
+    }
+  }
+
+  async rejectJoinRequest(orgId, userId) {
+    const organization = await Organization.findById(orgId);
+    if (!organization) {
+      const error = new Error("Організацію не знайдено");
+      error.statusCode = 404;
       throw error;
     }
 
-    const org = await Organization.findById(user.organizationId);
-    if (org && org.creatorId.toString() === userId.toString()) {
-      const error = new Error(
-        "Творець організації не може вийти з неї. Тільки видалити або передати права.",
-      );
-      error.statusCode = 400;
-      throw error;
-    }
+    organization.joinRequests = organization.joinRequests.filter(
+      (req) => req.userId.toString() !== userId.toString(),
+    );
 
-    await Organization.findByIdAndUpdate(user.organizationId, {
-      $pull: { members: userId },
-    });
-
-    const originalRole = user.role;
-
-    user.organizationId = null;
-
-    user.role = "user";
-
-    if (originalRole === "reviewer") {
-      user.isReviewerActive = false;
-      user.allowedDomains = [];
-      user.allowedTypes = [];
-    }
-
-    await user.save();
+    await organization.save();
   }
 
   async kickMember(orgId, adminUser, targetUserId) {
@@ -583,6 +559,7 @@ class OrganizationService {
           user.isReviewerActive = false;
           user.allowedDomains = [];
           user.allowedTypes = [];
+          user.academicDegree = "Немає / Дослідник";
         }
         user.role = "user";
       }
@@ -591,7 +568,13 @@ class OrganizationService {
     }
   }
 
-  async updateMemberRole(orgId, adminUserId, targetUserId, newRole) {
+  async updateMemberRole(
+    orgId,
+    adminUserId,
+    targetUserId,
+    newRole,
+    extraData = {},
+  ) {
     const cleanOrgId = orgId?._id ? orgId._id.toString() : orgId?.toString();
 
     const org = await Organization.findById(cleanOrgId);
@@ -625,21 +608,49 @@ class OrganizationService {
       throw error;
     }
 
-    const updateData = { role: newRole };
-
     if (newRole === "reviewer") {
-      updateData.isReviewerActive = true;
+      await User.findByIdAndUpdate(
+        targetUserId,
+        {
+          $set: {
+            role: newRole,
+            isReviewerActive: true,
+            academicDegree: extraData.academicDegree || "Немає / Дослідник",
+            allowedDomains: Array.isArray(extraData.allowedDomains)
+              ? extraData.allowedDomains
+              : [],
+            allowedTypes: Array.isArray(extraData.allowedTypes)
+              ? extraData.allowedTypes
+              : [],
+          },
+        },
+        { overwriteDiscriminatorKey: true },
+      );
+    } else {
+      await User.collection.updateOne(
+        { _id: new mongoose.Types.ObjectId(targetUserId) },
+        {
+          $set: { role: newRole },
+          $unset: {
+            academicDegree: "",
+            allowedDomains: "",
+            allowedTypes: "",
+            isReviewerActive: "",
+          },
+        },
+      );
     }
 
-    const updatedUser = await User.findByIdAndUpdate(
-      targetUserId,
-      { $set: updateData },
-      {
-        new: true,
-        runValidators: false,
-        overwriteDiscriminatorKey: true,
-      },
-    ).select("name email role organizationId isReviewerActive");
+    const updatedUser = await User.findById(targetUserId)
+      .select("-password")
+      .lean();
+
+    if (newRole !== "reviewer" && updatedUser) {
+      delete updatedUser.academicDegree;
+      delete updatedUser.allowedDomains;
+      delete updatedUser.allowedTypes;
+      delete updatedUser.isReviewerActive;
+    }
 
     return updatedUser;
   }
@@ -693,6 +704,96 @@ class OrganizationService {
     console.log(
       `Права власності на організацію "${org.name}" успішно передано від ${currentOwnerId} до ${newOwnerId}`,
     );
+  }
+
+  async toggleVerified(id) {
+    const org = await Organization.findById(id);
+    if (!org) return null;
+
+    org.isVerified = !org.isVerified;
+    return await org.save();
+  }
+
+  async toggleFeatured(id) {
+    const org = await Organization.findById(id);
+    if (!org) return null;
+
+    org.isFeatured = !org.isFeatured;
+    return await org.save();
+  }
+
+  async getAll(filters = {}, page = 1, limit = 8) {
+    const query = this.#buildFilterQuery(filters);
+    const skip = (page - 1) * limit;
+
+    const organizations = await Organization.find(query)
+      .populate("creatorId", "name email")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Organization.countDocuments(query);
+    const totalPages = Math.ceil(total / limit);
+
+    return { organizations, totalPages, currentPage: Number(page) };
+  }
+
+  async updateStatus(id, status) {
+    const org = await Organization.findById(id);
+    if (!org) {
+      const error = new Error("Організацію не знайдено");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    org.status = status;
+    this.clearCache();
+
+    const creatorUserId = org.creatorId._id || org.creatorId;
+
+    if (status === "approved") {
+      org.isVerified = true;
+
+      if (org.edrpou.includes("-rejected-")) {
+        org.edrpou = org.edrpou.split("-rejected-")[0];
+      }
+      org.name = org.name.replace(/\s*\(Відхилено\)/g, "").trim();
+
+      const updatedUser = await User.findByIdAndUpdate(
+        creatorUserId,
+        {
+          $set: {
+            role: "admin",
+            organizationId: org._id,
+          },
+          $unset: {
+            pendingOrganizationId: 1,
+          },
+        },
+        {
+          new: true,
+          runValidators: false,
+          overwriteDiscriminatorKey: true,
+        },
+      );
+
+      if (updatedUser) {
+        console.log(`Роль засновника успішно змінено на ${updatedUser.role}!`);
+      }
+    }
+
+    if (status === "rejected") {
+      org.isVerified = false;
+      org.edrpou = `${org.edrpou}-rejected-${Date.now()}`;
+      org.name = `${org.name} (Відхилено)`;
+
+      await User.findByIdAndUpdate(creatorUserId, {
+        $unset: { pendingOrganizationId: 1 },
+      });
+    }
+
+    await org.save();
+    return org;
   }
 
   async deleteOrganization(orgId, requestUserId, userRole) {
@@ -824,7 +925,8 @@ class OrganizationService {
     } catch (err) {
       console.error("Помилка при скиданні зв'язків користувачів:", err);
     }
-    this.publicListCache = null;
+
+    this.clearCache();
 
     if (org.logo) {
       await this.#deleteImageFromCloudinary(org.logo);

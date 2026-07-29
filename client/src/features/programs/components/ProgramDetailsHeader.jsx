@@ -1,4 +1,4 @@
-import { Calendar, ExternalLink } from "lucide-react";
+import { Calendar, ExternalLink, Star, CheckCircle2 } from "lucide-react";
 import Badge from "@/shared/ui/Badge";
 
 export default function ProgramDetailsHeader({ program }) {
@@ -8,8 +8,11 @@ export default function ProgramDetailsHeader({ program }) {
     return "default";
   };
 
+  const isOrgVerified =
+    program.organizationId?.isVerified || program.isVerified;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-left">
       <div className="flex flex-wrap justify-between items-center gap-4 border-b border-border-color pb-4">
         <div className="flex items-center gap-3">
           {program.organizationId?.logo && (
@@ -20,9 +23,19 @@ export default function ProgramDetailsHeader({ program }) {
             />
           )}
           <div>
-            <h4 className="font-mono text-[10px] font-black uppercase tracking-widest text-text-muted leading-none">
-              {program.organizationId?.name || "Science Platform"}
-            </h4>
+            <div className="flex items-center gap-1.5">
+              <h4 className="font-mono text-[10px] font-black uppercase tracking-widest text-text-muted leading-none">
+                {program.organizationId?.name || "Science Platform"}
+              </h4>
+              {isOrgVerified && (
+                <CheckCircle2
+                  size={13}
+                  className="text-brand shrink-0 fill-brand/10"
+                  title="Верифікована установа"
+                />
+              )}
+            </div>
+
             {program.organizationId?.website && (
               <a
                 href={program.organizationId.website}
@@ -36,9 +49,21 @@ export default function ProgramDetailsHeader({ program }) {
           </div>
         </div>
 
-        <Badge status={getBadgeStatus(program.type)}>
-          <span className="font-bold">{program.type}</span>
-        </Badge>
+        <div className="flex items-center gap-2">
+          {program.isFeatured && (
+            <Badge
+              status="warning"
+              className="!bg-amber-500/90 !text-white border-none flex items-center gap-1 font-bold shadow-sm"
+            >
+              <Star className="w-3 h-3 fill-white" />
+              <span>Рекомендовано</span>
+            </Badge>
+          )}
+
+          <Badge status={getBadgeStatus(program.type)}>
+            <span className="font-bold">{program.type}</span>
+          </Badge>
+        </div>
       </div>
 
       <h1 className="text-xl md:text-2xl font-black tracking-tight font-sans uppercase text-text-primary">

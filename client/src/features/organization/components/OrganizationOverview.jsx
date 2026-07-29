@@ -8,6 +8,7 @@ import {
   Building2,
   BookOpen,
   ShieldCheck,
+  CheckCircle2,
 } from "lucide-react";
 
 export default function OrganizationOverview({ orgData }) {
@@ -16,11 +17,20 @@ export default function OrganizationOverview({ orgData }) {
   return (
     <div className="space-y-5 text-left animate-reveal">
       <Card className="p-5 md:p-6 bg-bg-secondary/60 border-border-color space-y-3 shadow-xs overflow-hidden">
-        <div className="flex items-center gap-2 border-b border-border-color/40 pb-3">
-          <Building2 size={16} className="text-brand shrink-0" />
-          <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-text-muted">
-            Про наукову установу
-          </h3>
+        <div className="flex items-center justify-between border-b border-border-color/40 pb-3">
+          <div className="flex items-center gap-2">
+            <Building2 size={16} className="text-brand shrink-0" />
+            <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-text-muted">
+              Про наукову установу
+            </h3>
+          </div>
+
+          {orgData.isVerified && (
+            <Badge status="success" className="flex items-center gap-1">
+              <CheckCircle2 size={12} className="shrink-0" />
+              <span>Верифіковано</span>
+            </Badge>
+          )}
         </div>
 
         <p className="text-xs md:text-sm text-text-primary leading-relaxed whitespace-pre-line [overflow-wrap:anywhere]">

@@ -1,8 +1,20 @@
 import axiosInstance from "@/shared/api/axios";
 
+const extractId = (target) =>
+  typeof target === "object" && target !== null
+    ? target._id || target.id
+    : target;
+
 export const organizationApi = {
   getById: async (id) => {
     const res = await axiosInstance.get(`/organizations/${id}`);
+    return res.data;
+  },
+
+  createOrganization: async (formData) => {
+    const res = await axiosInstance.post("/organizations", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     return res.data;
   },
 
@@ -19,9 +31,15 @@ export const organizationApi = {
   },
 
   updateOrganization: async (orgId, updateData) => {
+    const headers =
+      updateData instanceof FormData
+        ? { "Content-Type": "multipart/form-data" }
+        : { "Content-Type": "application/json" };
+
     const res = await axiosInstance.patch(
       `/organizations/${orgId}`,
       updateData,
+      { headers },
     );
     return res.data;
   },

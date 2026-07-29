@@ -6,33 +6,28 @@ import Input from "@/shared/ui/Input";
 import Select from "@/shared/ui/Select";
 import Skeleton from "@/shared/ui/Skeleton";
 import { useProjects } from "@/features/projects/hooks/useProjects";
-import {
-  SCIENTIFIC_DOMAINS,
-  PROGRAM_TYPES,
-} from "@/shared/lib/constants/domains";
+import { SCIENTIFIC_DOMAINS } from "@/shared/lib/constants/domains";
 import ProjectCard from "@/features/projects/components/ProjectCard";
 import ProjectDetailModal from "@/features/projects/components/ProjectDetailModal";
+
+const ALLOWED_ARCHIVE_TYPES = ["Науковий журнал", "Стаття", "Датасет"];
 
 export default function ArchivePage() {
   const {
     projects,
-    totalCount,
     loading,
-    searchTerm,
-    setSearchTerm,
-    selectedDomain,
-    setSelectedDomain,
-    selectedType,
-    setSelectedType,
+    filters,
+    updateFilter,
     handleResetFilters,
-  } = useProjects();
+    pagination,
+  } = useProjects({}, 8, true); // 👈 isArchiveMode = true
 
   const [selectedProject, setSelectedProject] = useState(null);
 
   const typeOptions = useMemo(
     () => [
       { label: "Всі типи матеріалів", value: "Всі типи" },
-      ...PROGRAM_TYPES.map((t) => ({ label: t, value: t })),
+      ...ALLOWED_ARCHIVE_TYPES.map((t) => ({ label: t, value: t })),
     ],
     [],
   );
@@ -40,7 +35,7 @@ export default function ArchivePage() {
   const domainOptions = useMemo(
     () => [
       { label: "Всі галузі науки", value: "Всі галузі" },
-      ...SCIENTIFIC_DOMAINS.map((d) => ({ label: d, value: d })),
+      ...(SCIENTIFIC_DOMAINS || []).map((d) => ({ label: d, value: d })),
     ],
     [],
   );
@@ -58,9 +53,8 @@ export default function ArchivePage() {
 
       <main className="flex-grow pt-40 pb-24 px-4 md:px-6 relative">
         <div className="max-w-7xl mx-auto relative z-10 flex flex-col gap-8">
-          {/* Хедер репозиторію */}
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6 border-b border-border-color/65 pb-8 w-full">
-            <div className="space-y-3 max-w-2xl">
+            <div className="space-y-3 max-w-2xl text-left">
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-xl text-[10px] font-black uppercase tracking-widest font-mono">
                 <Archive size={11} /> Відкритий науковий репозиторій
               </div>
@@ -76,41 +70,40 @@ export default function ArchivePage() {
             <div className="flex gap-4 font-mono text-[10px] uppercase text-text-secondary font-bold tracking-wider shrink-0 bg-bg-secondary/50 border border-border-color p-4 rounded-2xl backdrop-blur-xs">
               <div className="text-left">
                 <span className="block text-emerald-500 font-black text-sm leading-none mb-1">
-                  {totalCount}
+                  {pagination.totalItems || projects.length}
                 </span>
                 <span>Публікацій у базі</span>
               </div>
             </div>
           </div>
 
-          {/* Фільтрація та пошук */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-bg-secondary/60 p-4 rounded-2xl border border-border-color backdrop-blur-xs w-full items-center">
             <div className="md:col-span-2">
               <Input
                 placeholder="Швидкий пошук за назвою або автором..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={filters.search}
+                onChange={(e) => updateFilter("search", e.target.value)}
               />
             </div>
             <div>
               <Select
                 options={typeOptions}
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
+                value={filters.type}
+                onChange={(e) => updateFilter("type", e.target.value)}
               />
             </div>
             <div>
               <Select
                 options={domainOptions}
-                value={selectedDomain}
-                onChange={(e) => setSelectedDomain(e.target.value)}
+                value={filters.domain}
+                onChange={(e) => updateFilter("domain", e.target.value)}
               />
             </div>
           </div>
 
-          {(searchTerm ||
-            selectedType !== "Всі типи" ||
-            selectedDomain !== "Всі галузі") && (
+          {(filters.search ||
+            filters.type !== "Всі типи" ||
+            filters.domain !== "Всі галузі") && (
             <div className="flex justify-start">
               <button
                 onClick={handleResetFilters}
@@ -121,7 +114,6 @@ export default function ArchivePage() {
             </div>
           )}
 
-          {/* Сітка матеріалів */}
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(6)].map((_, i) => (

@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { organizationApi } from "@/features/organization/api/organizationApi";
 import { programApi } from "@/features/programs/api/programApi";
 import { projectApi } from "@/features/projects/api/projectApi";
-import { postApi } from "@/features/blog/api/postApi";
+import { contentManagerApi } from "@/features/content-manager/api/contentManagerApi";
 import { useContentManager } from "@/features/content-manager/hooks/useContentManager";
 
 export function useOrganizationDashboard(orgId) {
@@ -12,6 +12,7 @@ export function useOrganizationDashboard(orgId) {
   const [posts, setPosts] = useState([]);
   const [submittedProjects, setSubmittedProjects] = useState([]);
   const [requests, setRequests] = useState([]);
+
   const [loadingOrg, setLoadingOrg] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [loadingPrograms, setLoadingPrograms] = useState(false);
@@ -77,10 +78,13 @@ export function useOrganizationDashboard(orgId) {
       if (!orgId) return;
       try {
         setLoadingPosts(true);
-        const res = await postApi.getAll({ organizationId: orgId }, page);
+        const res = await contentManagerApi.getDashboardData(
+          { organizationId: orgId },
+          page,
+        );
         setPosts(res.posts || res.items || []);
       } catch (err) {
-        console.error("Помилка завантаження постів:", err);
+        console.error("Помилка завантаження постів організації:", err);
       } finally {
         setLoadingPosts(false);
       }
@@ -93,7 +97,7 @@ export function useOrganizationDashboard(orgId) {
       if (!orgId) return;
       try {
         setLoadingSubmittedProjects(true);
-        const data = await projectApi.getByOrganization(orgId, page);
+        const data = await projectApi.getAll({ organizationId: orgId }, page);
         setSubmittedProjects(data.projects || data.items || []);
       } catch (err) {
         console.error("Помилка завантаження поданих проєктів:", err);
@@ -152,6 +156,28 @@ export function useOrganizationDashboard(orgId) {
           err.response?.data?.error ||
           err.response?.data?.message ||
           "Не вдалося передати права власності",
+      };
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUpdateMemberRole = async (userId, roleData) => {
+    if (!orgId) return;
+    try {
+      setActionLoading(true);
+      const res = await organizationApi.updateMemberRole(
+        orgId,
+        userId,
+        roleData,
+      );
+      await fetchMembers();
+      return { success: true, message: res.message };
+    } catch (err) {
+      console.error("Помилка зміни ролі учасника:", err);
+      return {
+        success: false,
+        error: err.response?.data?.error || "Не вдалося змінити роль",
       };
     } finally {
       setActionLoading(false);
@@ -330,6 +356,7 @@ export function useOrganizationDashboard(orgId) {
     actionLoading,
     handleUpdateOrg,
     handleTransferOwnership,
+    handleUpdateMemberRole,
     fetchOrgDetails,
     fetchPrograms,
     fetchMembers,

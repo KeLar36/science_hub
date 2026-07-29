@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axiosInstance from "@/shared/api/axios";
+import { projectApi } from "@/features/projects/api/projectApi";
 import { SCIENTIFIC_DOMAINS } from "@/shared/lib/constants/domains";
 import { usePrograms } from "@/features/programs/hooks/usePrograms";
 
@@ -72,9 +72,7 @@ export function useSubmitProject(initialProgramId = "") {
       formData.append("metadata", JSON.stringify(metadata));
       formData.append("file", file);
 
-      await axiosInstance.post("/projects", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      await projectApi.create(formData);
       setSuccess(true);
       setTimeout(() => {
         navigate("/profile");

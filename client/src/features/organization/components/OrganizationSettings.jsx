@@ -76,6 +76,9 @@ export default function OrganizationSettings({
   const handleLogoChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (logoPreview && !logoPreview.startsWith("http")) {
+        URL.revokeObjectURL(logoPreview);
+      }
       setLogoFile(file);
       setLogoPreview(URL.createObjectURL(file));
     }
@@ -155,8 +158,11 @@ export default function OrganizationSettings({
 
       await onUpdate?.(submitData);
       setSuccess(true);
+      setTimeout(() => setSuccess(false), 5000);
     } catch (err) {
-      setError(err?.response?.data?.error || "Не вдалося зберегти зміни");
+      const msg = err?.response?.data?.error || "Не вдалося зберегти зміни";
+      setError(msg);
+      setTimeout(() => setError(null), 5000);
     } finally {
       setSaving(false);
     }
@@ -169,12 +175,16 @@ export default function OrganizationSettings({
         className="space-y-6 text-left max-w-4xl mx-auto"
       >
         {success && (
-          <Alert variant="success">
+          <Alert variant="success" onClose={() => setSuccess(false)}>
             Налаштування організації успішно збережено!
           </Alert>
         )}
 
-        {error && <Alert variant="danger">{error}</Alert>}
+        {error && (
+          <Alert variant="danger" onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
 
         <Card className="p-5 space-y-4">
           <h3 className="text-sm font-mono font-bold uppercase text-text-primary flex items-center gap-2">

@@ -1,17 +1,32 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { PlusCircle, FileText, Award } from "lucide-react"; // 👈 Додали Award або Folder
+import {
+  PlusCircle,
+  FileText,
+  Award,
+  Eye,
+  MessageSquare,
+  UploadCloud,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 import Card from "@/shared/ui/Card";
 import Button from "@/shared/ui/Button";
 import Badge from "@/shared/ui/Badge";
 import Skeleton from "@/shared/ui/Skeleton";
 import Pagination from "@/shared/ui/Pagination";
+import UploadNewVersionModal from "@/features/user/components/UploadNewVersionModal";
 
 export default function MyProjectsTab({
   projects = [],
   loading,
   onPageChange,
+  onOpenChat,
+  onRefresh,
 }) {
+  const [reUploadProject, setReUploadProject] = useState(null);
+
   const projectList = Array.isArray(projects)
     ? projects
     : projects?.projects || [];
@@ -20,20 +35,21 @@ export default function MyProjectsTab({
   const currentPage = projects?.currentPage || 1;
   const totalItems = projects?.totalItems ?? projectList.length;
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "Прийнято":
-      case "approved":
-        return <Badge status="success">Прийнято</Badge>;
-      case "На доопрацюванні":
-      case "needs_revision":
-        return <Badge status="warning">На доопрацюванні</Badge>;
-      case "Відхилено":
-      case "rejected":
-        return <Badge status="danger">Відхилено</Badge>;
-      default:
-        return <Badge status="default">На розгляді</Badge>;
+  const getStatusBadge = (status, reviewStatus) => {
+    if (status === "Прийнято" || status === "approved") {
+      return <Badge status="success">Прийнято</Badge>;
     }
+    if (status === "Відхилено" || status === "rejected") {
+      return <Badge status="danger">Відхилено</Badge>;
+    }
+    if (
+      status === "На доопрацюванні" ||
+      status === "needs_revision" ||
+      reviewStatus === "На доопрацюванні"
+    ) {
+      return <Badge status="warning">На доопрацюванні</Badge>;
+    }
+    return <Badge status="default">На розгляді</Badge>;
   };
 
   if (loading) {
@@ -46,7 +62,7 @@ export default function MyProjectsTab({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 text-left">
       <div className="flex items-center justify-between">
         <span className="text-xs font-mono text-text-muted">
           Всього подано праць:{" "}
@@ -81,8 +97,20 @@ export default function MyProjectsTab({
                 project.programId ||
                 project.program?._id;
 
+              const isNeedsRevision =
+                project.status === "На доопрацюванні" ||
+                project.status === "needs_revision" ||
+                project.reviewStatus === "На доопрацюванні";
+
+              const isAccepted = project.status === "Прийнято";
+              const isRejected = project.status === "Відхилено";
+
+              const hasReviewerFeedback =
+                Boolean(project.reviewerComments) ||
+                Boolean(project.reviewerRecommendation);
+
               return (
-                <Card key={project._id} hoverable className="p-4">
+                <Card key={project._id} hoverable className="p-4 space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -110,18 +138,105 @@ export default function MyProjectsTab({
                         <span className="text-[10px] font-mono text-text-muted">
                           • {new Date(project.createdAt).toLocaleDateString()}
                         </span>
+
+                        {project.versions && project.versions.length > 1 && (
+                          <span className="text-[10px] font-mono text-brand font-bold">
+                            v{project.versions.length}
+                          </span>
+                        )}
                       </div>
 
-                      {/* Заголовок праці */}
                       <h3 className="font-bold text-xs text-text-primary font-sans leading-snug">
                         {project.title}
                       </h3>
                     </div>
 
-                    <div className="shrink-0">
-                      {getStatusBadge(project.status)}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {getStatusBadge(project.status, project.reviewStatus)}
+
+                      {isNeedsRevision && (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          icon={UploadCloud}
+                          onClick={() => setReUploadProject(project)}
+                          className="!px-2.5 text-xs animate-pulse"
+                          title="Завантажити виправлену версію"
+                        >
+                          Переподати
+                        </Button>
+                      )}
+
+                      {onOpenChat && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          icon={MessageSquare}
+                          onClick={() => onOpenChat(project)}
+                          className="!p-1.5"
+                          title="Чат рецензування"
+                        />
+                      )}
+
+                      <Link to={`/projects/${project._id}`}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          icon={Eye}
+                          className="!p-1.5"
+                          title="Переглянути деталі праці"
+                        />
+                      </Link>
                     </div>
                   </div>
+
+                  {hasReviewerFeedback && (
+                    <div
+                      className={`p-3 rounded-xl border space-y-1 text-xs ${
+                        isAccepted
+                          ? "bg-emerald-500/5 border-emerald-500/20"
+                          : isRejected
+                            ? "bg-rose-500/5 border-rose-500/20"
+                            : "bg-bg-secondary border-border-color"
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase">
+                        {isAccepted ? (
+                          <CheckCircle2
+                            size={12}
+                            className="text-emerald-500"
+                          />
+                        ) : isRejected ? (
+                          <XCircle size={12} className="text-rose-500" />
+                        ) : (
+                          <AlertTriangle size={12} className="text-amber-500" />
+                        )}
+                        <span
+                          className={
+                            isAccepted
+                              ? "text-emerald-500"
+                              : isRejected
+                                ? "text-rose-500"
+                                : "text-amber-500"
+                          }
+                        >
+                          Висновок рецензента:
+                        </span>
+                      </div>
+
+                      {project.reviewerRecommendation && (
+                        <p className="font-medium text-text-primary italic">
+                          "{project.reviewerRecommendation}"
+                        </p>
+                      )}
+
+                      {project.reviewerComments && (
+                        <p className="text-text-muted leading-relaxed whitespace-pre-line text-[11px]">
+                          {project.reviewerComments}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </Card>
               );
             })}
@@ -133,6 +248,17 @@ export default function MyProjectsTab({
             onPageChange={onPageChange}
           />
         </>
+      )}
+
+      {reUploadProject && (
+        <UploadNewVersionModal
+          project={reUploadProject}
+          isOpen={!!reUploadProject}
+          onClose={() => setReUploadProject(null)}
+          onSuccess={() => {
+            onRefresh?.();
+          }}
+        />
       )}
     </div>
   );

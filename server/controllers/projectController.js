@@ -1,41 +1,54 @@
-const mongoose = require("mongoose");
 const projectService = require("../services/projectService");
-const Program = require("../models/Program");
 
 class ProjectController {
   async getAll(req, res, next) {
     try {
-      let query = {};
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 8;
 
-      if (req.query.search) {
-        query.title = { $regex: req.query.search.trim(), $options: "i" };
-      }
-      if (req.query.status && req.query.status !== "Всі статуси") {
-        query.status = req.query.status;
-      }
-      if (req.query.domain && req.query.domain !== "Всі галузі") {
-        query.domain = req.query.domain;
-      }
+      const filters = {
+        search: req.query.search,
+        status: req.query.status,
+        domain: req.query.domain,
+        reviewStatus: req.query.reviewStatus,
+        programId: req.query.programId,
+      };
+
+      let result;
 
       if (req.user.role === "user") {
-        query.authorId = req.user.id;
+        result = await projectService.getAuthorProjects(
+          req.user.id,
+          filters,
+          page,
+          limit,
+        );
       } else if (req.user.role === "reviewer") {
-        query.reviewerId = req.user.id;
+        result = await projectService.getReviewerQueue(
+          req.user.id,
+          filters,
+          page,
+          limit,
+        );
       } else if (req.user.role === "admin") {
-        const currentOrgId = req.user.organizationId;
-
-        if (!currentOrgId) {
-          query = { _id: null };
-        } else {
-          const programs = await Program.find({ organizationId: currentOrgId });
-          const programIds = programs.map((p) => p._id);
-          query.programId = { $in: programIds };
+        if (!req.user.organizationId) {
+          return res.json({
+            projects: [],
+            totalPages: 1,
+            currentPage: page,
+            totalItems: 0,
+          });
         }
+        result = await projectService.getOrganizationProjects(
+          req.user.organizationId,
+          filters,
+          page,
+          limit,
+        );
+      } else {
+        result = await projectService.getAll(filters, page, limit);
       }
 
-      const result = await projectService.getAll(query, page, limit);
       res.json(result);
     } catch (err) {
       next(err);
@@ -47,8 +60,15 @@ class ProjectController {
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 8;
 
-      const result = await projectService.getAll(
-        { authorId: req.user.id },
+      const filters = {
+        search: req.query.search,
+        status: req.query.status,
+        domain: req.query.domain,
+      };
+
+      const result = await projectService.getAuthorProjects(
+        req.user.id,
+        filters,
         page,
         limit,
       );
@@ -156,7 +176,9 @@ class ProjectController {
         fileData,
       );
 
-      await projectService.update(req.params.id, { reviewStatus: "В процесі" });
+      if (!updatedProject) {
+        return res.status(404).json({ message: "Проєкт не знайдено" });
+      }
 
       res.json(updatedProject);
     } catch (err) {
@@ -205,9 +227,11 @@ class ProjectController {
         return res.status(404).json({ message: "Проєкт не знайдено" });
       }
 
+      const authorId = project.authorId?._id || project.authorId;
+
       if (
         req.user.role !== "superadmin" &&
-        project.authorId._id.toString() !== req.user.id.toString()
+        authorId.toString() !== req.user.id.toString()
       ) {
         return res
           .status(403)
@@ -233,11 +257,23 @@ class ProjectController {
     }
   }
 
+  // Робоча область: Рецензент
   async getReviewerQueue(req, res, next) {
     try {
-      const reviewerId = req.user.id;
-      const projects = await projectService.getReviewerQueue(reviewerId);
-      res.json(projects);
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 8;
+      const filters = {
+        search: req.query.search,
+        reviewStatus: req.query.reviewStatus,
+      };
+
+      const result = await projectService.getReviewerQueue(
+        req.user.id,
+        filters,
+        page,
+        limit,
+      );
+      res.json(result);
     } catch (err) {
       next(err);
     }
