@@ -23,7 +23,10 @@ export function useSubmitProject(initialProgramId = "") {
     if (!selectedProgram && programs.length > 0) {
       setSelectedProgram(programs[0]._id);
     }
-  }, [programs, selectedProgram]);
+    if (SCIENTIFIC_DOMAINS) {
+      setDomain(SCIENTIFIC_DOMAINS);
+    }
+  }, [programs, selectedProgram, SCIENTIFIC_DOMAINS]);
 
   useEffect(() => {
     setMetadata({});

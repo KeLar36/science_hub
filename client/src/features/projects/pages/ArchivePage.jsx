@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Archive, BookOpen } from "lucide-react";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
+import Navbar from "@/shared/lib/components/layout/Navbar";
+import Footer from "@/shared/lib/components/layout/Footer";
 import Input from "@/shared/ui/Input";
 import Select from "@/shared/ui/Select";
 import Skeleton from "@/shared/ui/Skeleton";

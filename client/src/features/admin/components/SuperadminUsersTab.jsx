@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Search, Users, Ban, Trash2, Mail, ShieldAlert } from "lucide-react";
+import {
+  Search,
+  Users,
+  Ban,
+  Trash2,
+  Mail,
+  ShieldAlert,
+  Shield,
+} from "lucide-react";
 import Card from "@/shared/ui/Card";
 import Skeleton from "@/shared/ui/Skeleton";
 import Badge from "@/shared/ui/Badge";
@@ -10,6 +18,7 @@ import Select from "@/shared/ui/Select";
 import Pagination from "@/shared/ui/Pagination";
 import { Table, TableRow, TableCell } from "@/shared/ui/Table";
 import { useAdminData } from "@/features/admin/hooks/useAdminData";
+import ChangeRoleModal from "@/features/organization/components/ChangeRoleModal";
 
 export default function SuperadminUsersTab() {
   const {
@@ -26,6 +35,9 @@ export default function SuperadminUsersTab() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [accountStatusFilter, setAccountStatusFilter] = useState("");
+
+  const [selectedUserForRole, setSelectedUserForRole] = useState(null);
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
 
   const showFeedback = (type, message) => {
     setFeedback({ type, message });
@@ -48,14 +60,26 @@ export default function SuperadminUsersTab() {
     fetchUsers,
   ]);
 
-  const handleRoleChange = async (userId, userName, newRole) => {
-    if (!confirm(`Змінити роль користувача "${userName}" на ${newRole}?`))
-      return;
-    const res = await updateUserRole(userId, newRole);
+  const handleOpenRoleModal = (user) => {
+    setSelectedUserForRole(user);
+    setIsRoleModalOpen(true);
+  };
+
+  const handleSaveRole = async (payload) => {
+    if (!selectedUserForRole) return;
+
+    const res = await updateUserRole(selectedUserForRole._id, payload);
+
     if (res?.success) {
-      showFeedback("success", res.message || "Роль успішно оновлено");
+      showFeedback(
+        "success",
+        res.message ||
+          `Роль для "${selectedUserForRole.name}" успішно оновлено!`,
+      );
+      setIsRoleModalOpen(false);
+      setSelectedUserForRole(null);
     } else {
-      showFeedback("danger", res?.message || "Не вдалося змінити роль");
+      throw new Error(res?.message || "Помилка оновлення ролі");
     }
   };
 
@@ -195,6 +219,7 @@ export default function SuperadminUsersTab() {
 
               return (
                 <TableRow key={u._id}>
+                  {/* Користувач */}
                   <TableCell className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center font-bold text-purple-600 text-xs shrink-0 overflow-hidden">
@@ -234,21 +259,25 @@ export default function SuperadminUsersTab() {
                   </TableCell>
 
                   <TableCell className="px-6 py-4 whitespace-nowrap">
-                    <Select
-                      value={u.role}
-                      onChange={(e) =>
-                        handleRoleChange(u._id, u.name, e.target.value)
-                      }
-                      disabled={isDisabled}
-                      className="w-44 text-xs"
-                      options={[
-                        { label: "User", value: "user" },
-                        { label: "Reviewer", value: "reviewer" },
-                        { label: "Content Manager", value: "content-manager" },
-                        { label: "Admin", value: "admin" },
-                        { label: "Superadmin", value: "superadmin" },
-                      ]}
-                    />
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        status="default"
+                        className="uppercase font-mono text-[10px]"
+                      >
+                        {u.role}
+                      </Badge>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        icon={Shield}
+                        disabled={isDisabled}
+                        onClick={() => handleOpenRoleModal(u)}
+                        className="text-xs font-mono"
+                        title="Змінити роль та дозволи"
+                      >
+                        Змінити
+                      </Button>
+                    </div>
                   </TableCell>
 
                   <TableCell className="px-6 py-4 whitespace-nowrap">
@@ -319,6 +348,19 @@ export default function SuperadminUsersTab() {
             />
           )}
         </>
+      )}
+
+      {selectedUserForRole && (
+        <ChangeRoleModal
+          isOpen={isRoleModalOpen}
+          onClose={() => {
+            setIsRoleModalOpen(false);
+            setSelectedUserForRole(null);
+          }}
+          member={selectedUserForRole}
+          orgId={selectedUserForRole.organizationId}
+          onSave={handleSaveRole}
+        />
       )}
     </div>
   );

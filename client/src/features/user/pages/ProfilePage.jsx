@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
+import Navbar from "@/shared/lib/components/layout/Navbar";
+import Footer from "@/shared/lib/components/layout/Footer";
 import Breadcrumbs from "@/shared/ui/Breadcrumbs";
 import Tabs from "@/shared/ui/Tabs";
 import Alert from "@/shared/ui/Alert";

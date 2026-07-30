@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   CheckCircle2,
@@ -8,8 +8,8 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
+import Navbar from "@/shared/lib/components/layout/Navbar";
+import Footer from "@/shared/lib/components/layout/Footer";
 import Card from "@/shared/ui/Card";
 import Input from "@/shared/ui/Input";
 import Select from "@/shared/ui/Select";
@@ -25,6 +25,7 @@ import { useSubmitProject } from "../hooks/useSubmitProject";
 export default function SubmitProjectPage() {
   const [searchParams] = useSearchParams();
   const programIdParam = searchParams.get("program") || "";
+  const domainParam = searchParams.get("domain") || "";
 
   const {
     programs,
@@ -47,7 +48,14 @@ export default function SubmitProjectPage() {
     loading,
     error,
     success,
-  } = useSubmitProject(programIdParam);
+  } = useSubmitProject(programIdParam, domainParam);
+  useEffect(() => {
+    if (currentProgramObj?.domain) {
+      setDomain(currentProgramObj.domain);
+    } else if (domainParam && !domain) {
+      setDomain(domainParam);
+    }
+  }, [currentProgramObj, domainParam, setDomain, domain]);
 
   const programOptions = programs.map((p) => ({
     label: `${p.title} (${p.type || "Загальна"})`,

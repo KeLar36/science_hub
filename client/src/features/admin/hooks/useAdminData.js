@@ -187,6 +187,7 @@ export function useAdminData() {
         page,
         search: filters.search || "",
         role: filters.role || "",
+        accountStatus: filters.accountStatus || "",
       };
       const data = await adminApi.getAllUsers(params);
       setUsers(data.users || []);
@@ -206,31 +207,41 @@ export function useAdminData() {
 
   const updateUserRole = async (userId, roleData) => {
     try {
-      const res = await adminApi.updateUserRole(userId, roleData);
-      setUsers((prev) => prev.map((u) => (u._id === userId ? res : u)));
-      return { success: true, message: "Роль користувача оновлено" };
+      const updatedUser = await adminApi.updateUserRole(userId, roleData);
+      setUsers((prev) =>
+        prev.map((u) => (u._id === userId ? { ...u, ...updatedUser } : u)),
+      );
+      return { success: true, message: "Роль користувача успішно оновлено." };
     } catch (err) {
       return {
         success: false,
-        message: err.response?.data?.error || "Помилка зміни ролі",
+        message:
+          err.response?.data?.error ||
+          err.response?.data?.message ||
+          "Помилка зміни ролі",
       };
     }
   };
 
   const toggleBanUser = async (userId, currentBanStatus) => {
     try {
-      const res = await adminApi.banUser(userId, !currentBanStatus);
-      setUsers((prev) => prev.map((u) => (u._id === userId ? res : u)));
+      const updatedUser = await adminApi.banUser(userId, !currentBanStatus);
+      setUsers((prev) =>
+        prev.map((u) => (u._id === userId ? { ...u, ...updatedUser } : u)),
+      );
       return {
         success: true,
-        message: res.isBanned
-          ? "Користувача заблоковано"
-          : "Користувача розблоковано",
+        message: updatedUser.isBanned
+          ? "Користувача успішно заблоковано."
+          : "Користувача успішно розблоковано.",
       };
     } catch (err) {
       return {
         success: false,
-        message: err.response?.data?.error || "Помилка зміни статусу бана",
+        message:
+          err.response?.data?.error ||
+          err.response?.data?.message ||
+          "Помилка зміни статусу бана",
       };
     }
   };
@@ -243,7 +254,10 @@ export function useAdminData() {
     } catch (err) {
       return {
         success: false,
-        message: err.response?.data?.error || "Помилка видалення користувача",
+        message:
+          err.response?.data?.error ||
+          err.response?.data?.message ||
+          "Помилка видалення користувача",
       };
     }
   };

@@ -29,7 +29,13 @@ export default function ProgramDescription({ program }) {
 
       {program.active && (
         <div className="border-t border-border-color pt-6 flex justify-end">
-          <Link to={`/projects/submit?program=${program._id}`}>
+          <Link
+            to={`/projects/submit?program=${program._id}${
+              program.domain
+                ? `&domain=${encodeURIComponent(program.domain)}`
+                : ""
+            }`}
+          >
             <Button variant="primary" size="lg">
               Подати проєкт на конкурс
             </Button>

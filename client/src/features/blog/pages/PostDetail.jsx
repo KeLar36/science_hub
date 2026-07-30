@@ -7,8 +7,8 @@ import PostHeader from "@/features/blog/components/PostHeader";
 import PostContent from "@/features/blog/components/PostContent";
 import PostReactions from "@/features/blog/components/PostReactions";
 import CommentSection from "@/features/blog/components/CommentSection";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
+import Navbar from "@/shared/lib/components/layout/Navbar";
+import Footer from "@/shared/lib/components/layout/Footer";
 import { Loader2 } from "lucide-react";
 
 export default function PostDetailPage() {

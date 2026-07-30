@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
+import Navbar from "@/shared/lib/components/layout/Navbar";
+import Footer from "@/shared/lib/components/layout/Footer";
 import Breadcrumbs from "@/shared/ui/Breadcrumbs";
 import Tabs from "@/shared/ui/Tabs";
 import Card from "@/shared/ui/Card";
@@ -18,6 +18,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
+import SuperadminDangerZoneTab from "@/features/admin/components/SuperadminDangerZoneTab";
 import SuperadminProgramsTab from "@/features/admin/components/SuperadminProgramsTab";
 import SuperadminOrganizationsTab from "@/features/admin/components/SuperadminOrganizationsTab";
 import SuperadminProjectsTab from "@/features/admin/components/SuperadminProjectsTab";
@@ -142,23 +143,7 @@ export default function AdminDashboardPage() {
 
         {activeTab === "reviewers" && <SuperadminReviewersTab />}
 
-        {activeTab === "danger_zone" && (
-          <Card className="p-8 text-center space-y-3 bg-red-500/5 border-red-500/20 border-dashed">
-            <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto text-red-500">
-              <AlertTriangle size={24} />
-            </div>
-            <div className="space-y-1">
-              <h3 className="font-bold text-sm text-red-500 font-mono">
-                🚨 Danger Zone
-              </h3>
-              <p className="text-xs text-text-muted max-w-md mx-auto font-mono">
-                Тут знаходитимуться небезпечні операції: каскадне видалення
-                установ, примусове очищення програм (Program Cleanup) та
-                видалення некорисних файлів з Cloudinary.
-              </p>
-            </div>
-          </Card>
-        )}
+        {activeTab === "danger_zone" && <SuperadminDangerZoneTab />}
 
         {!isKnownTab && (
           <Card className="p-8 text-center text-xs font-mono text-text-muted bg-bg-secondary/20">

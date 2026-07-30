@@ -364,7 +364,8 @@ class ProjectService {
       };
     });
 
-    await project.save();
+    await project.save({ validateBeforeSave: false });
+
     console.log(
       `Файли відхиленого проєкту "${project.title}" (${id}) видалено з Cloudinary. Картку збережено в базі.`,
     );

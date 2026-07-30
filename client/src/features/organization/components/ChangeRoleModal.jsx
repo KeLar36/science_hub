@@ -33,6 +33,7 @@ export default function ChangeRoleModal({
   member,
   orgId,
   onSuccess,
+  onSave,
 }) {
   const [selectedRole, setSelectedRole] = useState(member?.role || "user");
   const [academicDegree, setAcademicDegree] = useState(
@@ -101,12 +102,24 @@ export default function ChangeRoleModal({
         }),
       };
 
-      await organizationApi.updateMemberRole(cleanOrgId, cleanUserId, payload);
+      if (typeof onSave === "function") {
+        await onSave(payload);
+      } else {
+        await organizationApi.updateMemberRole(
+          cleanOrgId,
+          cleanUserId,
+          payload,
+        );
+      }
 
       onSuccess?.();
       onClose();
     } catch (err) {
-      setError(err.response?.data?.error || "Не вдалося змінити роль");
+      setError(
+        err.response?.data?.error ||
+          err.response?.data?.message ||
+          "Не вдалося змінити роль",
+      );
     } finally {
       setSubmitting(false);
     }

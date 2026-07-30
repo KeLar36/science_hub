@@ -1,53 +1,342 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
-import axiosInstance from "@/shared/api/axios";
+import {
+  Sparkles,
+  ArrowRight,
+  Globe,
+  ShieldCheck,
+  Scale,
+  Database,
+  Layers,
+  Server,
+  FileJson,
+  GitBranch,
+  CheckCircle2,
+  Users2,
+  FlaskConical,
+  Zap,
+} from "lucide-react";
 
-import Navbar from "../components/layout/Navbar";
-import Footer from "../components/layout/Footer";
+import { useAuth } from "@/shared/lib/hooks/useAuth";
+import Navbar from "@/shared/lib/components/layout/Navbar";
+import Footer from "@/shared/lib/components/layout/Footer";
+import Card from "@/shared/ui/Card";
+import Button from "@/shared/ui/Button";
+import Badge from "@/shared/ui/Badge";
+import Breadcrumbs from "@/shared/ui/Breadcrumbs";
+import Timeline from "@/shared/ui/Timeline";
 
-import HeroSection from "../components/about/HeroSection";
-import Features from "../components/about/Features";
-import Steps from "../components/about/Steps";
-import TechStack from "../components/about/TechStack";
-import FinalCTA from "../components/about/FinalCTA";
-
-const AboutPage = () => {
+export default function AboutPage() {
   const navigate = useNavigate();
-  const [isAuth, setIsAuth] = useState(false);
+  const { isAuthenticated } = useAuth();
 
-  useEffect(() => {
-    const checkAuthStatus = async () => {
-      try {
-        const res = await axiosInstance.get("/users/me");
+  const breadcrumbItems = [{ label: "Про платформу", active: true }];
 
-        if (res.status === 200) {
-          setIsAuth(true);
-        }
-      } catch (err) {
-        setIsAuth(false);
-      }
-    };
+  const features = [
+    {
+      icon: Globe,
+      title: "Глобальна видимість",
+      desc: "Інтеграція з міжнародними наукометричними базами для швидкої індексації праць у відкритому доступі.",
+    },
+    {
+      icon: ShieldCheck,
+      title: "Академічна етика",
+      desc: "Суворі процедури Double-blind рецензування та перевірка матеріалів на відповідність стандартам.",
+    },
+    {
+      icon: Scale,
+      title: "Відкритий доступ (Open Access)",
+      desc: "Безперешкодний обмін знаннями, датасетами та результатами досліджень між вченими та ЗВО.",
+    },
+  ];
 
-    checkAuthStatus();
-  }, []);
+  const stepsTimeline = [
+    {
+      title: "01. Підбір видання та аналіз",
+      description:
+        "Пошук конкурсу, журналу чи датасету за галузями знань та вимогами оргкомітету.",
+      status: "completed",
+    },
+    {
+      title: "02. Подача матеріалів",
+      description:
+        "Хмарне завантаження рукопису, анотації та специфічних метаданих програми.",
+      status: "completed",
+    },
+    {
+      title: "03. Експертна оцінка (Огляд)",
+      description:
+        "Незалежне рецензування підтвердженими експертами відповідної галузі.",
+      status: "current",
+    },
+    {
+      title: "04. Публікація та капіталізація",
+      description:
+        "Фінальне затвердження, присвоєння статусів та індексація у відкритому доступі.",
+      status: "pending",
+    },
+  ];
+
+  const techCards = [
+    {
+      icon: Database,
+      name: "MongoDB Atlas",
+      desc: "Хмарна NoSQL база даних з оптимізованими Mongoose Discriminators.",
+    },
+    {
+      icon: Layers,
+      name: "React 18 & Vite",
+      desc: "Динамічний клієнтський інтерфейс на основі ізольованого UI Kit.",
+    },
+    {
+      icon: Server,
+      name: "Node.js & Express",
+      desc: "Асинхронний REST API бекенд із високою продуктивністю обробки.",
+    },
+    {
+      icon: ShieldCheck,
+      name: "JWT & Bcrypt",
+      desc: "Безпечна безсесійна авторизація та захист паролів на рівні сервера.",
+    },
+    {
+      icon: FileJson,
+      name: "Tailwind CSS",
+      desc: "Сучасна дизайн-система на CSS-змінних з підтримкою адаптивної верстки.",
+    },
+    {
+      icon: GitBranch,
+      name: "Модульна архітектура",
+      desc: "Чистий код з розподілом за методологією Feature-Sliced Design.",
+    },
+  ];
+
+  const standards = [
+    "Перевірка установ за кодом ЄДРПОУ",
+    "Гібридна модель подачі матеріалів",
+    "Каскадне видалення за GDPR",
+    "Пагінація та дебаунс пошуку",
+    "Двостороння рольова верифікація",
+    "Стандартизована Open Access архітектура",
+  ];
 
   return (
-    <div className="min-h-screen bg-[var(--bg-main)] selection:bg-[var(--purple-main)] selection:text-white font-['Plus_Jakarta_Sans',_sans-serif] transition-colors duration-300">
+    <div className="min-h-screen flex flex-col bg-bg-primary text-text-primary selection:bg-brand selection:text-white">
       <Navbar />
 
-      <main className="relative overflow-hidden">
-        <div className="absolute inset-0 z-0 opacity-[0.02] pointer-events-none bg-[radial-gradient(var(--text-dark)_1px,transparent_1px)] [background-size:24px_24px]" />
+      <main className="flex-grow pt-36 pb-24 space-y-20 relative z-10">
+        {/* HERO SECTION */}
+        <section className="px-4 md:px-6 max-w-7xl mx-auto w-full space-y-6 text-left">
+          <Breadcrumbs items={breadcrumbItems} />
 
-        <HeroSection isAuth={isAuth} onNavigate={navigate} />
-        <Features />
-        <Steps />
-        <TechStack />
-        <FinalCTA isAuth={isAuth} onNavigate={navigate} />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            <div className="lg:col-span-8 space-y-6">
+              <Badge status="success" className="gap-1.5 py-1 px-3">
+                <Sparkles size={12} className="text-brand" />
+                <span>SciencePlatform / Mission 2026</span>
+              </Badge>
+
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-black font-sans tracking-tight text-text-primary uppercase leading-[1.05]">
+                Майбутнє <br />
+                <span className="text-brand">науки</span> у цифрі.
+              </h1>
+
+              <div className="flex gap-4 items-stretch">
+                <div className="w-1 bg-gradient-to-b from-brand to-transparent rounded-full hidden sm:block" />
+                <p className="max-w-xl text-sm md:text-base text-text-secondary font-medium leading-relaxed">
+                  Ми створюємо інтелектуальний простір, де наукові відкриття
+                  трансформуються у цифрові активи. Автоматизація, прозорість та
+                  глобальний доступ — наші фундаментальні принципи.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-6 pt-2">
+                <Button
+                  variant="primary"
+                  size="lg"
+                  icon={ArrowRight}
+                  onClick={() =>
+                    navigate(isAuthenticated ? "/profile" : "/register")
+                  }
+                >
+                  {isAuthenticated ? "Мій профіль" : "Почати шлях"}
+                </Button>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center text-brand font-bold text-xs">
+                    <Users2 size={16} />
+                  </div>
+                  <div className="flex flex-col text-left">
+                    <span className="text-xs font-bold text-text-primary uppercase font-mono">
+                      3000+ Дослідників
+                    </span>
+                    <span className="text-[10px] text-text-muted font-mono uppercase">
+                      Вже у системі
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 🔮 Повернена анімована картка з колбою та блискавкою */}
+            <div className="lg:col-span-4 hidden lg:block">
+              <Card
+                hoverable
+                className="border-brand/30 bg-bg-secondary/60 text-center p-8 relative overflow-hidden group"
+              >
+                <div className="aspect-square bg-bg-primary/50 border border-border-color rounded-2xl relative z-10 flex items-center justify-center transition-all duration-500 hover:border-brand/40 shadow-sm">
+                  {/* Колба з ефектом обертання та збільшення */}
+                  <FlaskConical
+                    size={80}
+                    className="text-brand transition-all duration-700 ease-out group-hover:scale-105 group-hover:rotate-3 opacity-95"
+                  />
+
+                  {/* Анімована пульсуюча блискавка */}
+                  <div className="absolute top-6 right-6 p-2.5 bg-bg-secondary border border-border-color rounded-xl animate-bounce shadow-sm">
+                    <Zap size={14} className="text-brand" />
+                  </div>
+
+                  {/* Сяюча бейдж-іконка */}
+                  <div className="absolute bottom-6 left-6 p-3 bg-brand text-white rounded-xl shadow-lg shadow-brand/20">
+                    <Sparkles size={16} />
+                  </div>
+                </div>
+
+                <div className="space-y-1 pt-4">
+                  <h4 className="font-bold text-xs uppercase font-mono text-text-primary">
+                    Open Access Engine
+                  </h4>
+                  <p className="text-[11px] text-text-muted font-mono">
+                    Інтелектуальна інфраструктура
+                  </p>
+                </div>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        {/* FEATURES SECTION */}
+        <section className="px-4 md:px-6 max-w-7xl mx-auto w-full">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {features.map((item, idx) => {
+              const Icon = item.icon;
+              return (
+                <Card key={idx} hoverable className="p-6 text-left space-y-3">
+                  <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center text-brand">
+                    <Icon size={20} />
+                  </div>
+                  <h3 className="text-base font-bold font-sans uppercase tracking-wide text-text-primary">
+                    {item.title}
+                  </h3>
+                  <p className="text-xs text-text-secondary leading-relaxed">
+                    {item.desc}
+                  </p>
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* WORKFLOW (TIMELINE) */}
+        <section className="px-4 md:px-6 max-w-7xl mx-auto w-full space-y-8 text-left">
+          <div className="space-y-2">
+            <span className="text-xs font-mono uppercase text-brand font-bold tracking-widest">
+              // Інфраструктура
+            </span>
+            <h2 className="text-2xl md:text-3xl font-black font-sans uppercase tracking-tight">
+              Етапи роботи матеріалу
+            </h2>
+          </div>
+
+          <Card className="p-8 bg-bg-secondary/60">
+            <Timeline steps={stepsTimeline} />
+          </Card>
+        </section>
+
+        {/* TECH STACK SECTION */}
+        <section className="px-4 md:px-6 max-w-7xl mx-auto w-full space-y-10 text-left">
+          <div className="space-y-2">
+            <span className="text-xs font-mono uppercase text-brand font-bold tracking-widest">
+              // Інженерний стек
+            </span>
+            <h2 className="text-2xl md:text-3xl font-black font-sans uppercase tracking-tight">
+              Побудовано на надійній архітектурі
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {techCards.map((tech, idx) => {
+                const Icon = tech.icon;
+                return (
+                  <Card key={idx} className="p-4 space-y-2 bg-bg-secondary/40">
+                    <div className="w-8 h-8 rounded-lg bg-brand/10 text-brand flex items-center justify-center">
+                      <Icon size={16} />
+                    </div>
+                    <div className="font-mono text-xs font-bold text-text-primary uppercase">
+                      {tech.name}
+                    </div>
+                    <div className="text-[11px] text-text-muted leading-relaxed">
+                      {tech.desc}
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+
+            <div className="lg:col-span-5">
+              <Card className="p-6 space-y-4 bg-brand/5 border-brand/20">
+                <h4 className="text-xs font-mono font-bold uppercase text-brand tracking-widest">
+                  Стандарти безпеки та платформи
+                </h4>
+                <div className="space-y-2.5">
+                  {standards.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-2 text-xs font-mono text-text-primary"
+                    >
+                      <CheckCircle2 size={14} className="text-brand shrink-0" />
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        {/* FINAL CTA */}
+        <section className="px-4 md:px-6 max-w-4xl mx-auto w-full">
+          <Card className="p-10 text-center space-y-6 bg-gradient-to-b from-bg-secondary to-bg-tertiary/40 border-brand/30">
+            <div className="space-y-2">
+              <span className="text-xs font-mono uppercase text-brand font-bold tracking-widest">
+                // Готові розпочати?
+              </span>
+              <h2 className="text-2xl md:text-4xl font-black font-sans uppercase tracking-tight">
+                Час відкрити свій науковий потенціал
+              </h2>
+              <p className="text-xs text-text-secondary max-w-md mx-auto leading-relaxed">
+                Приєднуйтесь до спільноти вчених, які вже змінюють цифровий
+                ландшафт науки України.
+              </p>
+            </div>
+
+            <div className="pt-2">
+              <Button
+                variant="primary"
+                size="lg"
+                icon={ArrowRight}
+                onClick={() =>
+                  navigate(isAuthenticated ? "/profile" : "/register")
+                }
+              >
+                {isAuthenticated ? "Мій Кабінет" : "Створити профіль"}
+              </Button>
+            </div>
+          </Card>
+        </section>
       </main>
 
       <Footer />
     </div>
   );
-};
-
-export default AboutPage;
+}

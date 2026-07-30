@@ -4,8 +4,8 @@ import { usePosts } from "@/features/blog/hooks/usePosts";
 import PostFilters from "@/features/blog/components/PostFilters";
 import Breadcrumbs from "@/shared/ui/Breadcrumbs";
 import PostList from "@/features/blog/components/PostList";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
+import Navbar from "@/shared/lib/components/layout/Navbar";
+import Footer from "@/shared/lib/components/layout/Footer";
 import Button from "@/shared/ui/Button";
 
 export default function BlogPage() {

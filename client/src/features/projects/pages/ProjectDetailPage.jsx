@@ -10,8 +10,8 @@ import {
 } from "lucide-react";
 import { useProjectDetails } from "../hooks/useProjectDetails";
 import ProjectChatModal from "../components/ProjectChatModal";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
+import Navbar from "@/shared/lib/components/layout/Navbar";
+import Footer from "@/shared/lib/components/layout/Footer";
 import Badge from "@/shared/ui/Badge";
 import Button from "@/shared/ui/Button";
 import Card from "@/shared/ui/Card";

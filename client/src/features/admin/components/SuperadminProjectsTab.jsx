@@ -8,6 +8,7 @@ import {
   Trash2,
   Tag,
   Download,
+  UserPlus,
 } from "lucide-react";
 import Card from "@/shared/ui/Card";
 import Skeleton from "@/shared/ui/Skeleton";
@@ -19,6 +20,7 @@ import Select from "@/shared/ui/Select";
 import Pagination from "@/shared/ui/Pagination";
 import { Table, TableRow, TableCell } from "@/shared/ui/Table";
 import { useAdminData } from "@/features/admin/hooks/useAdminData";
+import AssignReviewerModal from "@/features/admin/components/AssignReviewerModal";
 
 export default function SuperadminProjectsTab() {
   const {
@@ -42,6 +44,10 @@ export default function SuperadminProjectsTab() {
   const [statusFilter, setStatusFilter] = useState("Всі");
   const [reviewStatusFilter, setReviewStatusFilter] = useState("Всі");
 
+  const [selectedProjectForAssign, setSelectedProjectForAssign] =
+    useState(null);
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+
   const showFeedback = (type, message) => {
     setFeedback({ type, message });
     setTimeout(() => {
@@ -64,6 +70,11 @@ export default function SuperadminProjectsTab() {
     reviewStatusFilter,
     fetchProjects,
   ]);
+
+  const handleOpenAssignModal = (project) => {
+    setSelectedProjectForAssign(project);
+    setIsAssignModalOpen(true);
+  };
 
   const handleDelete = async (projectId, projectTitle) => {
     if (
@@ -123,7 +134,7 @@ export default function SuperadminProjectsTab() {
   }
 
   return (
-    <div className="space-y-4 text-left">
+    <div className="space-y-4 text-left font-sans">
       {feedback.type && (
         <Alert
           variant={feedback.type}
@@ -222,9 +233,9 @@ export default function SuperadminProjectsTab() {
                   </TableCell>
 
                   <TableCell className="px-8 py-5 whitespace-nowrap">
-                    <div className="flex flex-col text-xs font-mono">
+                    <div className="flex items-center gap-2 font-mono">
                       {proj.reviewerId ? (
-                        <>
+                        <div className="flex flex-col text-xs">
                           <span className="font-semibold text-text-primary flex items-center gap-1">
                             <UserCheck size={13} className="text-green-500" />
                             {proj.reviewerId.name}
@@ -232,11 +243,23 @@ export default function SuperadminProjectsTab() {
                           <span className="text-text-muted text-[11px]">
                             {proj.reviewerId.email}
                           </span>
-                        </>
+                        </div>
                       ) : (
-                        <span className="text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded text-[11px] font-mono w-fit">
-                          Не призначено
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded text-[11px] font-mono">
+                            Не призначено
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            icon={UserPlus}
+                            onClick={() => handleOpenAssignModal(proj)}
+                            className="text-xs text-purple-600 border-purple-500/30 hover:bg-purple-500/10"
+                            title="Призначити рецензента"
+                          >
+                            Призначити
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </TableCell>
@@ -250,6 +273,7 @@ export default function SuperadminProjectsTab() {
                     </div>
                   </TableCell>
 
+                  {/* Файл / Дії */}
                   <TableCell className="px-8 py-5 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       {fileUrl ? (
@@ -300,6 +324,28 @@ export default function SuperadminProjectsTab() {
             />
           )}
         </>
+      )}
+
+      {selectedProjectForAssign && (
+        <AssignReviewerModal
+          isOpen={isAssignModalOpen}
+          onClose={() => {
+            setIsAssignModalOpen(false);
+            setSelectedProjectForAssign(null);
+          }}
+          project={selectedProjectForAssign}
+          onSuccess={() => {
+            showFeedback(
+              "success",
+              `Рецензента успішно призначено для праці "${selectedProjectForAssign.title}"!`,
+            );
+            fetchProjects(pagination?.currentPage || 1, {
+              search,
+              status: statusFilter,
+              reviewStatus: reviewStatusFilter,
+            });
+          }}
+        />
       )}
     </div>
   );

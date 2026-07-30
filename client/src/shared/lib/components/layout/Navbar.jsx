@@ -6,7 +6,7 @@ import { useAuth } from "@/shared/lib/hooks/useAuth";
 
 import Link from "@/shared/ui/Link";
 import Dropdown from "@/shared/ui/DropDown";
-import MobileMenu from "@/components/layout/MobileMenu";
+import MobileMenu from "@/shared/lib/components/layout/MobileMenu";
 
 export default function Navbar() {
   const navigate = useNavigate();
