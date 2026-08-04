@@ -1,5 +1,8 @@
-import { X, LogOut, User, Sun, Moon } from "lucide-react";
+import { X, LogOut, Sun, Moon } from "lucide-react";
 import { Link } from "react-router-dom";
+import Toggle from "@/shared/ui/Toggle";
+import Avatar from "@/shared/ui/Avatar";
+import NotificationsPopover from "@/shared/ui/NotificationsPopover";
 
 export default function MobileMenu({
   isOpen,
@@ -28,7 +31,7 @@ export default function MobileMenu({
             </span>
             <button
               onClick={closeMenu}
-              className="p-1 rounded hover:bg-bg-tertiary text-text-muted hover:text-text-primary transition-colors"
+              className="p-1 rounded hover:bg-bg-tertiary text-text-muted hover:text-text-primary transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -56,24 +59,33 @@ export default function MobileMenu({
         </div>
 
         <div className="border-t border-border-color pt-4 space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex-1 px-3.5 py-1.5 bg-bg-tertiary/50 border border-border-color rounded-xl">
+              <Toggle
+                label="Темна тема"
+                checked={theme === "dark"}
+                onChange={toggleTheme}
+                iconOff={Moon}
+                iconOn={Sun}
+                size="md"
+              />
+            </div>
+            {user && <NotificationsPopover />}
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
             {user ? (
               <Link
                 to="/profile"
                 onClick={closeMenu}
-                className="flex items-center gap-3 group"
+                className="flex items-center gap-3 group w-full"
               >
-                <div className="w-9 h-9 rounded-full bg-bg-tertiary border border-border-color flex items-center justify-center overflow-hidden group-hover:border-brand transition-colors">
-                  {user.image ? (
-                    <img
-                      src={user.image}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <User className="w-4 h-4 text-text-secondary" />
-                  )}
-                </div>
+                <Avatar
+                  src={user.image}
+                  name={user.name}
+                  size="sm"
+                  className="group-hover:border-brand transition-colors"
+                />
                 <div className="flex flex-col">
                   <span className="text-xs font-semibold text-text-primary group-hover:text-brand transition-colors">
                     {user.name}
@@ -92,23 +104,12 @@ export default function MobileMenu({
                 Увійти до системи
               </Link>
             )}
-
-            <button
-              onClick={toggleTheme}
-              className="p-2.5 rounded-lg bg-bg-tertiary border border-border-color text-text-muted hover:text-brand transition-colors"
-            >
-              {theme === "light" ? (
-                <Moon className="w-4 h-4" />
-              ) : (
-                <Sun className="w-4 h-4" />
-              )}
-            </button>
           </div>
 
           {user && (
             <button
               onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-xs font-medium text-red-500 bg-red-500/5 hover:bg-red-500/10 rounded-lg transition-colors border border-red-500/10"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-xs font-medium text-red-500 bg-red-500/5 hover:bg-red-500/10 rounded-lg transition-colors border border-red-500/10 cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span>Вийти з акаунту</span>

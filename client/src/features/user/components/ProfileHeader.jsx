@@ -32,12 +32,23 @@ export default function ProfileHeader({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [actionAlert, setActionAlert] = useState(null);
+
+  const triggerAlert = (message, variant = "success") => {
+    setActionAlert({ message, variant });
+    setTimeout(() => {
+      setActionAlert(null);
+    }, 6000);
+  };
 
   const hasOrganization = Boolean(user?.organizationId);
   const hasPendingOrg = Boolean(user?.pendingOrganizationId);
   const hasPendingJoinRequest = Boolean(
     user?.pendingJoinRequestOrgId || user?.hasPendingJoinRequest,
   );
+
+  const isOrgActionDisabled =
+    hasOrganization || hasPendingOrg || hasPendingJoinRequest;
 
   const isSuperAdmin = user?.role === "superadmin";
   const isContentManager =
@@ -65,10 +76,44 @@ export default function ProfileHeader({
 
   const dashboardConfig = getDashboardConfig(user);
 
+  const handleUpdateProfile = async (formData) => {
+    const res = await onUpdateProfile(formData);
+    if (res?.success) {
+      triggerAlert("Профіль успішно оновлено!");
+      setIsEditModalOpen(false);
+    }
+    return res;
+  };
+
+  const handleCreateSuccess = () => {
+    onRefreshProfile?.();
+    triggerAlert(
+      "Заявку на створення організації успішно надіслано! Вона перебуває на модерації.",
+      "warning",
+    );
+  };
+
+  const handleJoinSuccess = (msg) => {
+    onRefreshProfile?.();
+    triggerAlert(
+      msg || "Запит на вступ до установи успішно надіслано!",
+      "info",
+    );
+  };
+
   return (
     <>
       <Card className="bg-bg-secondary/60 border-border-color backdrop-blur-xs space-y-4 text-left">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 mb-3">
+        {actionAlert && (
+          <Alert
+            variant={actionAlert.variant}
+            onClose={() => setActionAlert(null)}
+          >
+            {actionAlert.message}
+          </Alert>
+        )}
+
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 my-3">
           <div className="flex items-center gap-4">
             <Avatar
               src={user?.image}
@@ -181,8 +226,16 @@ export default function ProfileHeader({
                         variant="outline"
                         size="sm"
                         icon={Building2}
-                        onClick={() => setIsJoinModalOpen(true)}
+                        onClick={() =>
+                          !isOrgActionDisabled && setIsJoinModalOpen(true)
+                        }
+                        disabled={isOrgActionDisabled}
                         className="justify-center"
+                        title={
+                          isOrgActionDisabled
+                            ? "У вас вже є активний запит або ви в організації"
+                            : ""
+                        }
                       >
                         Приєднатися до установи
                       </Button>
@@ -191,10 +244,18 @@ export default function ProfileHeader({
                         variant="primary"
                         size="sm"
                         icon={PlusCircle}
-                        onClick={() => setIsCreateModalOpen(true)}
+                        onClick={() =>
+                          !isOrgActionDisabled && setIsCreateModalOpen(true)
+                        }
+                        disabled={isOrgActionDisabled}
                         className="justify-center"
+                        title={
+                          isOrgActionDisabled
+                            ? "У вас вже є активний запит або ви в організації"
+                            : ""
+                        }
                       >
-                        Створити установу
+                        Зареєструвати установу
                       </Button>
                     </>
                   )}
@@ -223,9 +284,8 @@ export default function ProfileHeader({
             розгляді адміністратором організації. Очікуйте на підтвердження.
           </Alert>
         )}
-
         {user?.bio && (
-          <p className="pt-3 border-t border-border-color text-xs text-text-secondary leading-relaxed font-sans">
+          <p className="pt-3 border-t border-border-color text-xs text-text-secondary leading-relaxed font-sans break-words">
             {user.bio}
           </p>
         )}
@@ -270,20 +330,20 @@ export default function ProfileHeader({
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         user={user}
-        onSave={onUpdateProfile}
+        onSave={handleUpdateProfile}
         updating={updating}
       />
 
       <JoinOrganizationModal
         isOpen={isJoinModalOpen}
         onClose={() => setIsJoinModalOpen(false)}
-        onSuccess={() => onRefreshProfile?.()}
+        onSuccess={handleJoinSuccess}
       />
 
       <CreateOrganizationModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={() => onRefreshProfile?.()}
+        onSuccess={handleCreateSuccess}
       />
     </>
   );

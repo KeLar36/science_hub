@@ -1,14 +1,19 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { User, Mail, Lock, ChevronDown, Check } from "lucide-react";
-import { UKRAINIAN_CITIES } from "../../../shared/lib/constants/cities";
-import { SCIENTIFIC_DOMAINS } from "../../../shared/lib/constants/domains";
-
+import { UKRAINIAN_CITIES } from "@/shared/lib/constants/cities";
+import { SCIENTIFIC_DOMAINS } from "@/shared/lib/constants/domains";
 import Input from "@/shared/ui/Input";
 import Button from "@/shared/ui/Button";
 import Dropdown from "@/shared/ui/DropDown";
 import Combobox from "@/shared/ui/Combobox";
+import Alert from "@/shared/ui/Alert";
 
-export default function RegisterForm({ onSubmit, isSubmitting }) {
+export default function RegisterForm({
+  onSubmit,
+  isSubmitting,
+  error,
+  clearError,
+}) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -20,6 +25,13 @@ export default function RegisterForm({ onSubmit, isSubmitting }) {
   const sortedCities = useMemo(() => {
     return [...UKRAINIAN_CITIES].sort((a, b) => a.localeCompare(b, "uk"));
   }, []);
+
+  useEffect(() => {
+    if (error && clearError) {
+      const timer = setTimeout(() => clearError(), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, clearError]);
 
   const handleChange = (name, value) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -39,7 +51,13 @@ export default function RegisterForm({ onSubmit, isSubmitting }) {
   };
 
   return (
-    <div className="animate-reveal w-full">
+    <div className="animate-reveal w-full space-y-5">
+      {error && (
+        <Alert variant="danger" title="Помилка реєстрації" onClose={clearError}>
+          {error}
+        </Alert>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-5">
         <Input
           label="Повне ім'я (ПІБ науковця)"

@@ -22,7 +22,6 @@ const verifyToken = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
 
-    // Шукаємо за decoded.id або decoded._id
     const userId = decoded.id || decoded._id;
     const freshUser = await User.findById(userId).select("-password").lean();
 

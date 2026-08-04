@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const User = require("../models/User");
 const Organization = require("../models/Organization");
 const projectService = require("./projectService");
+const notificationService = require("./notificationService");
 
 class ProgramService {
   getProgramModel() {
@@ -116,8 +117,36 @@ class ProgramService {
 
     const TargetModel = modelsMap[type] || ProgramModel;
     const newProgram = new TargetModel(programData);
+    const savedProgram = await newProgram.save();
 
-    return await newProgram.save();
+    if (savedProgram.organizationId) {
+      try {
+        const reviewers = await User.find({
+          organizationId: savedProgram.organizationId,
+          role: "reviewer",
+          isBanned: false,
+          isReviewerActive: true,
+        }).select("_id");
+
+        for (const reviewer of reviewers) {
+          await notificationService.createNotification({
+            recipientId: reviewer._id,
+            title: "Нова програма в установі",
+            message: `Ваша установа відкрила нову програму "${savedProgram.title}" (${type}). Будьте готові до рецензування майбутніх робіт.`,
+            type: "SYSTEM_INFO",
+            link: `/programs/${savedProgram._id}`,
+            sendEmail: false,
+          });
+        }
+      } catch (notifErr) {
+        console.error(
+          "Помилка надсилання сповіщень рецензентам про нову програму:",
+          notifErr,
+        );
+      }
+    }
+
+    return savedProgram;
   }
 
   async toggleStatus(programId, status) {
@@ -137,6 +166,36 @@ class ProgramService {
     }
 
     await program.save();
+
+    try {
+      const ProjectModel = mongoose.model("Project");
+      const projects = await ProjectModel.find({ programId }).select(
+        "authorId",
+      );
+      const authorIds = [
+        ...new Set(
+          projects.filter((p) => p.authorId).map((p) => p.authorId.toString()),
+        ),
+      ];
+
+      const statusText = program.active ? "активовано" : "деактивовано";
+      for (const authorId of authorIds) {
+        await notificationService.createNotification({
+          recipientId: authorId,
+          title: "Зміна статусу програми",
+          message: `Статус програми "${program.title}" змінено на: ${statusText}.`,
+          type: "SYSTEM_INFO",
+          link: `/programs/${program._id}`,
+          sendEmail: false,
+        });
+      }
+    } catch (error) {
+      console.error(
+        "Помилка при надсиланні сповіщень про зміну статусу:",
+        error,
+      );
+    }
+
     return program;
   }
 
@@ -182,6 +241,33 @@ class ProgramService {
 
     const ProjectModel = mongoose.model("Project");
 
+    try {
+      // 💡 Змінено userId на authorId!
+      const allProjects = await ProjectModel.find({ programId }).select(
+        "authorId",
+      );
+      const authorIds = [
+        ...new Set(
+          allProjects
+            .filter((p) => p.authorId)
+            .map((p) => p.authorId.toString()),
+        ),
+      ];
+
+      for (const authorId of authorIds) {
+        await notificationService.createNotification({
+          recipientId: authorId,
+          title: "Завершення дедлайну програми",
+          message: `Дедлайн прийому заявок для програми "${program.title}" завершився. Прийом заявок закрито.`,
+          type: "SYSTEM_INFO",
+          link: `/programs/${program._id}`,
+          sendEmail: true, // Про завершення дедлайну важливо повідомити на пошту
+        });
+      }
+    } catch (error) {
+      console.error("Помилка при надсиланні сповіщень про дедлайн:", error);
+    }
+
     const trashProjects = await ProjectModel.find({
       programId: programId,
       status: "Відхилено",
@@ -209,7 +295,7 @@ class ProgramService {
     const nonApprovedProjects = await ProjectModel.find({
       programId: programId,
       status: { $ne: "Прийнято" },
-    }).select("_id");
+    }).select("_id authorId");
 
     if (nonApprovedProjects.length > 0) {
       for (const proj of nonApprovedProjects) {
@@ -219,6 +305,36 @@ class ProgramService {
 
     program.active = false;
     await program.save();
+
+    try {
+      // 💡 Змінено userId на authorId!
+      const allProjects = await ProjectModel.find({ programId }).select(
+        "authorId",
+      );
+      const authorIds = [
+        ...new Set(
+          allProjects
+            .filter((p) => p.authorId)
+            .map((p) => p.authorId.toString()),
+        ),
+      ];
+
+      for (const authorId of authorIds) {
+        await notificationService.createNotification({
+          recipientId: authorId,
+          title: "Програму закрито",
+          message: `Програму "${program.title}" закрито адміністратором.`,
+          type: "SYSTEM_INFO",
+          link: `/programs/${program._id}`,
+          sendEmail: true,
+        });
+      }
+    } catch (error) {
+      console.error(
+        "Помилка при надсиланні сповіщень про закриття програми:",
+        error,
+      );
+    }
 
     console.log(
       `Програму ${programId} примусово закрито суперадміном. Неприйняті файли видалено з Cloudinary, картки збережено для історії.`,

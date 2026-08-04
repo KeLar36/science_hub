@@ -1,29 +1,33 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import React, { useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/shared/lib/context/AuthContext";
 import { ChevronLeft, Sparkles } from "lucide-react";
 import Navbar from "@/shared/lib/components/layout/Navbar";
 import Footer from "@/shared/lib/components/layout/Footer";
-import toast from "react-hot-toast";
 import AOS from "aos";
 import "aos/dist/aos.css";
-
 import Tabs from "@/shared/ui/Tabs";
-import { authApi } from "@/features/auth/api/authApi";
-
+import { useAuthForms } from "@/features/auth/hooks/useAuthForms";
 import LoginForm from "@/features/auth/components/LoginForm";
 import RegisterForm from "@/features/auth/components/RegisterForm";
 import ForgotPasswordForm from "@/features/auth/components/ForgotPasswordForm";
 import ResetPasswordForm from "@/features/auth/components/ResetPasswordForm";
 
 export default function AuthPage() {
-  const { token } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, loading, checkAuth } = useAuth();
+  const { user, loading } = useAuth();
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isResetSuccess, setIsResetSuccess] = useState(false);
+  const {
+    isSubmitting,
+    error,
+    successMessage,
+    isResetSuccess,
+    handleLoginSubmit,
+    handleRegisterSubmit,
+    handleForgotSubmit,
+    handleResetSubmit,
+  } = useAuthForms();
 
   useEffect(() => {
     AOS.init({ duration: 600, once: true });
@@ -45,68 +49,6 @@ export default function AuthPage() {
     navigate(tabId === "register" ? "/register" : "/login");
   };
 
-  const handleLoginSubmit = async (email, password) => {
-    setIsSubmitting(true);
-    try {
-      await authApi.login(email, password);
-      await checkAuth(true);
-      toast.success("Вітаємо у системі! 🟣");
-      setTimeout(() => navigate("/profile"), 600);
-    } catch (err) {
-      const errorMsg = err.response?.data?.error || "Помилка авторизації";
-      toast.error(errorMsg);
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleRegisterSubmit = async (formData) => {
-    setIsSubmitting(true);
-    try {
-      await authApi.register(formData);
-      localStorage.setItem("registeredEmail", formData.email.trim());
-      localStorage.setItem(
-        "registrationSuccess",
-        "Обліковий запис створено! Можна входити.",
-      );
-      navigate("/login");
-    } catch (err) {
-      const errorMsg =
-        err.response?.data?.error ||
-        "Помилка реєстрації. Перевірте введені дані.";
-      toast.error(errorMsg);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleForgotSubmit = async (email) => {
-    setIsSubmitting(true);
-    try {
-      await authApi.forgotPassword(email);
-      toast.success("Інструкції надіслано на вашу пошту! 📩");
-    } catch (err) {
-      toast.error(err.response?.data?.error || "Користувача не знайдено");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleResetSubmit = async (password) => {
-    setIsSubmitting(true);
-    try {
-      await authApi.resetPassword(token, password);
-      setIsResetSuccess(true);
-      toast.success("Пароль успішно змінено!");
-      setTimeout(() => {
-        navigate("/login");
-      }, 3000);
-    } catch (err) {
-      toast.error(err.response?.data?.error || "Токен недійсний");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-bg-primary flex flex-col transition-colors duration-300">
       <Navbar />
@@ -115,7 +57,9 @@ export default function AuthPage() {
         <div className="absolute inset-0 opacity-10 z-0 pointer-events-none bg-[radial-gradient(var(--color-text-muted)_1px,transparent_1px)] bg-[size:32px_32px]" />
 
         <div
-          className={`w-full relative z-10 transition-all duration-300 ${activeTab === "register" && isHubMode ? "max-w-xl" : "max-w-md"}`}
+          className={`w-full relative z-10 transition-all duration-300 ${
+            activeTab === "register" && isHubMode ? "max-w-xl" : "max-w-md"
+          }`}
           data-aos="fade-up"
         >
           {!isResetMode && (
@@ -148,6 +92,7 @@ export default function AuthPage() {
               <LoginForm
                 onSubmit={handleLoginSubmit}
                 isSubmitting={isSubmitting}
+                error={error}
                 onForgotPasswordClick={() => navigate("/forgot-password")}
               />
             )}
@@ -156,6 +101,7 @@ export default function AuthPage() {
               <RegisterForm
                 onSubmit={handleRegisterSubmit}
                 isSubmitting={isSubmitting}
+                error={error}
               />
             )}
 
@@ -163,6 +109,8 @@ export default function AuthPage() {
               <ForgotPasswordForm
                 onSubmit={handleForgotSubmit}
                 isSubmitting={isSubmitting}
+                error={error}
+                successMessage={successMessage}
                 onBackToLoginClick={() => navigate("/login")}
               />
             )}
@@ -172,6 +120,7 @@ export default function AuthPage() {
                 onSubmit={handleResetSubmit}
                 isSubmitting={isSubmitting}
                 isSuccess={isResetSuccess}
+                error={error}
                 onBackToLoginClick={() => navigate("/login")}
               />
             )}

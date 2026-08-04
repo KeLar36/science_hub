@@ -1,6 +1,7 @@
 const Post = require("../models/Post");
 const Comment = require("../models/Comment");
 const cloudinary = require("cloudinary").v2;
+const notificationService = require("./notificationService");
 
 class PostService {
   async #deleteImageFromCloudinary(publicId) {
@@ -8,10 +9,7 @@ class PostService {
     try {
       await cloudinary.uploader.destroy(publicId);
     } catch (err) {
-      console.error(
-        `💥 Помилка видалення ресурсу ${publicId} з Cloudinary:`,
-        err,
-      );
+      console.error(`Помилка видалення ресурсу ${publicId} з Cloudinary:`, err);
     }
   }
 
@@ -216,6 +214,8 @@ class PostService {
       throw error;
     }
 
+    const oldStatus = currentPost.status;
+
     let updateData = {
       title: postData.title.trim(),
       content: postData.content,
@@ -243,6 +243,28 @@ class PostService {
     )
       .populate("authorId", "name role")
       .populate("organizationId", "name logo");
+
+    if (
+      updateData.status &&
+      updateData.status !== oldStatus &&
+      currentPost.authorId
+    ) {
+      try {
+        await notificationService.createNotification({
+          recipientId: currentPost.authorId,
+          title: "Зміна статусу публікації",
+          message: `Статус вашої публікації "${updatedPost.title}" змінено на: "${updatedPost.status}".`,
+          type: "SYSTEM_INFO",
+          link: `/posts/${updatedPost._id}`,
+          sendEmail: true,
+        });
+      } catch (error) {
+        console.error(
+          "Помилка надсилання сповіщення про зміну статусу:",
+          error,
+        );
+      }
+    }
 
     return updatedPost;
   }

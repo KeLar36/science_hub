@@ -4,7 +4,7 @@ import { userApi } from "@/features/user/api/userApi";
 import { projectApi } from "@/features/projects/api/projectApi";
 
 export function useProfile() {
-  const { user, updateUserState, logout } = useAuth();
+  const { user, updateUserState, logout, checkAuth } = useAuth();
   const [savedPosts, setSavedPosts] = useState([]);
   const [myProjects, setMyProjects] = useState([]);
   const [loadingSaved, setLoadingSaved] = useState(false);
@@ -18,6 +18,14 @@ export function useProfile() {
     pending: 0,
     needsRevision: 0,
   });
+
+  const refreshProfile = useCallback(async () => {
+    try {
+      await checkAuth(true);
+    } catch (err) {
+      console.error("Помилка оновлення профілю:", err);
+    }
+  }, [checkAuth]);
 
   const fetchSavedPosts = useCallback(async () => {
     try {
@@ -119,6 +127,7 @@ export function useProfile() {
     loadingSaved,
     loadingProjects,
     updating,
+    refreshProfile,
     error,
     fetchSavedPosts,
     fetchMyProjects,

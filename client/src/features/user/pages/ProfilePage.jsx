@@ -9,7 +9,7 @@ import ProfileHeader from "@/features/user/components/ProfileHeader";
 import MyProjectsTab from "@/features/user/components/MyProjectsTab";
 import SavedPostsTab from "@/features/user/components/SavedPostsTab";
 import SettingsTab from "@/features/user/components/SettingsTab";
-import ProfileStats from "../components/ProfileStats";
+import ProfileStats from "@/features/user/components/ProfileStats";
 import ProjectChatModal from "@/features/projects/components/ProjectChatModal";
 import { useProfile } from "@/features/user/hooks/useProfile";
 
@@ -40,6 +40,7 @@ export default function ProfilePage() {
     fetchMyProjects,
     fetchSavedPosts,
     updateProfile,
+    refreshProfile,
     toggleBookmark,
     deleteAccount,
     stats,
@@ -75,7 +76,9 @@ export default function ProfilePage() {
           user={user}
           onUpdateProfile={updateProfile}
           updating={updating}
+          onRefreshProfile={refreshProfile}
         />
+
         <ProfileStats stats={stats} loading={loadingProjects} />
 
         <Tabs

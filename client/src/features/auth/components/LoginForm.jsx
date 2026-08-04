@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Mail, Lock } from "lucide-react";
 import Input from "@/shared/ui/Input";
 import Button from "@/shared/ui/Button";
@@ -7,6 +7,8 @@ import Alert from "@/shared/ui/Alert";
 export default function LoginForm({
   onSubmit,
   isSubmitting,
+  error,
+  clearError,
   onForgotPasswordClick,
 }) {
   const [email, setEmail] = useState(() => {
@@ -19,7 +21,7 @@ export default function LoginForm({
   });
   const [password, setPassword] = useState("");
 
-  const [regSuccessMessage] = useState(() => {
+  const [regSuccessMessage, setRegSuccessMessage] = useState(() => {
     const success = localStorage.getItem("registrationSuccess");
     if (success) {
       localStorage.removeItem("registrationSuccess");
@@ -28,19 +30,41 @@ export default function LoginForm({
     return null;
   });
 
+  useEffect(() => {
+    if (regSuccessMessage) {
+      const timer = setTimeout(() => setRegSuccessMessage(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [regSuccessMessage]);
+
+  useEffect(() => {
+    if (error && clearError) {
+      const timer = setTimeout(() => clearError(), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, clearError]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit(email, password);
   };
 
   return (
-    <div className="animate-reveal w-full">
+    <div className="animate-reveal w-full space-y-5">
       {regSuccessMessage && (
-        <div className="mb-5">
-          <Alert variant="success" title="Обліковий запис створено">
-            {regSuccessMessage}
-          </Alert>
-        </div>
+        <Alert
+          variant="success"
+          title="Обліковий запис створено"
+          onClose={() => setRegSuccessMessage(null)}
+        >
+          {regSuccessMessage}
+        </Alert>
+      )}
+
+      {error && (
+        <Alert variant="danger" title="Помилка входу" onClose={clearError}>
+          {error}
+        </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">

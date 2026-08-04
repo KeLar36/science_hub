@@ -2,6 +2,7 @@ const Project = require("../models/Project");
 const User = require("../models/User");
 const Program = require("../models/Program");
 const cloudinary = require("cloudinary").v2;
+const notificationService = require("./notificationService");
 
 class ProjectService {
   async #deleteFileFromCloudinary(fileUrl) {
@@ -144,7 +145,24 @@ class ProjectService {
     if (reviewData.reviewerRecommendation !== undefined)
       project.reviewerRecommendation = reviewData.reviewerRecommendation;
 
-    return await project.save();
+    const savedProject = await project.save();
+
+    if (project.authorId) {
+      try {
+        await notificationService.createNotification({
+          recipientId: project.authorId,
+          title: "Результат рецензування",
+          message: `Рецензент розглянув ваш проєкт "${project.title}". Статус роботи: "${project.status}".`,
+          type: "PROJECT_REVIEWED",
+          link: `/projects/${project._id}`,
+          sendEmail: true,
+        });
+      } catch (err) {
+        console.error("Помилка надсилання сповіщення про рецензію:", err);
+      }
+    }
+
+    return savedProject;
   }
 
   async getOrganizationProjects(orgId, filters = {}, page = 1, limit = 8) {
@@ -274,19 +292,108 @@ class ProjectService {
       console.error("Помилка автоматичного підбору рецензента:", err);
     }
 
-    return await newProject.save();
+    const savedProject = await newProject.save();
+
+    try {
+      await notificationService.createNotification({
+        recipientId: savedProject.authorId,
+        title: "Проєкт подано",
+        message: `Ваш проєкт "${savedProject.title}" успішно подано до програми "${program.title}".`,
+        type: "PROJECT_CREATED",
+        link: `/projects/${savedProject._id}`,
+        sendEmail: true,
+      });
+
+      if (savedProject.reviewerId) {
+        await notificationService.createNotification({
+          recipientId: savedProject.reviewerId,
+          title: "Новий проєкт для рецензування",
+          message: `Вам призначено новий проєкт для перевірки: "${savedProject.title}".`,
+          type: "PROJECT_ASSIGNED",
+          link: `/reviewer/queue`,
+          sendEmail: true,
+        });
+      }
+    } catch (err) {
+      console.error(
+        "Помилка надсилання сповіщення при створенні проєкту:",
+        err,
+      );
+    }
+
+    return savedProject;
   }
 
   async update(id, updateData) {
-    return await Project.findByIdAndUpdate(
+    const oldProject = await Project.findById(id);
+    if (!oldProject) {
+      const error = new Error("Проєкт не знайдено");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (
+      updateData.reviewerId &&
+      (oldProject.status === "Відхилено" || oldProject.status === "Прийнято")
+    ) {
+      const error = new Error(
+        `Неможливо призначити рецензента для проєкту зі статусом "${oldProject.status}".`,
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (
+      updateData.reviewerId &&
+      (!oldProject.reviewerId ||
+        oldProject.reviewerId.toString() !== updateData.reviewerId.toString())
+    ) {
+      updateData.reviewStatus = "В процесі";
+    }
+
+    const updatedProject = await Project.findByIdAndUpdate(
       id,
       { $set: updateData },
       { new: true },
     );
+
+    if (
+      updateData.reviewerId &&
+      (!oldProject.reviewerId ||
+        oldProject.reviewerId.toString() !== updateData.reviewerId.toString())
+    ) {
+      try {
+        // Рецензенту
+        await notificationService.createNotification({
+          recipientId: updateData.reviewerId,
+          title: "Призначено новий проєкт",
+          message: `Вам призначено проєкт "${updatedProject.title}" для рецензування.`,
+          type: "PROJECT_ASSIGNED",
+          link: `/reviewer/queue`,
+          sendEmail: true,
+        });
+
+        await notificationService.createNotification({
+          recipientId: updatedProject.authorId,
+          title: "Рецензента призначено",
+          message: `Для вашого проєкту "${updatedProject.title}" було призначено рецензента. Процес перевірки розпочато.`,
+          type: "SYSTEM_INFO",
+          link: `/projects/${updatedProject._id}`,
+          sendEmail: true,
+        });
+      } catch (err) {
+        console.error(
+          "Помилка надсилання сповіщень при ручному призначенні:",
+          err,
+        );
+      }
+    }
+
+    return updatedProject;
   }
 
   async addVersion(id, fileData) {
-    return await Project.findByIdAndUpdate(
+    const updatedProject = await Project.findByIdAndUpdate(
       id,
       {
         $push: { versions: fileData },
@@ -299,6 +406,26 @@ class ProjectService {
     )
       .populate("authorId", "name email image")
       .populate("programId", "title");
+
+    if (updatedProject && updatedProject.reviewerId) {
+      try {
+        await notificationService.createNotification({
+          recipientId: updatedProject.reviewerId,
+          title: "Оновлення версії проєкту",
+          message: `Автор завантажив нову версію файлу для проєкту "${updatedProject.title}".`,
+          type: "SYSTEM_INFO",
+          link: `/reviewer/queue`,
+          sendEmail: true,
+        });
+      } catch (err) {
+        console.error(
+          "Помилка надсилання сповіщення рецензенту про нову версію:",
+          err,
+        );
+      }
+    }
+
+    return updatedProject;
   }
 
   async delete(id) {
@@ -340,7 +467,7 @@ class ProjectService {
       { $set: { programId: null } },
     );
     console.log(
-      ` Успішно відв'язано активні та прийняті наукові праці, відхилені роботи очищено від файлів.`,
+      "Успішно відв'язано активні та прийняті наукові праці, відхилені роботи очищено від файлів.",
     );
   }
 

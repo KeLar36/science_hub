@@ -3,36 +3,23 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { User, LogOut, Menu, Sun, Moon } from "lucide-react";
 import { useDarkMode } from "@/shared/lib/hooks/useDarkMode";
 import { useAuth } from "@/shared/lib/hooks/useAuth";
-
 import Link from "@/shared/ui/Link";
 import Dropdown from "@/shared/ui/DropDown";
+import Toggle from "@/shared/ui/Toggle";
+import Avatar from "@/shared/ui/Avatar";
 import MobileMenu from "@/shared/lib/components/layout/MobileMenu";
+import NotificationsPopover from "@/shared/ui/NotificationsPopover";
 
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const { theme, toggleTheme } = useDarkMode();
+
+  const [theme, toggleTheme] = useDarkMode();
   const { user, logout } = useAuth();
 
   const closeMenu = () => setIsOpen(false);
-
-  const handleThemeToggle = () => {
-    if (typeof toggleTheme === "function") {
-      toggleTheme();
-    }
-    const currentTheme = document.documentElement.classList.contains("dark")
-      ? "dark"
-      : "light";
-    if (currentTheme === "dark") {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    } else {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    }
-  };
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "unset";
@@ -123,33 +110,24 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="hidden lg:flex items-center gap-2">
-              <button
-                onClick={handleThemeToggle}
-                className="p-2 rounded-lg border border-border-color bg-bg-secondary/40 text-text-muted hover:text-brand hover:bg-bg-secondary transition-colors cursor-pointer"
-                aria-label="Toggle theme"
-              >
-                {theme === "light" ? (
-                  <Moon className="w-4 h-4" />
-                ) : (
-                  <Sun className="w-4 h-4" />
-                )}
-              </button>
+            <div className="hidden lg:flex items-center gap-3">
+              <Toggle
+                checked={theme === "dark"}
+                onChange={toggleTheme}
+                iconOff={Moon}
+                iconOn={Sun}
+                size="lg"
+                className="p0 gap-0"
+              />
+
+              {user && <NotificationsPopover />}
 
               {user ? (
                 <Dropdown
                   items={userDropdownItems}
                   trigger={() => (
-                    <div className="w-8 h-8 rounded-lg border border-border-color bg-bg-secondary/40 flex items-center justify-center transition-colors hover:border-brand overflow-hidden cursor-pointer">
-                      {user.image ? (
-                        <img
-                          src={user.image}
-                          alt="Profile"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <User className="w-4 h-4 text-text-primary" />
-                      )}
+                    <div className="cursor-pointer hover:opacity-90 transition-opacity">
+                      <Avatar src={user.image} name={user.name} size="md" />
                     </div>
                   )}
                 />
@@ -165,7 +143,7 @@ export default function Navbar() {
 
             <button
               onClick={() => setIsOpen(true)}
-              className="lg:hidden p-2 rounded-lg border border-border-color bg-bg-secondary/40 text-text-primary transition-colors cursor-pointer"
+              className="lg:hidden p-2 rounded-lg border border-border-color bg-bg-secondary/40 text-text-primary transition-colors cursor-pointer flex items-center justify-center"
               aria-label="Toggle menu"
             >
               <Menu className="w-4 h-4" />
@@ -181,7 +159,7 @@ export default function Navbar() {
         user={user}
         handleLogout={handleLogout}
         theme={theme}
-        toggleTheme={handleThemeToggle}
+        toggleTheme={toggleTheme}
         currentPath={location.pathname}
       />
     </>

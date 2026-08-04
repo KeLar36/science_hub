@@ -171,7 +171,7 @@ export function useOrganizationDashboard(orgId) {
         userId,
         roleData,
       );
-      await fetchMembers();
+      await Promise.all([fetchMembers(), fetchSubmittedProjects()]);
       return { success: true, message: res.message };
     } catch (err) {
       console.error("Помилка зміни ролі учасника:", err);
@@ -327,7 +327,7 @@ export function useOrganizationDashboard(orgId) {
     try {
       setActionLoading(true);
       const res = await organizationApi.kickMember(orgId, targetUserId);
-      await fetchMembers();
+      await Promise.all([fetchMembers(), fetchSubmittedProjects()]);
       return { success: true, message: res.message };
     } catch (err) {
       console.error("Помилка виключення користувача:", err);

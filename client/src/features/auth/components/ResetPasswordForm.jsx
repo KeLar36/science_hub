@@ -1,12 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Lock, CheckCircle2, ArrowRight } from "lucide-react";
 import Input from "@/shared/ui/Input";
 import Button from "@/shared/ui/Button";
+import Alert from "@/shared/ui/Alert";
 
 export default function ResetPasswordForm({
   onSubmit,
   isSubmitting,
   isSuccess,
+  error,
+  clearError,
   onBackToLoginClick,
 }) {
   const [password, setPassword] = useState("");
@@ -16,6 +19,13 @@ export default function ResetPasswordForm({
     confirmPassword && password !== confirmPassword
       ? "Паролі не збігаються"
       : "";
+
+  useEffect(() => {
+    if (error && clearError) {
+      const timer = setTimeout(() => clearError(), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, clearError]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -47,8 +57,8 @@ export default function ResetPasswordForm({
   }
 
   return (
-    <div className="animate-reveal w-full">
-      <div className="mb-6">
+    <div className="animate-reveal w-full space-y-5">
+      <div>
         <h2 className="text-xl font-bold tracking-tight text-text-primary uppercase font-display">
           Новий пароль
         </h2>
@@ -56,6 +66,12 @@ export default function ResetPasswordForm({
           Встановіть новий захисний ключ доступу
         </p>
       </div>
+
+      {error && (
+        <Alert variant="danger" title="Помилка збереження" onClose={clearError}>
+          {error}
+        </Alert>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <Input

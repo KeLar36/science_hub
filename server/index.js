@@ -82,7 +82,7 @@ app.use("/api/users", require("./routes/userRoutes"));
 app.use("/api/posts", require("./routes/postsRoutes"));
 app.use("/api/comments", require("./routes/commentRoutes"));
 app.use("/api/organizations", require("./routes/organizationRoutes"));
-
+app.use("/api/notifications", require("./routes/notificationRoutes"));
 app.get("/", (req, res) => {
   res.send("Science Platform API is running...");
 });

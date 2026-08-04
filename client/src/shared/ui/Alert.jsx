@@ -23,7 +23,7 @@ export default function Alert({
 
   return (
     <div
-      className={`flex items-start justify-between gap-3 p-4 border rounded shadow-sm ${variants[variant]} ${className}`}
+      className={`flex items-start justify-between gap-3 p-4 border rounded shadow-sm transition-all duration-200 animate-in fade-in ${variants[variant]} ${className}`}
     >
       <div className="flex gap-3">
         <div className="shrink-0 mt-0.5">{icons[variant]}</div>
@@ -39,12 +39,12 @@ export default function Alert({
         </div>
       </div>
 
-      {/* Кнопка закриття */}
       {onClose && (
         <button
           onClick={onClose}
           type="button"
           className="text-text-muted hover:text-text-primary p-0.5 rounded cursor-pointer shrink-0 transition-colors"
+          aria-label="Close alert"
         >
           <X className="w-4 h-4" />
         </button>

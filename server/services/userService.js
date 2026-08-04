@@ -1,7 +1,9 @@
 const User = require("../models/User");
 const Post = require("../models/Post");
+const Organization = require("../models/Organization");
 const cloudinary = require("cloudinary").v2;
 const mongoose = require("mongoose");
+const notificationService = require("./notificationService");
 
 class UserService {
   async #deleteImageFromCloudinary(imageUrl) {
@@ -49,10 +51,29 @@ class UserService {
 
     if (filters.search && filters.search.trim()) {
       const searchRegex = { $regex: filters.search.trim(), $options: "i" };
-      query.$or = [{ name: searchRegex }, { email: searchRegex }];
+      query.$or = [{ title: searchRegex }, { email: searchRegex }];
     }
 
     return query;
+  }
+
+  async #unassignReviewerProjects(reviewerId) {
+    const Project = mongoose.model("Project");
+    await Project.updateMany(
+      {
+        reviewerId: reviewerId,
+        status: { $in: ["На розгляді", "На доопрацюванні"] },
+      },
+      {
+        $set: {
+          reviewerId: null,
+          reviewStatus: "Не призначено",
+        },
+      },
+    );
+    console.log(
+      `Проєкти рецензента ${reviewerId} успішно скинуто у статус "Не призначено".`,
+    );
   }
 
   async anonymizeUser(userId) {
@@ -69,9 +90,9 @@ class UserService {
       throw error;
     }
 
-    const Organization = mongoose.model("Organization");
+    const OrganizationModel = mongoose.model("Organization");
 
-    const ownedOrg = await Organization.findOne({ creatorId: userId });
+    const ownedOrg = await OrganizationModel.findOne({ creatorId: userId });
     if (ownedOrg) {
       if (ownedOrg.members.length <= 1) {
         const error = new Error(
@@ -88,7 +109,7 @@ class UserService {
       throw error;
     }
 
-    await Organization.updateMany(
+    await OrganizationModel.updateMany(
       { members: userId },
       { $pull: { members: userId } },
     );
@@ -125,7 +146,7 @@ class UserService {
 
     await user.save();
     console.log(
-      `Користувача ${userId} успішно анонімізовано та позначано isAnonymized: true.`,
+      `Користувача ${userId} успішно анонімізовано за стандартами GDPR.`,
     );
     return user;
   }
@@ -144,7 +165,7 @@ class UserService {
 
   async updateProfile(id, profileData) {
     const currentUser = await User.findById(id).select(
-      "image organizationId role",
+      "image organizationId role isReviewerActive",
     );
 
     if (
@@ -170,79 +191,58 @@ class UserService {
       }
     }
 
-    return await User.findByIdAndUpdate(
+    const updatedUser = await User.findByIdAndUpdate(
       id,
       { $set: profileData },
       { new: true, runValidators: true },
     ).select("-password");
-  }
 
-  async anonymizeUser(userId) {
-    const user = await User.findById(userId);
-    if (!user) {
-      const error = new Error("Користувача не знайдено");
-      error.statusCode = 404;
-      throw error;
-    }
+    if (!updatedUser) return null;
 
-    const Organization = mongoose.model("Organization");
-
-    const ownedOrg = await Organization.findOne({ creatorId: userId });
-    if (ownedOrg) {
-      if (ownedOrg.members.length <= 1) {
-        const error = new Error(
-          "Ви є єдиним членом та засновником установи. Будь ласка, видаліть установу перед анонімізацією профілю.",
+    if (
+      currentUser &&
+      profileData.isReviewerActive !== undefined &&
+      profileData.isReviewerActive !== currentUser.isReviewerActive
+    ) {
+      try {
+        const statusMsg = profileData.isReviewerActive
+          ? "активовано"
+          : "деактивовано";
+        await notificationService.createNotification({
+          recipientId: id,
+          title: "Статус рецензента",
+          message: `Ваш статус активності рецензента успішно ${statusMsg}.`,
+          type: "SYSTEM_INFO",
+          link: "/profile",
+          sendEmail: false,
+        });
+      } catch (err) {
+        console.error(
+          "Помилка надсилання сповіщення про статус рецензента:",
+          err,
         );
-        error.statusCode = 400;
-        throw error;
       }
-
-      const error = new Error(
-        "Ви є засновником організації. Передайте права власності іншому учаснику перед анонімізацією.",
-      );
-      error.statusCode = 400;
-      throw error;
     }
 
-    await Organization.updateMany(
-      { members: userId },
-      { $pull: { members: userId } },
-    );
+    const userObj = updatedUser.toObject
+      ? updatedUser.toObject()
+      : { ...updatedUser };
 
-    if (user.image) {
-      await this.#deleteImageFromCloudinary(user.image);
-    }
+    const pendingJoinOrg = await Organization.findOne({
+      "joinRequests.userId": id,
+    }).select("_id name");
 
-    const anonymizedEmail = `deleted_${userId}_${Date.now()}@scienceplatform.com`;
+    const pendingCreateOrg = await Organization.findOne({
+      creatorId: id,
+      status: "pending",
+    }).select("_id name");
 
-    user.name = "Анонімний дослідник";
-    user.email = anonymizedEmail;
-    user.password = `anonymized_${Date.now()}_${Math.random().toString(36).substring(2)}`;
-    user.image = null;
-    user.bio =
-      "Цей акаунт було видалено користувачем за власним бажанням відповідно до політики GDPR.";
-    user.topics = [];
-    user.city = "";
-    user.socials = { github: "", twitter: "", linkedIn: "" };
-    user.bookmarks = [];
-    user.organizationId = null;
-    user.pendingOrganizationId = undefined;
-
-    user.role = "user";
-
-    if (user.allowedDomains) user.allowedDomains = [];
-    if (user.allowedTypes) user.allowedTypes = [];
-    if (user.academicDegree) user.academicDegree = "Немає / Дослідник";
-
-    if (user.isReviewerActive !== undefined) {
-      user.isReviewerActive = false;
-    }
-
-    await user.save();
-    console.log(
-      `Користувача ${userId} успішно анонімізовано за стандартами GDPR.`,
-    );
-    return user;
+    return {
+      ...userObj,
+      pendingOrganizationId: pendingCreateOrg ? pendingCreateOrg._id : null,
+      pendingJoinRequestOrgId: pendingJoinOrg ? pendingJoinOrg._id : null,
+      hasPendingJoinRequest: Boolean(pendingJoinOrg),
+    };
   }
 
   async getPagedUsers(queryFilters = {}, page = 1, limit = 8) {
@@ -274,16 +274,11 @@ class UserService {
       throw error;
     }
 
-    if (targetUser.isAnonymized) {
-      const error = new Error(
-        "Неможливо змінити роль анонімізованому акаунту.",
-      );
-      error.statusCode = 400;
-      throw error;
+    if (targetUser.role === "reviewer" && role !== "reviewer") {
+      await this.#unassignReviewerProjects(id);
     }
 
     let updateQuery = {};
-
     if (role === "reviewer") {
       updateQuery = {
         $set: {
@@ -306,11 +301,26 @@ class UserService {
       };
     }
 
-    return await User.findByIdAndUpdate(id, updateQuery, {
+    const updatedUser = await User.findByIdAndUpdate(id, updateQuery, {
       new: true,
       runValidators: true,
       overwriteDiscriminatorKey: true,
     });
+
+    try {
+      await notificationService.createNotification({
+        recipientId: id,
+        title: "Зміна ролі акаунта",
+        message: `Адміністратор змінив вашу роль у системі на: "${role}".`,
+        type: "SYSTEM_INFO",
+        link: "/profile",
+        sendEmail: true,
+      });
+    } catch (err) {
+      console.error("Помилка надсилання сповіщення про зміну ролі:", err);
+    }
+
+    return updatedUser;
   }
 
   async updateBanStatus(id, isBanned) {
@@ -350,6 +360,24 @@ class UserService {
       console.log(
         `Авто-очищення: Усі активні роботи забаненого рецензента ${user.name} скинуто в чергу.`,
       );
+    }
+
+    try {
+      const title = isBanned ? "Акаунт заблоковано" : "Акаунт розблоковано";
+      const message = isBanned
+        ? "Ваш акаунт було заблоковано адміністратором."
+        : "Ваш акаунт розблоковано. Ви знову маєте доступ до всіх функцій платформи.";
+
+      await notificationService.createNotification({
+        recipientId: id,
+        title,
+        message,
+        type: "SYSTEM_INFO",
+        link: "/profile",
+        sendEmail: true,
+      });
+    } catch (err) {
+      console.error("Помилка надсилання сповіщення про бан/розбан:", err);
     }
 
     const updatedUser = await User.findById(id).select("-password");

@@ -74,9 +74,7 @@ export default function EditProfileModal({
     }
 
     const res = await onSave(dataToSend);
-    if (res?.success) {
-      onClose();
-    } else if (res?.error) {
+    if (res?.error) {
       setFormError(res.error);
     }
   };

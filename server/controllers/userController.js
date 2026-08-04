@@ -1,12 +1,33 @@
 const userService = require("../services/userService");
 const User = require("../models/User");
 const Post = require("../models/Post");
+const Organization = require("../models/Organization");
 
 class UserController {
   async getMe(req, res, next) {
     try {
-      const user = await userService.getById(req.user.id);
-      res.json({ user });
+      let rawUser = await userService.getById(req.user.id);
+
+      const userObj = rawUser.toObject ? rawUser.toObject() : { ...rawUser };
+      const userId = req.user.id;
+
+      const pendingJoinOrg = await Organization.findOne({
+        "joinRequests.userId": userId,
+      }).select("_id name");
+
+      const pendingCreateOrg = await Organization.findOne({
+        creatorId: userId,
+        status: "pending",
+      }).select("_id name");
+
+      const fullUserData = {
+        ...userObj,
+        pendingOrganizationId: pendingCreateOrg ? pendingCreateOrg._id : null,
+        pendingJoinRequestOrgId: pendingJoinOrg ? pendingJoinOrg._id : null,
+        hasPendingJoinRequest: Boolean(pendingJoinOrg),
+      };
+
+      res.json({ user: fullUserData });
     } catch (err) {
       next(err);
     }

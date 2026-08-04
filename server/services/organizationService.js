@@ -5,6 +5,7 @@ const Program = require("../models/Program");
 const Post = require("../models/Post");
 const Comment = require("../models/Comment");
 const projectService = require("./projectService");
+const notificationService = require("./notificationService");
 const mongoose = require("mongoose");
 const cloudinary = require("cloudinary").v2;
 
@@ -224,6 +225,20 @@ class OrganizationService {
 
     organization.joinRequests.push({ userId });
     await organization.save();
+
+    try {
+      const applicant = await User.findById(userId).select("name");
+      await notificationService.createNotification({
+        recipientId: organization.creatorId,
+        title: "Нова заявка на вступ",
+        message: `Користувач ${applicant?.name || "Хтось"} надіслав запит на приєднання до вашої установи "${organization.name}".`,
+        type: "SYSTEM_INFO",
+        link: "/organization/dashboard",
+        sendEmail: false,
+      });
+    } catch (notifErr) {
+      console.error("Помилка створення сповіщення requestToJoin:", notifErr);
+    }
   }
 
   async leaveOrganization(userId) {
@@ -502,6 +517,21 @@ class OrganizationService {
       }
       await user.save();
     }
+
+    try {
+      await notificationService.createNotification({
+        recipientId: userId,
+        title: "Запит на вступ схвалено!",
+        message: `Ваш запит на приєднання до установи "${organization.name}" успішно підтверджено. Ласкаво просимо!`,
+        type: "ORG_JOIN_APPROVED",
+        link: "/organization/dashboard",
+      });
+    } catch (notifErr) {
+      console.error(
+        "Помилка створення сповіщення acceptJoinRequest:",
+        notifErr,
+      );
+    }
   }
 
   async rejectJoinRequest(orgId, userId) {
@@ -515,11 +545,41 @@ class OrganizationService {
     organization.joinRequests = organization.joinRequests.filter(
       (req) => req.userId.toString() !== userId.toString(),
     );
-
     await organization.save();
+
+    const user = await User.findById(userId);
+    if (user) {
+      if (user.organizationId?.toString() === orgId.toString()) {
+        user.organizationId = null;
+      }
+      if (user.pendingJoinRequestOrgId?.toString() === orgId.toString()) {
+        user.pendingJoinRequestOrgId = null;
+      }
+      await user.save();
+    }
+
+    try {
+      await notificationService.createNotification({
+        recipientId: userId,
+        title: "Запит на вступ відхилено",
+        message: `На жаль, ваш запит на приєднання до установи "${organization.name}" було відхилено адміністратором.`,
+        type: "ORG_JOIN_REJECTED",
+      });
+    } catch (notifErr) {
+      console.error(
+        "Помилка створення сповіщення rejectJoinRequest:",
+        notifErr,
+      );
+    }
   }
 
   async kickMember(orgId, adminUser, targetUserId) {
+    if (!targetUserId) {
+      const error = new Error("ID учасника не вказано");
+      error.statusCode = 400;
+      throw error;
+    }
+
     const org = await Organization.findById(orgId);
     if (!org) {
       const error = new Error("Установу не знайдено");
@@ -528,9 +588,11 @@ class OrganizationService {
     }
 
     const isSuperAdmin = adminUser.role === "superadmin";
-    const isCreator =
-      org.creatorId.toString() === (adminUser._id || adminUser.id).toString();
+    const creatorIdStr = org.creatorId ? org.creatorId.toString() : null;
+    const adminIdStr = (adminUser._id || adminUser.id)?.toString();
+    const targetUserIdStr = targetUserId.toString();
 
+    const isCreator = creatorIdStr && creatorIdStr === adminIdStr;
     if (!isCreator && !isSuperAdmin) {
       const error = new Error(
         "Тільки засновник або суперадмін може виключати учасників",
@@ -539,20 +601,21 @@ class OrganizationService {
       throw error;
     }
 
-    if (targetUserId.toString() === org.creatorId.toString()) {
+    if (creatorIdStr && targetUserIdStr === creatorIdStr) {
       const error = new Error("Не можна виключити засновника організації");
       error.statusCode = 400;
       throw error;
     }
 
     org.members = org.members.filter(
-      (m) => m.toString() !== targetUserId.toString(),
+      (m) => m && m.toString() !== targetUserIdStr,
     );
     await org.save();
 
     const user = await User.findById(targetUserId);
     if (user) {
       user.organizationId = null;
+      user.pendingJoinRequestOrgId = null;
 
       if (user.role !== "superadmin") {
         if (user.role === "reviewer") {
@@ -565,6 +628,18 @@ class OrganizationService {
       }
 
       await user.save();
+    }
+
+    try {
+      await notificationService.createNotification({
+        recipientId: targetUserId,
+        title: "Зміна статусу в установі",
+        message: `Вас було виключено зі складу учасників установи "${org.name}".`,
+        type: "SYSTEM_INFO",
+        link: "/profile",
+      });
+    } catch (notifErr) {
+      console.error("Помилка створення сповіщення kickMember:", notifErr);
     }
   }
 
@@ -606,6 +681,31 @@ class OrganizationService {
       const error = new Error("Користувач не є членом цієї організації");
       error.statusCode = 404;
       throw error;
+    }
+
+    const targetUser = await User.findById(targetUserId).select("role");
+
+    if (
+      targetUser &&
+      targetUser.role === "reviewer" &&
+      newRole !== "reviewer"
+    ) {
+      const Project = mongoose.model("Project");
+      await Project.updateMany(
+        {
+          reviewerId: targetUserId,
+          status: { $in: ["На розгляді", "На доопрацюванні"] },
+        },
+        {
+          $set: {
+            reviewerId: null,
+            reviewStatus: "Не призначено",
+          },
+        },
+      );
+      console.log(
+        `Очищення черги: Активні проєкти користувача ${targetUserId} скинуто у статус "Не призначено".`,
+      );
     }
 
     if (newRole === "reviewer") {
@@ -650,6 +750,19 @@ class OrganizationService {
       delete updatedUser.allowedDomains;
       delete updatedUser.allowedTypes;
       delete updatedUser.isReviewerActive;
+    }
+
+    try {
+      await notificationService.createNotification({
+        recipientId: targetUserId,
+        title: "Вам надано нову роль!",
+        message: `Вашу роль в установі "${org.name}" оновлено на: "${newRole}".`,
+        type: "SYSTEM_INFO",
+        link: "/profile",
+        sendEmail: true,
+      });
+    } catch (notifErr) {
+      console.error("Помилка створення сповіщення updateMemberRole:", notifErr);
     }
 
     return updatedUser;
@@ -699,6 +812,29 @@ class OrganizationService {
     if (currentOwner && currentOwner.role !== "superadmin") {
       currentOwner.role = "user";
       await currentOwner.save();
+    }
+
+    try {
+      await notificationService.createNotification({
+        recipientId: newOwnerId,
+        title: "Вам передано права власності!",
+        message: `Вам успішно передано права власності на установу "${org.name}". Тепер ви є її керівником.`,
+        type: "SYSTEM_INFO",
+        link: "/organization/dashboard",
+      });
+
+      await notificationService.createNotification({
+        recipientId: currentOwnerId,
+        title: "Права власності передано успішно!",
+        message: `Права власності на установу "${org.name}" було успішно передано іншому учасникові.`,
+        type: "SYSTEM_INFO",
+        link: "/profile",
+      });
+    } catch (notifErr) {
+      console.error(
+        "Помилка створення сповіщення transferOwnership:",
+        notifErr,
+      );
     }
 
     console.log(
@@ -780,6 +916,21 @@ class OrganizationService {
       if (updatedUser) {
         console.log(`Роль засновника успішно змінено на ${updatedUser.role}!`);
       }
+
+      try {
+        await notificationService.createNotification({
+          recipientId: creatorUserId,
+          title: "Установу підтверджено!",
+          message: `Вітаємо! Вашу заявку на реєстрацію установи "${org.name}" успішно схвалено. Вам надано роль Адміністратора.`,
+          type: "ORG_CREATED_APPROVED",
+          link: "/organization/dashboard",
+        });
+      } catch (notifErr) {
+        console.error(
+          "Помилка створення сповіщення updateStatus approved:",
+          notifErr,
+        );
+      }
     }
 
     if (status === "rejected") {
@@ -790,6 +941,21 @@ class OrganizationService {
       await User.findByIdAndUpdate(creatorUserId, {
         $unset: { pendingOrganizationId: 1 },
       });
+
+      try {
+        await notificationService.createNotification({
+          recipientId: creatorUserId,
+          title: "Заявку на реєстрацію установи відхилено",
+          message: `На жаль, вашу заявку на реєстрацію установи "${org.name}" було відхилено адміністратором платформи.`,
+          type: "ORG_CREATED_REJECTED",
+          link: "/profile",
+        });
+      } catch (notifErr) {
+        console.error(
+          "Помилка створення сповіщення updateStatus rejected:",
+          notifErr,
+        );
+      }
     }
 
     await org.save();
@@ -930,6 +1096,28 @@ class OrganizationService {
 
     if (org.logo) {
       await this.#deleteImageFromCloudinary(org.logo);
+    }
+
+    try {
+      const membersToNotify = org.members.filter(
+        (mId) => mId.toString() !== requestUserId.toString(),
+      );
+
+      for (const memberId of membersToNotify) {
+        await notificationService.createNotification({
+          recipientId: memberId,
+          title: "Установу розформовано",
+          message: `Установу, в якій ви перебували, було видалено. Ваш профіль переведено у статус звичайного дослідника.`,
+          type: "SYSTEM_INFO",
+          link: "/profile",
+          sendEmail: true,
+        });
+      }
+    } catch (notifErr) {
+      console.error(
+        "Помилка сповіщення членів при видаленні організації:",
+        notifErr,
+      );
     }
 
     await Organization.findByIdAndDelete(orgId);
